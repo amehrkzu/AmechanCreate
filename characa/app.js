@@ -2075,6 +2075,7 @@ function boardPoint(e) {
 }
 
 new ResizeObserver(layoutStage).observe($("app"));
+new ResizeObserver(layoutStage).observe(document.querySelector(".top")); // 上の帯の高さが変わったとき(トップへのリンクが入ったときなど)も測り直す
 SIDE_BY_SIDE.addEventListener("change", layoutStage);
 
 $("zoomIn").addEventListener("click", () => zoomTo(view.zoom * 1.25));

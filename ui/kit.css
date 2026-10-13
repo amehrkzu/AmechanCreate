@@ -105,6 +105,7 @@ section + section { margin-top: 28px; }
 /* 上の帯(ツールの画面の上) */
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: max(8px, env(safe-area-inset-top)) 12px 8px; background: var(--box); border-bottom: var(--border) solid var(--ink); }
 .topbar h1 { margin: 0; font-size: 16px; padding: 0 2px; background: linear-gradient(transparent 62%, var(--mark) 62%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+@media (max-width: 400px) { .topbar h1 { font-size: 14px; } }
 
 /* ---------- 入れ物 ---------- */
 /* 箱 */

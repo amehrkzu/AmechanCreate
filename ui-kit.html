@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>UI見本帳 - あめちゃんもの置き</title>
+<title>パーツ台帳 - あめちゃんもの置き</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
@@ -40,11 +40,15 @@
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--text); color: #fff; border-radius: 999px; padding: 6px 16px; font-weight: 700; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
 .toast.on { opacity: 1; }
 </style>
+<script src="ui/site-header.js" defer></script>
 </head>
 <body class="bg-dots">
+<header class="topbar" data-site-bar>
+  <a class="btn btn--small" href="ui-maker.html">パーツメーカーへ</a>
+</header>
 <main class="page">
   <div class="title-wrap">
-    <h1 class="title">UI見本帳</h1>
+    <h1 class="title">パーツ台帳</h1>
     <p class="lead">あめちゃんもの置きで作るページの部品</p>
   </div>
 
@@ -55,7 +59,7 @@
       <li>部品は<b>名前</b>で:<q>上に「大見出し」、その下に「リンクカード」を3つ。いちばん下に「注意書き」</q></li>
       <li>色も<b>名前</b>で:<q>このアイコンは「付箋・ミント」</q></li>
       <li>見本帳にない部品を作ったら、名前を決めてこの見本帳にも足してもらう</li>
-      <li>ボタンの形や色を自分で決めたいときは <a href="ui-maker.html">UIパーツメーカー</a> で作れます</li>
+      <li>ボタンの形や色を自分で決めたいときは <a href="ui-maker.html">パーツメーカー</a> で作れます</li>
       <li>各部品の「コードを見る」で HTML を確認・コピーできます</li>
     </ul>
   </section>
