@@ -72,9 +72,10 @@
 ## キャラクター紹介（profile.html）
 
 ### 状態
-- **Apps Script はデプロイ済み**。ただし中身のコードが違う可能性がある（下記）
-- `API_URL` は設定済み: `https://script.google.com/macros/s/AKfycbzT3eQmYJq7i8Vm3l3h1hNN0ZbJH-jLQvixA9hLLFTl7ZdjaxjsH-AOUmpaVYrmglXS2g/exec`
-- ただし2026-09-30時点では、このURLが `{"characters":[],"couplings":[]}` を返していた。カップリング用のコードが貼られている可能性が高いので、`profile_api.gs` への差し替えと新バージョンでのデプロイを依頼中
+- **Apps Script はデプロイ済み・動作確認済み**（2026-10-13）。`profile_api.gs` のコードで新しくデプロイし直した
+- `API_URL`: `https://script.google.com/macros/s/AKfycbzEx5Zlj5aTzs9NCNnG8uQKBttbc6Jljo-sVfrgnnxJQGLKHtHGkbypVk3eHbfy5Kvt9g/exec`
+  - 返り値に `extras` が入っていることを確認（キャラ3人：Cyarano Ott / Re'mea Tia / Ivoca Ott。項目と補足はまだ空）
+  - 前の URL（`AKfycbzT3eQ…`）はカップリング用のコードのままなので使わない
 
 ### シート構成（新しく作るスプレッドシート）
 - 「**プロフィール**」シート: A列 名前 | B列 画像（任意） | **C列以降は自由項目**
@@ -108,7 +109,7 @@
 ---
 
 ## 次にやること
-1. **profile**: ユーザーがApps Scriptのコードを `profile_api.gs` に差し替えて新バージョンでデプロイしたら、返り値に `extras` が入っているか（`couplings` がないか）を確認する
+1. ~~**profile**: 返り値に `extras` が入っているかを確認~~ → 2026-10-13 確認済み。あとはシートに項目・補足を書いていく
 2. **coupling**: ユーザーがデータを入れたら、API の返り値と画像の表示を確認する
 3. 画像フォルダを使うなら、`IMAGE_FOLDER_ID` を設定して再デプロイ（新バージョン）する
 4. 必要になったら：両ページを行き来するリンク、コミット・公開
