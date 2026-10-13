@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="ja" data-theme="sora">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>UI見本帳 - あめちゃんもの置き</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
+<!-- 部品の見た目はすべて ui/kit.css。ここに書いてあるのは見本帳ページの並べ方だけ -->
+<link rel="stylesheet" href="ui/kit.css">
+<style>
+.kit-bar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0; display: flex; flex-direction: column; gap: 8px; border-bottom: 2px dashed var(--line); }
+.kit-bar .tabs { max-width: 420px; }
+.kit-sec { scroll-margin-top: 100px; }
+.kit-sec > p { margin: -6px 0 12px; color: var(--muted); font-size: 13px; }
+.kit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.kit-item { display: flex; flex-direction: column; min-width: 0; padding: 0; overflow: hidden; }
+.kit-item.wide { grid-column: 1 / -1; }
+.kit-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; padding: 10px 14px 0; }
+.kit-head b { font-size: 15px; color: var(--accent); }
+.kit-head b::before { content: "✿ "; }
+.kit-head code { font-size: 12px; color: var(--muted); background: var(--tint); border-radius: 6px; padding: 0 6px; }
+.kit-desc { margin: 4px 14px 0; font-size: 12px; color: var(--muted); }
+.kit-demo { margin: 10px 14px; padding: 14px; border: 2px dashed var(--line); border-radius: 12px; background: var(--bg); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-width: 0; }
+.kit-demo.col { flex-direction: column; align-items: stretch; }
+.kit-demo > * { min-width: 0; }
+.kit-foot { margin-top: auto; padding: 0 14px 12px; display: flex; gap: 6px; }
+.kit-code { display: none; margin: 0 14px 12px; padding: 10px; background: var(--text); color: var(--bg); border-radius: 10px; font: 12px/1.5 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-all; max-height: 260px; overflow: auto; }
+.kit-item.show-code .kit-code { display: block; }
+.kit-colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 10px; }
+.kit-color { display: flex; gap: 10px; align-items: center; background: var(--box); border: 2px solid var(--line); border-radius: 14px; padding: 8px; cursor: pointer; font: inherit; color: var(--text); text-align: left; }
+.kit-color:hover { border-color: var(--accent); }
+.kit-color i { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--ink); flex-shrink: 0; }
+.kit-color b { display: block; font-size: 13px; }
+.kit-color small { display: block; font-size: 11px; color: var(--muted); line-height: 1.4; }
+.kit-howto ul { margin: 0; padding-left: 1.2em; font-size: 14px; }
+.kit-howto li { margin: 4px 0; }
+.kit-howto q { background: var(--tint); border-radius: 6px; padding: 0 6px; quotes: none; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--text); color: #fff; border-radius: 999px; padding: 6px 16px; font-weight: 700; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+.toast.on { opacity: 1; }
+</style>
+</head>
+<body class="bg-dots">
+<main class="page">
+  <div class="title-wrap">
+    <h1 class="title">UI見本帳</h1>
+    <p class="lead">あめちゃんもの置きで作るページの部品</p>
+  </div>
+
+  <section class="box kit-howto">
+    <h2>AIへの頼み方</h2>
+    <ul>
+      <li>まず<b>テーマ</b>を言う:<q>「そら」で作って</q>(水色) / <q>「いちご」</q>(ピンク) / <q>「みかん」</q>(オレンジ)</li>
+      <li>部品は<b>名前</b>で:<q>上に「大見出し」、その下に「リンクカード」を3つ。いちばん下に「注意書き」</q></li>
+      <li>色も<b>名前</b>で:<q>このアイコンは「付箋・ミント」</q></li>
+      <li>見本帳にない部品を作ったら、名前を決めてこの見本帳にも足してもらう</li>
+      <li>ボタンの形や色を自分で決めたいときは <a href="ui-maker.html">UIパーツメーカー</a> で作れます</li>
+      <li>各部品の「コードを見る」で HTML を確認・コピーできます</li>
+    </ul>
+  </section>
+
+  <div class="kit-bar">
+    <div class="tabs" id="themes" role="group" aria-label="テーマ">
+      <button type="button" class="tab" data-theme-id="sora" aria-pressed="true">そら 💧</button>
+      <button type="button" class="tab" data-theme-id="ichigo" aria-pressed="false">いちご 🍓</button>
+      <button type="button" class="tab" data-theme-id="mikan" aria-pressed="false">みかん 🍊</button>
+    </div>
+    <nav class="chips" id="nav"></nav>
+  </div>
+
+  <!-- ===== テーマと色 ===== -->
+  <section class="kit-sec" id="colors" data-title="色">
+    <h2 class="heading">テーマと色</h2>
+    <p>テーマは <code>&lt;html data-theme="sora"&gt;</code> で決めます(ichigo / mikan)。上のボタンで切り替えて見比べられます。色を押すと CSS の書き方をコピーします。</p>
+    <div class="kit-colors" id="colorList"></div>
+  </section>
+
+  <!-- ===== ページの骨組み ===== -->
+  <section class="kit-sec" id="layout" data-title="骨組み">
+    <h2 class="heading">ページの骨組み</h2>
+    <p>ページ全体の形。読み物・一覧のページは「ページの枠」、作業するツールは「上の帯」から。</p>
+    <div class="kit-grid">
+      <article class="kit-item box wide" data-name="ページの枠" data-cls=".page" data-desc="真ん中に寄せた幅880pxまでの入れ物。左右に16pxの余白。背景の模様は body に bg-dots(水玉)か bg-soft(ふんわりグラデ)">
+        <div class="kit-demo col"><pre class="hint" style="margin:0">&lt;html lang="ja" data-theme="sora"&gt;
+&lt;link rel="stylesheet" href="ui/kit.css"&gt;
+&lt;body class="bg-dots"&gt;
+  &lt;main class="page"&gt; … &lt;/main&gt;
+&lt;/body&gt;</pre></div>
+      </article>
+      <article class="kit-item box" data-name="大見出し" data-cls=".title-wrap > .title + .lead" data-desc="ページのいちばん上。蛍光ペンの下線。下にひとこと">
+        <div class="kit-demo col"><div class="title-wrap" style="margin:0"><h1 class="title">あめちゃんもの置き</h1><p class="lead">つくったものの置き場所</p></div></div>
+      </article>
+      <article class="kit-item box" data-name="中見出し" data-cls=".heading" data-desc="まとまりごとの見出し。前に ✿">
+        <div class="kit-demo col"><h2 class="heading" style="margin:0">ツール</h2></div>
+      </article>
+      <article class="kit-item box wide" data-name="上の帯" data-cls=".topbar" data-desc="ツールの画面のいちばん上。左にタイトル、右にボタン">
+        <div class="kit-demo col"><header class="topbar" style="border-radius:12px;border:var(--border) solid var(--ink)"><h1>FF14 キャラカメーカー</h1><button type="button" class="btn btn--small btn--primary">PNGで保存</button></header></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== 入れ物 ===== -->
+  <section class="kit-sec" id="boxes" data-title="入れ物">
+    <h2 class="heading">入れ物</h2>
+    <p>部品をまとめて囲むもの。</p>
+    <div class="kit-grid">
+      <article class="kit-item box" data-name="箱" data-cls=".box" data-desc="白い紙に太い枠線と下の影。見出し(h2)の前に ✿">
+        <div class="kit-demo col"><section class="box"><h2>キャラ情報</h2><p class="hint">ロードストーンIDを入れると自動で取ってきます</p></section></div>
+      </article>
+      <article class="kit-item box" data-name="たためる箱" data-cls="details.box" data-desc="見出しを押すと開く・閉じる。細かい設定をしまっておく">
+        <div class="kit-demo col"><details class="box" open><summary>くわしい設定</summary><div class="actions"><button type="button" class="btn btn--small">書き出す</button><button type="button" class="btn btn--small">読み込む</button></div></details></div>
+      </article>
+      <article class="kit-item box wide" data-name="リンクカード" data-cls=".cards > a.card" data-desc="別のページへのリンク。左のまるいアイコンの色は --c で決める。準備中は .is-disabled で灰色">
+        <div class="kit-demo col"><div class="cards">
+          <a class="card" href="#layout"><span class="icon" style="--c: var(--mint)"><svg viewBox="0 0 28 28"><rect x="4" y="6" width="20" height="16" rx="3"/><circle cx="10.5" cy="12.5" r="2.5"/><path d="M15 12h5M15 16h5M7 18h6"/></svg></span><span><b>FF14 キャラカメーカー</b><small>スクショからキャラカードを作る</small></span></a>
+          <div class="card is-disabled" aria-disabled="true"><span class="icon" style="--c: var(--pink)"><svg viewBox="0 0 28 28"><circle cx="14" cy="10" r="5"/><path d="M5 24c1-5 5-8 9-8s8 3 9 8"/></svg></span><span><b>キャラクター紹介</b><small>準備中</small></span></div>
+        </div></div>
+      </article>
+      <article class="kit-item box" data-name="小見出し(✧)" data-cls=".subhead" data-desc="箱の中の区切り。上に点線、前に ✧">
+        <div class="kit-demo col"><div class="fields"><p class="subhead">エフェクト</p><label class="field">明るさ<input type="range"></label><label class="field">彩度<input type="range"></label></div></div>
+      </article>
+      <article class="kit-item box" data-name="付箋シート" data-cls=".sheet-tabs + .sheet-body" data-desc="付箋みたいなタブで中身を切り替える。タブの色は --c、下の紙の色は --tab-c">
+        <div class="kit-demo col"><div data-sheet>
+          <div class="sheet-tabs" role="tablist">
+            <button type="button" class="sheet-tab" role="tab" aria-selected="true" style="--c: var(--pink)">デザイン</button>
+            <button type="button" class="sheet-tab" role="tab" aria-selected="false" style="--c: var(--lemon)">キャラ</button>
+            <button type="button" class="sheet-tab" role="tab" aria-selected="false" style="--c: var(--mint)">要素</button>
+          </div>
+          <div class="sheet-body" style="--tab-c: var(--pink)"><p class="hint">ここにタブの中身が入ります</p></div>
+        </div></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== ボタン ===== -->
+  <section class="kit-sec" id="buttons" data-title="ボタン">
+    <h2 class="heading">ボタン</h2>
+    <p>まるくて、下に影があり、押すと沈みます。</p>
+    <div class="kit-grid">
+      <article class="kit-item box" data-name="ぷっくりボタン" data-cls=".btn" data-desc="ふつうのボタン。いちばんよく使う">
+        <div class="kit-demo"><button type="button" class="btn">保存する</button><button type="button" class="btn" disabled>準備中…</button></div>
+      </article>
+      <article class="kit-item box" data-name="主役ボタン" data-cls=".btn.btn--primary" data-desc="画面でいちばん押してほしいボタン。1画面に1つまで">
+        <div class="kit-demo"><button type="button" class="btn btn--primary">PNGで保存</button></div>
+      </article>
+      <article class="kit-item box" data-name="削除ボタン" data-cls=".btn.btn--danger" data-desc="消す・やめるなど、取り消せない操作">
+        <div class="kit-demo"><button type="button" class="btn btn--danger">削除する</button></div>
+      </article>
+      <article class="kit-item box" data-name="小ボタン" data-cls=".btn--small" data-desc="ほかのボタンと組み合わせて小さくする。一覧の中や上の帯に">
+        <div class="kit-demo"><button type="button" class="btn btn--small">複製</button><button type="button" class="btn btn--small btn--primary">追加</button><button type="button" class="btn btn--small btn--danger">削除</button></div>
+      </article>
+      <article class="kit-item box" data-name="横いっぱいボタン" data-cls=".btn--block" data-desc="幅いっぱいの大きいボタン">
+        <div class="kit-demo col"><button type="button" class="btn btn--primary btn--block">スクショを選ぶ</button></div>
+      </article>
+      <article class="kit-item box" data-name="まるスイッチ" data-cls=".switch" data-desc="オン・オフの切り替え(aria-pressed)。オンでラベンダー">
+        <div class="kit-demo"><button type="button" class="switch" aria-pressed="true" data-toggle>グリッド</button><button type="button" class="switch" aria-pressed="false" data-toggle>スナップ</button></div>
+      </article>
+      <article class="kit-item box" data-name="つながりボタン" data-cls=".btn-group" data-desc="ひとつながりのボタン。－ 100% ＋ など">
+        <div class="kit-demo"><div class="btn-group"><button type="button">－</button><button type="button">100%</button><button type="button">＋</button></div></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== 選ぶ ===== -->
+  <section class="kit-sec" id="choose" data-title="選ぶ部品">
+    <h2 class="heading">選ぶ部品</h2>
+    <p>いくつかの中から選ぶもの。選んでいるものは aria-pressed="true"。</p>
+    <div class="kit-grid">
+      <article class="kit-item box" data-name="チップ" data-cls=".chips > .chip" data-desc="小さな候補ボタン・タグ。レモン色">
+        <div class="kit-demo"><div class="chips"><button type="button" class="chip">{name}</button><button type="button" class="chip">{server}</button><button type="button" class="chip">#FF14</button></div></div>
+      </article>
+      <article class="kit-item box" data-name="切り替えタブ" data-cls=".tabs > .tab" data-desc="表示の切り替え・絞り込み。横に均等に並ぶ。選ぶと水色">
+        <div class="kit-demo col"><div class="tabs" data-group><button type="button" class="tab" aria-pressed="true">すべて</button><button type="button" class="tab" aria-pressed="false">横長</button><button type="button" class="tab" aria-pressed="false">正方形</button></div></div>
+      </article>
+      <article class="kit-item box" data-name="見本付きボタン" data-cls=".tiles > .tile" data-desc="小さな絵と名前で選ぶ">
+        <div class="kit-demo col"><div class="tiles" data-group>
+          <button type="button" class="tile" aria-pressed="true"><svg viewBox="0 0 60 40"><rect x="4" y="4" width="52" height="32" rx="9"/></svg>丸い角</button>
+          <button type="button" class="tile" aria-pressed="false"><svg viewBox="0 0 60 40"><rect x="4" y="4" width="52" height="32"/></svg>四角</button>
+          <button type="button" class="tile" aria-pressed="false"><svg viewBox="0 0 60 40"><path d="M14 4H46L56 14V26L46 36H14L4 26V14Z"/></svg>角を切る</button>
+        </div></div>
+      </article>
+      <article class="kit-item box" data-name="キャラボタン" data-cls=".avatars > .avatar-btn" data-desc="まるい顔アイコンと名前。画像がないときは名前の1文字目">
+        <div class="kit-demo col"><div class="avatars" data-group>
+          <button type="button" class="avatar-btn" aria-pressed="true"><span class="avatar" style="--c: var(--pink)">シ</span>シラノ</button>
+          <button type="button" class="avatar-btn" aria-pressed="false"><span class="avatar" style="--c: var(--sky)">ア</span>アメ</button>
+          <button type="button" class="avatar-btn" aria-pressed="false"><span class="avatar" style="--c: var(--mint)">ミ</span>ミント</button>
+        </div></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== 入力 ===== -->
+  <section class="kit-sec" id="inputs" data-title="入力欄">
+    <h2 class="heading">入力欄</h2>
+    <p>ラベル(グレーの太字)の下に入力欄。選ぶとテーマの色のふちが付く。文字は16px(iPhoneで勝手に拡大されない)。</p>
+    <div class="kit-grid">
+      <article class="kit-item box wide" data-name="入力欄2列" data-cls=".fields > .field" data-desc="ふつうの入力欄の並べ方。.field--wide で1行ぶち抜き、.field--check でチェックボックス。幅360px以下は1列">
+        <div class="kit-demo col"><div class="fields">
+          <label class="field">キャラ名<input type="text" value="Cyrano Ott"></label>
+          <label class="field">フォント<select><option>ゴシック</option><option>明朝</option></select></label>
+          <label class="field field--wide">ひとこと<textarea rows="2">ここに好きなテキストを書けます</textarea></label>
+          <label class="field field--check"><input type="checkbox" checked>影を付ける</label>
+          <label class="field">大きさ<input type="range" value="40"></label>
+        </div></div>
+      </article>
+      <article class="kit-item box" data-name="横並び入力" data-cls=".row" data-desc="入力欄とボタンを1行に">
+        <div class="kit-demo col"><div class="row"><input type="text" placeholder="ロードストーンID"><button type="button" class="btn btn--primary">取得</button></div></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== 一覧・お知らせ ===== -->
+  <section class="kit-sec" id="lists" data-title="一覧・お知らせ">
+    <h2 class="heading">一覧・お知らせ</h2>
+    <p>並んだものを選ぶ一覧と、短いお知らせ。</p>
+    <div class="kit-grid">
+      <article class="kit-item box" data-name="選べる一覧" data-cls=".pick-list > li" data-desc="押して選ぶ一覧。左にラベル(.label)。選んでいる行は .selected">
+        <div class="kit-demo col"><ul class="pick-list" data-pick>
+          <li class="selected"><span class="label">文字</span>キャラ名</li>
+          <li><span class="label">画像</span>スクショ</li>
+          <li><span class="label">図形</span>パネル</li>
+        </ul></div>
+      </article>
+      <article class="kit-item box" data-name="お知らせ文" data-cls=".status--ok / .status--error" data-desc="操作の結果を1行で。うまくいったら緑、失敗したら赤">
+        <div class="kit-demo col"><p class="status status--ok">取得しました</p><p class="status status--error">キャラが見つかりませんでした</p></div>
+      </article>
+      <article class="kit-item box" data-name="ひとこと説明" data-cls=".hint / .note" data-desc="グレーの小さい文字。.hint は余白なし、.note は上に少し余白">
+        <div class="kit-demo col"><p class="hint">クリックで選択 / ドラッグで移動</p><p class="note">画像はこのブラウザの中だけで使います</p></div>
+      </article>
+      <article class="kit-item box" data-name="からっぽ表示" data-cls=".empty" data-desc="まだ何もないときに、点線の中にやさしく知らせる">
+        <div class="kit-demo col"><p class="empty" style="margin:0">キャラクターがまだ登録されていません</p></div>
+      </article>
+      <article class="kit-item box" data-name="注意書き" data-cls=".foot" data-desc="ページのいちばん下。著作物の表記など。上に点線">
+        <div class="kit-demo col"><footer class="foot" style="margin:0"><p>記載されている会社名・製品名・システム名などは、各社の商標、または登録商標です。</p></footer></div>
+      </article>
+      <article class="kit-item box" data-name="ぽんっと出る" data-cls=".pop" data-desc="表示が切り替わったときに付けると、ぽんっと出てくる。下のボタンで試せます" data-nocode>
+        <div class="kit-demo col"><section class="box" id="popDemo"><h2>プロフィール</h2><p class="hint">切り替わるとふわっと出ます</p></section><button type="button" class="btn btn--small" id="popBtn">もう一度</button></div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("on");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove("on"), 1400);
+}
+async function copy(text, msg) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(msg);
+  } catch {
+    toast("コピーできませんでした");
+  }
+}
+
+// ---------- 色(ui/kit.css から今のテーマの値を読む) ----------
+const COLORS = [
+  ["--accent", "アクセント", "見出し・強調・選んでいる印"],
+  ["--primary", "主役", "主役ボタン"],
+  ["--ink", "枠線", "太い枠線"],
+  ["--ink-soft", "影", "ボタン・箱の下の影"],
+  ["--line", "細線", "細い区切り・入力欄のふち"],
+  ["--text", "文字", "ふつうの文字"],
+  ["--muted", "ひかえめ", "説明・ラベルの文字"],
+  ["--bg", "背景", "ページの背景"],
+  ["--dot", "模様", "背景の水玉・選んだときの光"],
+  ["--tint", "うす色", "のせた・選んだときの背景"],
+  ["--mark", "蛍光ペン", "見出しの下線"],
+  ["--pink", "付箋・ピンク", "アイコン・タブ(どのテーマでも同じ)"],
+  ["--orange", "付箋・オレンジ", "アイコン・タブ"],
+  ["--lemon", "付箋・レモン", "チップ・アイコン・タブ"],
+  ["--mint", "付箋・ミント", "アイコン・タブ"],
+  ["--sky", "付箋・水色", "選んだ切り替えタブ・アイコン"],
+  ["--lilac", "付箋・ラベンダー", "オンのスイッチ・ラベル"],
+  ["--danger", "警告", "削除・失敗"],
+  ["--ok", "成功", "うまくいった"],
+];
+function renderColors() {
+  const css = getComputedStyle(document.documentElement);
+  $("colorList").innerHTML = COLORS.map(([v, name, use]) =>
+    `<button type="button" class="kit-color" data-var="${v}"><i style="background:var(${v})"></i><span><b>${name}</b><small>var(${v}) ${css.getPropertyValue(v).trim()}</small><small>${use}</small></span></button>`).join("");
+}
+$("colorList").addEventListener("click", (e) => {
+  const b = e.target.closest(".kit-color");
+  if (b) copy(`var(${b.dataset.var})`, `var(${b.dataset.var}) をコピーしました`);
+});
+
+// ---------- テーマの切り替え(このブラウザに覚えておく) ----------
+function setTheme(id) {
+  document.documentElement.dataset.theme = id;
+  for (const b of $("themes").children) b.setAttribute("aria-pressed", b.dataset.themeId === id ? "true" : "false");
+  renderColors();
+  try { localStorage.setItem("uikit:theme", id); } catch {}
+}
+$("themes").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-theme-id]");
+  if (b) setTheme(b.dataset.themeId);
+});
+{
+  let saved = null;
+  try { saved = localStorage.getItem("uikit:theme"); } catch {}
+  setTheme(["sora", "ichigo", "mikan"].includes(saved) ? saved : "sora");
+}
+
+// ---------- 見本の見出し・コード表示 ----------
+const pretty = (html) => html.replace(/\s+(?=<)/g, "").replace(/></g, ">\n<").replace(/ data-(toggle|group|sheet|pick)(="[^"]*")?/g, "").trim();
+for (const item of document.querySelectorAll(".kit-item")) {
+  const demo = item.querySelector(".kit-demo");
+  const head = document.createElement("div");
+  head.className = "kit-head";
+  head.innerHTML = "<b></b><code></code>";
+  head.querySelector("b").textContent = item.dataset.name;
+  head.querySelector("code").textContent = item.dataset.cls;
+  const desc = document.createElement("p");
+  desc.className = "kit-desc";
+  desc.textContent = item.dataset.desc;
+  item.prepend(head, desc);
+  if ("nocode" in item.dataset) continue;
+  const code = document.createElement("pre");
+  code.className = "kit-code";
+  code.textContent = demo.querySelector("pre") ? demo.querySelector("pre").textContent : pretty(demo.innerHTML.replace(/ style="margin:0"/g, ""));
+  const foot = document.createElement("div");
+  foot.className = "kit-foot";
+  foot.innerHTML = '<button type="button" class="btn btn--small" data-act="show">コードを見る</button><button type="button" class="btn btn--small" data-act="copy">コードをコピー</button>';
+  foot.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (btn?.dataset.act === "show") {
+      item.classList.toggle("show-code");
+      btn.textContent = item.classList.contains("show-code") ? "コードを閉じる" : "コードを見る";
+    }
+    if (btn?.dataset.act === "copy") copy(code.textContent, `「${item.dataset.name}」のコードをコピーしました`);
+  });
+  item.append(foot, code);
+}
+
+// ---------- 見本を触れるように ----------
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-toggle]");
+  if (t) t.setAttribute("aria-pressed", t.getAttribute("aria-pressed") === "true" ? "false" : "true");
+  const g = e.target.closest("[data-group] > button");
+  if (g) for (const b of g.parentElement.children) b.setAttribute("aria-pressed", b === g ? "true" : "false");
+  const li = e.target.closest("[data-pick] > li");
+  if (li) for (const x of li.parentElement.children) x.classList.toggle("selected", x === li);
+  const s = e.target.closest("[data-sheet] .sheet-tab");
+  if (s) {
+    const sheet = s.closest("[data-sheet]");
+    for (const b of sheet.querySelectorAll(".sheet-tab")) b.setAttribute("aria-selected", b === s ? "true" : "false");
+    const body = sheet.querySelector(".sheet-body");
+    body.style.setProperty("--tab-c", s.style.getPropertyValue("--c"));
+    body.querySelector(".hint").textContent = `「${s.textContent}」タブの中身`;
+  }
+});
+$("popBtn").addEventListener("click", () => {
+  const el = $("popDemo");
+  el.classList.remove("pop");
+  void el.offsetWidth; // アニメーションをもう一度始めるため
+  el.classList.add("pop");
+});
+
+// ---------- もくじ ----------
+$("nav").innerHTML = [...document.querySelectorAll(".kit-sec")].map((s) => `<a class="chip" href="#${s.id}">${s.dataset.title}</a>`).join("");
+</script>
+</body>
+</html>

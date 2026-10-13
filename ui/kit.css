@@ -1,0 +1,320 @@
+/* あめちゃんもの置き 共通UI(見本は ../ui-kit.html)
+   合言葉は「かわいく」:パステル・太めの枠線・まるい角・押すと沈むボタン・丸ゴシック
+   使い方:<html data-theme="sora|ichigo|mikan"> と、このファイルを読み込む。部品は見本帳の名前で呼ぶ */
+
+/* ---------- テーマ(色だけが変わる。部品の形は共通) ---------- */
+/* そら:水色。サイトのトップなど */
+:root, [data-theme="sora"] {
+  --bg: #f1f8ff;
+  --dot: #d5e9ff;
+  --ink: #6f8fb3;
+  --ink-soft: #c5d9ef;
+  --line: #dbe8f5;
+  --text: #3b4a5e;
+  --muted: #8396ad;
+  --accent: #4ea4e8;
+  --primary: #a9d4fb;
+  --primary-hover: #c2e1fd;
+  --tint: #eaf4ff; /* 選んでいるもの・のせたときの、うすい色 */
+  --mark: #cbe5ff; /* 蛍光ペンの下線・文字を選んだときの色 */
+}
+/* いちご:ピンク。キャラ紹介・カップリングなど */
+[data-theme="ichigo"] {
+  --bg: #fff5f8;
+  --dot: #ffe1ec;
+  --ink: #b07a95;
+  --ink-soft: #f0cfdc;
+  --line: #f5dde7;
+  --text: #4a3340;
+  --muted: #9a7a8a;
+  --accent: #ff6f9c;
+  --primary: #ffb3cf;
+  --primary-hover: #ffc8dc;
+  --tint: #fff0f5;
+  --mark: #ffd1e3;
+}
+/* みかん:オレンジ。ツール(キャラカなど) */
+[data-theme="mikan"] {
+  --bg: #fff6ee;
+  --dot: #ffe6cf;
+  --ink: #a8714a;
+  --ink-soft: #ecd0b8;
+  --line: #f3e1d0;
+  --text: #5a3f2c;
+  --muted: #b0907a;
+  --accent: #ff8a3d;
+  --primary: #ffbf8a;
+  --primary-hover: #ffcfa3;
+  --tint: #fff4ea;
+  --mark: #ffd9b5;
+}
+/* どのテーマでも同じもの */
+:root {
+  --box: #ffffff;
+  --pink: #ffc6dc;
+  --orange: #ffcf9f;
+  --lemon: #ffe7a3;
+  --mint: #bdeccd;
+  --sky: #bfdcff;
+  --lilac: #dccbff;
+  --danger: #e0567a;
+  --danger-bg: #ffe3ea;
+  --ok: #2f9e6e;
+  --border: 2.5px;
+  --radius: 16px;
+  --font: "M PLUS Rounded 1c", "Zen Maru Gothic", "Noto Sans JP", system-ui, sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; } /* display を決めた部品でも hidden で隠れるように */
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font: 15px/1.6 var(--font);
+  background-color: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
+::selection { background: var(--mark); }
+button, .btn, .chip, .tab, .sheet-tab { touch-action: manipulation; } /* ダブルタップで拡大しない */
+
+/* ---------- 背景の模様 ---------- */
+/* 水玉 */
+.bg-dots {
+  background-image: radial-gradient(var(--dot) 18%, transparent 19%), radial-gradient(var(--dot) 18%, transparent 19%);
+  background-size: 28px 28px;
+  background-position: 0 0, 14px 14px;
+}
+/* ふんわりグラデ(すみに色がにじむ) */
+.bg-soft {
+  background-image: radial-gradient(circle at 20% 10%, var(--dot), transparent 50%), radial-gradient(circle at 80% 90%, #efe3ff, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* ---------- ページの骨組み ---------- */
+.page { max-width: 880px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); }
+/* 大見出し:蛍光ペンの下線 */
+.title { display: inline-block; margin: 0; font-size: 28px; letter-spacing: .06em; padding: 0 6px; background: linear-gradient(transparent 62%, var(--mark) 62%); }
+.title-wrap { text-align: center; margin-bottom: 28px; }
+.lead { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+/* 中見出し:前に ✿ */
+.heading { margin: 0 0 12px; font-size: 17px; color: var(--accent); }
+.heading::before { content: "✿ "; }
+section + section { margin-top: 28px; }
+/* 上の帯(ツールの画面の上) */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: max(8px, env(safe-area-inset-top)) 12px 8px; background: var(--box); border-bottom: var(--border) solid var(--ink); }
+.topbar h1 { margin: 0; font-size: 16px; padding: 0 2px; background: linear-gradient(transparent 62%, var(--mark) 62%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+/* ---------- 入れ物 ---------- */
+/* 箱 */
+.box { background: var(--box); border: var(--border) solid var(--ink); border-radius: var(--radius); box-shadow: 0 3px 0 var(--ink-soft); padding: 12px 14px; }
+.box > h2, .box > summary { margin: 0 0 10px; font-size: 15px; font-weight: 700; color: var(--accent); }
+.box > h2::before, .box > summary::before { content: "✿ "; }
+/* たためる箱(details.box) */
+.box > summary { cursor: pointer; margin: 0; list-style: none; }
+.box > summary::-webkit-details-marker { display: none; }
+.box > summary::after { content: " ▾"; color: var(--muted); font-size: 12px; }
+.box[open] > summary::after { content: " ▴"; }
+.box[open] > summary { margin-bottom: 10px; }
+/* 小見出し(✧、上に点線) */
+.subhead { margin: 6px 0 0; padding-top: 12px; border-top: 2px dashed var(--line); font-size: 13px; font-weight: 700; color: var(--accent); }
+.subhead::before { content: "✧ "; }
+
+/* リンクカード:左にまるいアイコン、右に名前と説明。アイコンの色は --c */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--box); color: inherit; text-decoration: none; border: var(--border) solid var(--ink); border-radius: 18px; box-shadow: 0 4px 0 var(--ink-soft); transition: transform .1s, box-shadow .1s; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--ink-soft); }
+.card:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--ink-soft); }
+.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.card.is-disabled { filter: grayscale(1); opacity: .55; cursor: not-allowed; }
+.card.is-disabled:hover, .card.is-disabled:active { transform: none; box-shadow: 0 4px 0 var(--ink-soft); }
+.card b { display: block; font-size: 15px; }
+.card small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.icon { flex-shrink: 0; width: 52px; height: 52px; display: grid; place-items: center; border: 2px solid var(--ink); border-radius: 50%; background: var(--c, var(--pink)); }
+.icon svg { width: 28px; height: 28px; fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- ボタン ---------- */
+/* ぷっくりボタン:下に影、押すと沈む */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--box); color: var(--text); border: 2px solid var(--ink); border-radius: 999px; box-shadow: 0 3px 0 var(--ink-soft); padding: 6px 14px; font: inherit; font-size: 14px; font-weight: 700; text-decoration: none; cursor: pointer; white-space: nowrap; transition: transform .08s, box-shadow .08s, background .15s; }
+.btn:hover { background: var(--tint); }
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink-soft); }
+.btn:disabled { opacity: .5; cursor: wait; }
+.btn--primary { background: var(--primary); }
+.btn--primary:hover { background: var(--primary-hover); }
+.btn--danger { color: var(--danger); background: var(--danger-bg); }
+.btn--small { padding: 2px 10px; font-size: 12px; box-shadow: 0 2px 0 var(--ink-soft); }
+.btn--block { display: flex; width: 100%; padding: 10px; font-size: 15px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+/* まるスイッチ:オン・オフ(aria-pressed) */
+.switch { background: var(--box); border: 2px solid var(--ink); color: var(--muted); border-radius: 999px; padding: 1px 10px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.switch[aria-pressed="true"] { background: var(--lilac); color: var(--text); }
+/* つながりボタン(－ 100% ＋ など) */
+.btn-group { display: inline-flex; background: var(--box); border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; }
+.btn-group > button { background: none; border: none; color: var(--text); font: inherit; font-size: 13px; font-weight: 700; padding: 1px 10px; cursor: pointer; }
+.btn-group > button + button { border-left: 2px solid var(--line); }
+.btn-group > button:hover { background: var(--tint); }
+
+/* ---------- 選ぶ部品 ---------- */
+/* チップ:小さな候補ボタン(レモン色) */
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { background: var(--lemon); border: 2px solid var(--ink); color: var(--text); border-radius: 999px; padding: 0 9px; font: inherit; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.chip:hover { filter: brightness(1.04); }
+/* 切り替えタブ:横に均等。選ぶと水色(aria-pressed) */
+.tabs { display: flex; gap: 5px; }
+.tab { flex: 1; background: var(--box); border: 2px solid var(--line); color: var(--muted); border-radius: 999px; padding: 2px 0; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--sky); border-color: var(--ink); color: var(--text); }
+/* 付箋タブ:タブごとの色は --c。選ぶと飛び出して、下の紙(--tab-c)とつながる */
+.sheet-tabs { display: flex; gap: 4px; padding: 0 10px; position: relative; z-index: 1; margin-bottom: calc(var(--border) * -1); }
+.sheet-tab { flex: 1 1 auto; min-width: 0; border: var(--border) solid var(--ink); border-bottom: none; border-radius: 12px 12px 0 0; background: linear-gradient(rgba(255, 255, 255, .5), rgba(255, 255, 255, .5)), var(--c); color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; padding: 6px 6px 5px; margin-top: 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: margin .15s, padding .15s; }
+.sheet-tab[aria-selected="true"] { background: var(--c); color: var(--text); margin-top: 0; padding-bottom: calc(8px + var(--border)); }
+.sheet-body { background: linear-gradient(rgba(255, 255, 255, .62), rgba(255, 255, 255, .62)), var(--tab-c, var(--lilac)); border: var(--border) solid var(--ink); border-radius: var(--radius); padding: 12px; }
+/* 見本付きボタン:小さな絵と名前で選ぶ(aria-pressed) */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.tile { display: flex; flex-direction: column; align-items: center; gap: 3px; background: var(--box); border: var(--border) solid var(--line); border-radius: 14px; padding: 6px 4px; color: var(--text); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.tile:hover { border-color: var(--accent); }
+.tile[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); box-shadow: 0 0 0 3px var(--dot); }
+.tile svg { width: 48px; height: 32px; fill: var(--tint); stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+/* キャラボタン:まるい顔アイコン+名前(aria-pressed) */
+.avatars { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.avatar-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 84px; padding: 8px 4px; background: var(--box); border: var(--border) solid var(--line); border-radius: 18px; color: var(--text); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: transform .12s, border-color .15s; }
+.avatar-btn:hover { transform: translateY(-2px); border-color: var(--accent); }
+.avatar-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); box-shadow: 0 0 0 3px var(--dot); }
+.avatar { width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--ink); background: var(--c, var(--pink)); display: grid; place-items: center; overflow: hidden; font-size: 20px; font-weight: 700; color: var(--ink); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- 入力欄 ---------- */
+input, select, textarea { background: #fff; color: var(--text); border: 2px solid var(--line); border-radius: 10px; padding: 6px 9px; font: inherit; font-size: 16px; /* 16px 未満だと iPhone で勝手に拡大される */ width: 100%; accent-color: var(--accent); }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--dot); }
+textarea { resize: vertical; }
+input[type="color"] { padding: 2px; height: 36px; cursor: pointer; }
+input[type="checkbox"], input[type="radio"] { width: auto; }
+input[type="range"] { padding: 0; border: none; box-shadow: none; }
+/* 入力欄2列:ラベル(グレーの太字)の下に入力欄。.field--wide で1行ぶち抜き */
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; font-weight: 700; color: var(--muted); min-width: 0; }
+.field--wide { grid-column: 1 / -1; }
+.field--check { flex-direction: row; align-items: center; gap: 6px; color: var(--text); }
+.fields > .subhead, .fields > .actions, .fields > .note { grid-column: 1 / -1; }
+@media (max-width: 360px) { .fields { grid-template-columns: 1fr; } }
+/* 横並び入力:入力欄とボタンを1行に */
+.row { display: flex; gap: 6px; align-items: center; }
+.row > input, .row > select { flex: 1; min-width: 0; }
+
+/* ---------- 一覧・お知らせ ---------- */
+/* 選べる一覧:左にラベル、選んでいる行はふちが付く */
+.pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pick-list > li { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border: 2px solid transparent; border-radius: 12px; cursor: pointer; }
+.pick-list > li:hover { background: var(--tint); }
+.pick-list > li.selected { background: var(--tint); border-color: var(--accent); }
+.label { font-size: 11px; font-weight: 700; color: var(--text); background: var(--lilac); border-radius: 999px; padding: 0 8px; flex-shrink: 0; }
+.hint { margin: 0; color: var(--muted); font-size: 12px; }
+.note { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+.status { margin: 6px 0 0; font-size: 13px; font-weight: 700; }
+.status--ok { color: var(--ok); }
+.status--error { color: var(--danger); }
+/* 空っぽのとき:まだ何もないことを、やさしく知らせる */
+.empty { text-align: center; color: var(--muted); padding: 24px 12px; border: 2px dashed var(--line); border-radius: var(--radius); }
+.foot { padding: 10px 2px 0; margin-top: 24px; color: var(--muted); font-size: 11px; border-top: 2px dashed var(--line); }
+.foot p { margin: 0; }
+
+/* ---------- 動き ---------- */
+/* ぽんっと出る:表示が切り替わったときに付ける */
+.pop { animation: pop .45s ease; }
+@keyframes pop { 0% { transform: scale(.94); opacity: 0; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .pop { animation: none; } }
+
+/* ---------- 自由ボタン(UIパーツメーカー ../ui-maker.html で作る) ----------
+   形・影・動きはクラス、色・太さ・大きさは CSS 変数で決める。作った部品は .ub-〇〇 で変数だけ決める
+   例:<button class="ub ub--sh-puffy ub--press-sink ub-mybtn">ボタン</button> */
+.ub {
+  --ub-bg: var(--box);
+  --ub-fg: var(--text);
+  --ub-bd: var(--ink);
+  --ub-sh: var(--ink-soft);
+  --ub-pat: var(--dot);
+  --ub-bw: 2px;
+  --ub-bs: solid;
+  --ub-r: 999px;
+  --ub-fs: 14px;
+  --ub-px: 14px;
+  --ub-py: 6px;
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .3em;
+  padding: var(--ub-py) var(--ub-px);
+  background-color: var(--ub-bg);
+  color: var(--ub-fg);
+  border: var(--ub-bw) var(--ub-bs) var(--ub-bd);
+  border-radius: var(--ub-r);
+  font: inherit;
+  font-size: var(--ub-fs);
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s, filter .12s;
+}
+.ub--block { display: flex; width: 100%; }
+/* 形 */
+.ub--circle { aspect-ratio: 1; padding: 0; width: calc(var(--ub-fs) * 3.4); border-radius: 50%; white-space: normal; text-align: center; }
+.ub--leaf { border-radius: calc(var(--ub-fs) * 1.6) 4px; }
+/* 吹き出し:下にしっぽ(枠線の色の三角に、中の色の三角を重ねる) */
+.ub--bubble::before, .ub--bubble::after { content: ""; position: absolute; top: calc(100% - var(--ub-lw, var(--ub-bw))); clip-path: polygon(0 0, 100% 0, 30% 100%); }
+.ub--bubble::before { left: 18px; width: 18px; height: 12px; background: var(--ub-bd); }
+.ub--bubble::after { left: calc(18px + var(--ub-lw, var(--ub-bw)) * 1.2); width: calc(18px - var(--ub-lw, var(--ub-bw)) * 2.4); height: calc(12px - var(--ub-lw, var(--ub-bw)) * 1.7); background: var(--ub-bg); }
+/* SVG で描く形(タグ・ハート・雲):中の <svg class="ub-shape"> が形と枠線を描く */
+.ub--svg { background: none !important; border-color: transparent; border-style: solid; }
+.ub-shape { position: absolute; inset: calc(var(--ub-bw) * -1); width: calc(100% + var(--ub-bw) * 2); height: calc(100% + var(--ub-bw) * 2); z-index: -1; overflow: visible; pointer-events: none; transition: filter .12s; }
+.ub-shape path { fill: var(--ub-bg); stroke: var(--ub-bd); stroke-width: var(--ub-bw); stroke-dasharray: var(--ub-dash, none); stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+/* 二重線(SVG の形):3つ分の太さの線の真ん中を、中の色の線で抜く */
+.ub--dbl .ub-shape path { stroke-width: calc(var(--ub-bw) * 3); }
+.ub-shape path.ub-gap { fill: none; stroke: var(--ub-bg); stroke-width: var(--ub-bw); stroke-dasharray: none; }
+.ub--tag { padding-left: calc(var(--ub-px) + 14px); }
+.ub--tag::after { content: ""; position: absolute; left: 12px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--bg); box-shadow: 0 0 0 1.5px var(--ub-bd); }
+.ub--heart { aspect-ratio: 1.12; width: calc(var(--ub-fs) * 5.2); padding: 0 0 calc(var(--ub-fs) * .9); white-space: normal; text-align: center; }
+.ub--cloud { padding: calc(var(--ub-py) + 8px) calc(var(--ub-px) + 14px) calc(var(--ub-py) + 6px); }
+/* 自分で描く形:文字のまわりに余白(--ub-xp)。.ub--keep は描いたマスの縦横比のまま、幅 --ub-w で表示する */
+.ub--custom { padding: calc(var(--ub-py) + var(--ub-xp, 0px)) calc(var(--ub-px) + var(--ub-xp, 0px)); }
+.ub--keep { aspect-ratio: var(--ub-ar); width: var(--ub-w); max-width: 100%; padding: var(--ub-xp, 0px); white-space: normal; text-align: center; }
+/* 模様(SVG の形には付かない) */
+.ub--pat-dots { background-image: radial-gradient(var(--ub-pat) 20%, transparent 22%); background-size: 10px 10px; }
+.ub--pat-stripe { background-image: repeating-linear-gradient(-45deg, var(--ub-pat) 0 4px, transparent 4px 9px); }
+.ub--pat-check { background-image: conic-gradient(var(--ub-pat) 25%, transparent 0 50%, var(--ub-pat) 0 75%, transparent 0); background-size: 12px 12px; }
+/* 影 */
+.ub--sh-puffy { box-shadow: 0 3px 0 var(--ub-sh); }
+.ub--sh-puffy:active { box-shadow: 0 1px 0 var(--ub-sh); }
+.ub--sh-soft { box-shadow: 0 4px 12px color-mix(in srgb, var(--ub-sh) 80%, transparent); }
+.ub--svg.ub--sh-puffy, .ub--svg.ub--sh-soft { box-shadow: none; }
+.ub--svg.ub--sh-puffy .ub-shape { filter: drop-shadow(0 3px 0 var(--ub-sh)); }
+.ub--svg.ub--sh-puffy:active .ub-shape { filter: drop-shadow(0 1px 0 var(--ub-sh)); }
+.ub--svg.ub--sh-soft .ub-shape { filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--ub-sh) 80%, transparent)); }
+/* 種類:箱(見出し+文章を囲む) */
+.ub--box { --ub-r: 16px; display: block; text-align: left; white-space: normal; font-weight: 400; line-height: 1.6; cursor: auto; }
+.ub--box.ub--cloud { padding: calc(var(--ub-py) + 22px) calc(var(--ub-px) + 30px) calc(var(--ub-py) + 16px); }
+.ub--box > h2 { margin: 0 0 6px; font-size: calc(var(--ub-fs) + 1px); font-weight: 700; color: var(--ub-title, var(--accent)); }
+.ub--box > p { margin: 0; }
+/* 種類:チップ(並べて、押すとオン・オフ)・タブ(押したものだけオン)。選んでいるものは aria-pressed="true" */
+.ub-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ub-tabs { display: flex; flex-wrap: wrap; gap: 5px; }
+.ub-tabs--fill > .ub { flex: 1 1 0; min-width: 0; }
+/* 付箋の形:上の角だけ丸い。タブを下の線に乗せる */
+.ub--sticky { border-radius: calc(var(--ub-fs) * .8) calc(var(--ub-fs) * .8) 0 0; border-bottom-width: 0; }
+.ub-tabs--sticky { flex-wrap: nowrap; align-items: flex-end; gap: 4px; padding: 0 6px; border-bottom: var(--border) solid var(--ink); }
+.ub-tabs--sticky > .ub[aria-pressed="true"] { padding-bottom: calc(var(--ub-py) + 4px); }
+/* のせたとき */
+.ub--hover-lift:hover { transform: translateY(-3px); }
+.ub--hover-glow:hover { filter: brightness(1.06) drop-shadow(0 0 6px color-mix(in srgb, var(--ub-bd) 45%, transparent)); }
+.ub--hover-wiggle:hover { animation: ub-wiggle .5s ease; }
+@keyframes ub-wiggle { 25% { transform: rotate(-4deg); } 50% { transform: rotate(3deg); } 75% { transform: rotate(-2deg); } }
+/* 押したとき */
+.ub--press-sink:active { transform: translateY(2px); }
+.ub--press-bounce { transition: transform .4s cubic-bezier(.3, 1.9, .5, 1), box-shadow .12s, filter .12s; }
+.ub--press-bounce:active { transform: scale(.88); transition-duration: .08s; }
+.ub--press-squish { transition: transform .35s cubic-bezier(.3, 1.6, .5, 1), box-shadow .12s, filter .12s; }
+.ub--press-squish:active { transform: scale(1.08, .86); transition-duration: .08s; }
+@media (prefers-reduced-motion: reduce) { .ub { transition: none !important; animation: none !important; } }

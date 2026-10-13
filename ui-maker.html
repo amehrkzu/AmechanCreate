@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="ja" data-theme="mikan">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>UIパーツメーカー - あめちゃんもの置き</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
+<link rel="stylesheet" href="ui/kit.css">
+<style>
+/* ---- このページの並べ方(部品の見た目は ui/kit.css) ---- */
+.maker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 16px; max-width: 1100px; margin: 0 auto; padding: 14px max(14px, env(safe-area-inset-right)) 40px max(14px, env(safe-area-inset-left)); align-items: start; }
+.preview { position: sticky; top: 10px; display: flex; flex-direction: column; gap: 10px; }
+.stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 190px; padding: 26px 10px 18px; border: var(--border) solid var(--ink); border-radius: var(--radius); background-color: var(--bg); position: relative; overflow: hidden; }
+.stage-name { position: absolute; top: 6px; left: 10px; font-size: 11px; font-weight: 700; color: var(--muted); }
+.stage .ub--block { width: 100%; }
+.stage-row { width: 100%; display: flex; justify-content: center; align-items: center; }
+.stage-row > .ub--box, .stage-row > .ub-tabs, .stage-row > .ub-chips { width: 100%; }
+.stage-row > .ub-chips { justify-content: center; }
+.controls { display: flex; flex-direction: column; gap: 12px; }
+.controls > section + section { margin-top: 0; }
+.controls .box > h2 { margin-bottom: 8px; }
+.ctl { display: flex; flex-direction: column; gap: 4px; }
+.ctl + .ctl { margin-top: 10px; }
+.ctl > span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.ctl .tabs { flex-wrap: wrap; }
+.ctl .tab { flex: 1 1 auto; padding: 2px 8px; }
+.types { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.range-row { display: flex; align-items: center; gap: 8px; }
+.range-row output { min-width: 3.2em; text-align: right; font-size: 12px; font-weight: 700; color: var(--text); }
+.color-ctl { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 40px; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.color-ctl + .color-ctl { margin-top: 6px; }
+.color-ctl input[type="color"] { width: 40px; height: 34px; }
+.color-ctl input[type="color"]:disabled { opacity: .25; }
+.color-ctl select { font-size: 14px; padding: 4px 6px; }
+.color-sub { margin: 12px 0 6px; padding-top: 10px; border-top: 2px dashed var(--line); font-size: 12px; font-weight: 700; color: var(--accent); }
+.deco-chips .chip[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.tiles .tile svg { overflow: visible; }
+/* 自分で描くマス */
+.draw { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 2px dashed var(--line); }
+.draw .ctl + .ctl { margin-top: 2px; }
+.pad { display: block; width: 100%; max-height: 300px; background: #fff; border: 2px solid var(--ink); border-radius: 12px; touch-action: none; cursor: crosshair; user-select: none; -webkit-user-select: none; }
+.pad .g { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pad .g.mid { stroke: var(--ink-soft); }
+.pad .axis { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+.pad .auto { fill: var(--tint); opacity: .7; }
+.pad .frame { fill: none; stroke: var(--ink-soft); stroke-width: 1.5; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.pad .shape { fill: color-mix(in srgb, var(--primary) 45%, transparent); stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.pad .pt { fill: #fff; stroke: var(--ink); stroke-width: 2; vector-effect: non-scaling-stroke; cursor: grab; }
+.pad .pt.sel { fill: var(--accent); stroke: var(--accent); }
+.pad .hl { stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.pad .hd { fill: #fff; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; cursor: grab; }
+.pad .ghost { fill: none; stroke: var(--ink-soft); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.shape-io { margin-top: 8px; }
+.tiles-sub { grid-column: 1 / -1; margin: 6px 0 0; font-size: 12px; font-weight: 700; color: var(--muted); }
+.tile .saved-icon { fill: var(--tint); stroke: var(--ink); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.tile .tile-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--text); color: #fff; border-radius: 999px; padding: 6px 16px; font-weight: 700; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+.toast.on { opacity: 1; }
+/* スマホ:見本を上に貼りつけて、その下で調整する */
+@media (max-width: 820px) {
+  .maker { grid-template-columns: minmax(0, 1fr); }
+  .preview { top: 0; z-index: 3; background: var(--bg); padding-top: 6px; margin: 0 -4px; padding-left: 4px; padding-right: 4px; }
+  .stage { min-height: 120px; padding: 22px 6px 12px; }
+}
+/* 幅の狭い画面で箱・チップ・タブを作るときは、見本を縦に並べる(3つ横だと狭すぎるため)。貼りつけもやめる */
+@media (max-width: 600px) {
+  .preview.wide { position: static; }
+  .preview.wide .stages { grid-template-columns: minmax(0, 1fr); }
+  .preview.wide .stage { min-height: 0; }
+}
+@media (max-width: 420px) {
+  .stages { gap: 4px; }
+  .stage-name { font-size: 10px; left: 6px; }
+}
+</style>
+</head>
+<body class="bg-dots">
+<header class="topbar">
+  <h1>UIパーツメーカー</h1>
+  <a class="btn btn--small" href="ui-kit.html">UI見本帳へ</a>
+</header>
+
+<main class="maker">
+  <!-- 見本:3つのテーマで並べる -->
+  <div class="preview" id="preview">
+    <div class="stages" id="stages">
+      <div class="stage" data-theme="sora"><span class="stage-name">そら 💧</span><div class="stage-row"></div></div>
+      <div class="stage" data-theme="ichigo"><span class="stage-name">いちご 🍓</span><div class="stage-row"></div></div>
+      <div class="stage" data-theme="mikan"><span class="stage-name">みかん 🍊</span><div class="stage-row"></div></div>
+    </div>
+    <p class="hint" style="text-align:center">見本を押したり、マウスをのせたりして動きを試せます</p>
+  </div>
+
+  <div class="controls">
+    <section class="box">
+      <h2>種類</h2>
+      <div class="tiles types" id="types"></div>
+      <p class="note" id="typeNote"></p>
+    </section>
+
+    <section class="box">
+      <h2>文字</h2>
+      <div class="ctl" data-for="button"><input type="text" id="label" maxlength="30" aria-label="ボタンの文字"></div>
+      <div class="ctl" data-for="chip tab"><span>文字(「、」で区切ると増える)</span><input type="text" id="labels" maxlength="80"></div>
+      <div class="ctl" data-for="box"><span>見出し(空にすると、なし)</span><input type="text" id="title" maxlength="30"></div>
+      <div class="ctl" data-for="box"><span>文章</span><textarea id="body" rows="2" maxlength="200"></textarea></div>
+      <div class="ctl"><span id="decoLabel">飾り</span>
+        <div class="chips deco-chips" id="deco"></div>
+      </div>
+      <div class="ctl"><span>飾りの位置</span><div class="tabs" data-key="decoPos"></div></div>
+    </section>
+
+    <section class="box">
+      <h2>形</h2>
+      <div class="tiles" id="shapes"></div>
+      <!-- 保存した形を、別のブラウザや別の開き方(ファイルを直接開いた / サーバーから開いた)へ持っていく -->
+      <div class="actions shape-io">
+        <button type="button" class="btn btn--small" id="exportShapes">保存した形を書き出す</button>
+        <label class="btn btn--small">形を読み込む<input type="file" id="importShapes" accept=".json,application/json" hidden></label>
+      </div>
+      <!-- 自分で描く -->
+      <div id="drawCtl" class="draw" hidden>
+        <div class="ctl"><span>描くマスの形</span><div class="tabs" id="gridTabs"></div></div>
+        <div class="actions"><button type="button" class="switch" id="mirrorSw">左右対称</button><button type="button" class="switch" id="snapSw" aria-pressed="true">マス目に合わせる</button></div>
+        <svg class="pad" id="pad" aria-label="形を描くマス"></svg>
+        <p class="hint" id="padHint"></p>
+        <div class="actions">
+          <button type="button" class="btn btn--small" id="cornerBtn">角 ⇔ なめらか</button>
+          <button type="button" class="btn btn--small" id="delPt">点を消す</button>
+          <button type="button" class="btn btn--small" id="resetHandle">ハンドルを自動に</button>
+          <button type="button" class="btn btn--small" id="undo">元に戻す</button>
+          <button type="button" class="btn btn--small" id="redo">やり直す</button>
+          <button type="button" class="btn btn--small btn--danger" id="clearPts">全部消す</button>
+        </div>
+        <div class="ctl"><span>この形を保存(形の一覧の「保存した形」に並びます)</span>
+          <div class="row"><input type="text" id="shapeName" maxlength="20" placeholder="形の名前(なくてもOK)"><button type="button" class="btn btn--small btn--primary" id="saveShape">保存</button></div>
+          <div class="actions" id="savedShapeActs" hidden><button type="button" class="btn btn--small" id="overwriteShape">「」に上書き</button><button type="button" class="btn btn--small btn--danger" id="deleteShape">「」を削除</button></div>
+        </div>
+        <div class="ctl"><span>見本の形から始める</span><div class="chips" id="starts"></div></div>
+        <div class="ctl"><span>伸び縮み</span><div class="tabs" id="keepTabs"><button type="button" class="tab" data-v="false">文字に合わせて伸びる</button><button type="button" class="tab" data-v="true">縦横比を保つ</button></div></div>
+        <div class="ctl" id="widthCtl"><span>幅</span><div class="range-row"><input type="range" id="cWidth" min="40" max="320" step="2"><output id="cWidthOut"></output></div></div>
+        <div class="ctl"><span>文字のまわりの余白</span><div class="range-row"><input type="range" id="cPad" min="0" max="40" step="1"><output id="cPadOut"></output></div></div>
+      </div>
+      <div class="ctl" id="radiusCtl"><span>角の丸み</span><div class="range-row"><input type="range" id="radius" min="0" max="30" step="1"><output id="radiusOut"></output></div></div>
+      <div class="ctl"><span id="sizeLabel">大きさ</span><div class="tabs" data-key="size"></div></div>
+      <div class="ctl" data-for="button"><span>幅</span><div class="tabs" data-key="block"></div></div>
+      <div class="ctl" data-for="tab"><span>並べ方</span><div class="tabs" data-key="block" data-opts="fill"></div></div>
+    </section>
+
+    <section class="box">
+      <h2>色</h2>
+      <p class="hint" style="margin-bottom:8px">テーマの色を選ぶと、テーマを変えたときに一緒に変わります</p>
+      <div id="colors"></div>
+      <div data-for="chip tab">
+        <p class="color-sub">選んでいるときの色</p>
+        <div id="onColors"></div>
+      </div>
+    </section>
+
+    <section class="box">
+      <h2>枠線と影</h2>
+      <div class="ctl"><span>枠線の種類</span><div class="tabs" data-key="bs"></div></div>
+      <div class="ctl"><span>枠線の太さ</span><div class="range-row"><input type="range" id="bw" min="1" max="6" step="0.5"><output id="bwOut"></output></div></div>
+      <div class="ctl"><span>影</span><div class="tabs" data-key="shadow"></div></div>
+      <div class="ctl" id="patternCtl"><span>模様</span><div class="tabs" data-key="pattern"></div></div>
+    </section>
+
+    <section class="box">
+      <h2>動き</h2>
+      <div class="ctl"><span>のせたとき</span><div class="tabs" data-key="hover"></div></div>
+      <div class="ctl" data-for="button chip tab"><span>押したとき</span><div class="tabs" data-key="press"></div></div>
+    </section>
+
+    <section class="box">
+      <h2>AIに渡す</h2>
+      <div class="fields">
+        <label class="field field--wide">使いどころ(なくてもOK)<input type="text" id="desc" maxlength="60"></label>
+      </div>
+      <div class="actions" style="margin-top:10px">
+        <button type="button" class="btn btn--primary" id="copyAI">あめちゃん専用プロンプトコピー</button>
+        <button type="button" class="btn btn--primary" id="copyAnywhere">AIプロンプトコピー</button>
+        <button type="button" class="btn btn--small" id="new">最初から作り直す</button>
+      </div>
+      <p class="note">※「AIプロンプトコピー」のほうは、文章が非常に長くなります。</p>
+      <p class="note">「AIプロンプトコピー」は、どこでも使える版です。見た目のしくみも全部入っているので、ほかのチャットやほかのサイトの AI に貼っても同じ見た目になります。</p>
+    </section>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="ui/parts.js"></script>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+// 選択肢(tabs)の中身。[値, 表示名]
+const OPTIONS = {
+  decoPos: [["before", "前"], ["after", "うしろ"], ["both", "両方"]],
+  size: [["s", "小"], ["m", "中"], ["l", "大"]],
+  block: [[false, "文字に合わせる"], [true, "横いっぱい"]],
+  fill: [[true, "均等"], [false, "文字に合わせる"]],
+  bs: [["solid", "実線"], ["dashed", "点線"], ["dotted", "つぶつぶ"], ["double", "二重"], ["none", "なし"]],
+  shadow: [["puffy", "ぷっくり"], ["soft", "ふんわり"], ["none", "なし"]],
+  pattern: [["none", "なし"], ["dots", "水玉"], ["stripe", "しましま"], ["check", "チェック"]],
+  hover: [["none", "なし"], ["lift", "浮く"], ["glow", "光る"], ["wiggle", "ゆれる"]],
+  press: [["sink", "沈む"], ["bounce", "ぽよん"], ["squish", "むにっ"], ["none", "なし"]],
+};
+const DECOS = ["", "✿", "★", "♡", "♪", "✧", "☁", "☂", "🍓", "🍊", "💧"];
+const COLOR_ROLES = [["bg", "中の色"], ["fg", "文字の色"], ["bd", "枠線の色"], ["sh", "影の色"], ["pat", "模様の色"], ["tc", "見出しの色"]];
+const ON_COLOR_ROLES = [["onBg", "中の色"], ["onFg", "文字の色"], ["onBd", "枠線の色"]];
+// 種類ごとの説明と、名前の例
+const TYPE_TEXT = {
+  button: ["押すと何かが起きるもの", "例:ハートのいいねボタン", "例:気に入ったものに押す"],
+  box: ["見出しと文章を囲む入れ物", "例:雲のおしらせ箱", "例:ページの上のお知らせ"],
+  chip: ["小さな札を並べる。押すとオン・オフ", "例:ハッシュタグ", "例:絞り込みの条件"],
+  tab: ["並んだ中から1つを選ぶ。押したものだけオン", "例:付箋の切り替えタブ", "例:表示の切り替え"],
+};
+// 種類を変えても引き継ぐ値
+const KEEP_ON_TYPE_CHANGE = ["bg", "fg", "bd", "sh", "pat", "bw", "bs", "shadow", "pattern", "hover", "deco", "decoPos", "custom"];
+
+let part = newPart();
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("on");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove("on"), 1500);
+}
+
+// ---------- 調整欄を作る ----------
+for (const el of document.querySelectorAll(".tabs[data-key]")) {
+  const key = el.dataset.key, opts = OPTIONS[el.dataset.opts || key];
+  el.innerHTML = opts.map(([v, name]) => `<button type="button" class="tab" data-v="${v}">${name}</button>`).join("");
+  el.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (b) set(key, opts.find(([v]) => String(v) === b.dataset.v)[0]);
+  });
+}
+$("types").innerHTML = UB_TYPES.map((t) => `<button type="button" class="tile" data-v="${t.id}"><svg viewBox="0 0 60 40">${t.icon}</svg>${t.name}</button>`).join("");
+$("types").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b || b.dataset.v === part.type) return;
+  // 種類を変えたら、その種類の初めの値に。色・枠線・影などは、自分で変えたものだけ引き継ぐ
+  const next = newPart(b.dataset.v);
+  const before = newPart(part.type);
+  for (const k of KEEP_ON_TYPE_CHANGE) if (part[k] !== before[k]) next[k] = part[k];
+  if (!ubType(next).shapes.includes(part.shape)) next.shape = newPart(b.dataset.v).shape;
+  else next.shape = part.shape;
+  Object.assign(next, { id: part.id, name: part.name, desc: part.desc });
+  if (b.dataset.v === "box") next.press = "none";
+  remember();
+  part = next;
+  render();
+});
+$("shapes").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  // 保存した形:その形を写して使う
+  if (b.dataset.saved) {
+    const sh = loadShapes().find((x) => x.sid === b.dataset.saved);
+    if (!sh) return;
+    remember();
+    part.custom = JSON.parse(JSON.stringify(sh));
+    part.shape = "custom";
+    selPt = -1;
+    render();
+    return;
+  }
+  if (part.shape === "custom" && part.custom?.sid) delete part.custom.sid; // 最初からある形に変えたら、保存した形とのつながりは切る
+  if (b.dataset.v === "custom" && !part.custom) part.custom = newCustomShape();
+  set("shape", b.dataset.v);
+});
+$("deco").innerHTML = DECOS.map((d) => `<button type="button" class="chip" data-v="${d}">${d || "なし"}</button>`).join("");
+$("deco").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (b) set("deco", b.dataset.v);
+});
+const colorRow = ([key, name]) => `
+  <label class="color-ctl" data-key="${key}">${name}
+    <select>${UB_COLORS.map(([v, n]) => `<option value="${v}">${n}</option>`).join("")}<option value="#">自由に選ぶ</option></select>
+    <input type="color" aria-label="${name}(自由な色)">
+  </label>`;
+$("colors").innerHTML = COLOR_ROLES.map(colorRow).join("");
+$("onColors").innerHTML = ON_COLOR_ROLES.map(colorRow).join("");
+for (const row of document.querySelectorAll(".color-ctl")) {
+  const key = row.dataset.key;
+  const sel = row.querySelector("select"), pick = row.querySelector("input");
+  sel.addEventListener("change", () => set(key, sel.value === "#" ? pick.value : sel.value));
+  pick.addEventListener("input", () => set(key, pick.value, true));
+}
+for (const id of ["label", "labels", "title", "body"]) $(id).addEventListener("input", (e) => set(id, e.target.value, true));
+$("radius").addEventListener("input", (e) => set("radius", +e.target.value, true));
+$("bw").addEventListener("input", (e) => set("bw", +e.target.value, true));
+$("desc").addEventListener("input", (e) => (part.desc = e.target.value));
+for (const stage of document.querySelectorAll(".stage-row")) bindPartDemo(stage);
+
+function set(key, value, merge = false) {
+  remember(merge ? key : null);
+  part[key] = value;
+  render();
+}
+
+// ---------- 元に戻す・やり直す(作っている部品まるごと) ----------
+const hist = { undo: [], redo: [], key: null, time: 0 };
+// 変える前の状態を覚えておく。同じ欄を続けて動かしている間(文字の入力・スライダーなど)は1回分にまとめる
+function remember(key = null) {
+  const now = Date.now();
+  if (key && key === hist.key && now - hist.time < 1000) {
+    hist.time = now;
+    return;
+  }
+  hist.undo.push(JSON.stringify(part));
+  if (hist.undo.length > 100) hist.undo.shift();
+  hist.redo = [];
+  hist.key = key;
+  hist.time = now;
+}
+function restore(from, to) {
+  if (!from.length) return toast(from === hist.undo ? "これ以上は戻せません" : "やり直せるものはありません");
+  to.push(JSON.stringify(part));
+  part = JSON.parse(from.pop());
+  hist.key = null;
+  selPt = -1;
+  render();
+}
+const undo = () => restore(hist.undo, hist.redo);
+const redo = () => restore(hist.redo, hist.undo);
+function resetHistory() {
+  hist.undo = [];
+  hist.redo = [];
+  hist.key = null;
+}
+
+// 今のテーマで見た、テーマの色の値(自由に選ぶに切り替えたときの初めの色)
+function themeColor(v) {
+  if (v[0] === "#") return v;
+  const c = getComputedStyle(document.documentElement).getPropertyValue("--" + v).trim();
+  return /^#[0-9a-f]{6}$/i.test(c) ? c : "#ffffff";
+}
+// 入力中の欄は書き換えない(カーソルが飛ばないように)
+function setValue(el, v) {
+  if (document.activeElement !== el && el.value !== v) el.value = v;
+}
+
+// ---------- 見本と調整欄を今の設定に合わせる ----------
+function render() {
+  const type = ubType(part);
+  if (part.shape === "custom" && !part.custom) part.custom = newCustomShape();
+  injectPartsCSS([part]);
+  const html = partHTML(part);
+  for (const row of document.querySelectorAll(".stage-row")) row.innerHTML = html;
+  $("preview").classList.toggle("wide", part.type !== "button");
+
+  // この種類で使う欄だけ出す
+  for (const el of document.querySelectorAll("[data-for]")) el.hidden = !el.dataset.for.split(" ").includes(part.type);
+  for (const b of $("types").children) b.setAttribute("aria-pressed", b.dataset.v === part.type ? "true" : "false");
+  const [note, , descPh] = TYPE_TEXT[part.type];
+  $("typeNote").textContent = note;
+  $("desc").placeholder = descPh;
+  $("decoLabel").textContent = part.type === "box" ? "飾り(見出しに付く)" : "飾り";
+  $("sizeLabel").textContent = part.type === "box" ? "余白と文字の大きさ" : "大きさ";
+
+  const sid = part.shape === "custom" ? part.custom?.sid : null;
+  const saved = loadShapes();
+  $("shapes").innerHTML = type.shapes.map((id) => {
+    const s = UB_SHAPES.find((x) => x.id === id);
+    return `<button type="button" class="tile" data-v="${s.id}" aria-pressed="${s.id === part.shape && !sid}"><svg viewBox="0 0 60 40">${s.icon}</svg>${s.name}</button>`;
+  }).join("") + (saved.length ? '<p class="tiles-sub">保存した形</p>' + saved.map((sh) =>
+    `<button type="button" class="tile" data-saved="${sh.sid}" aria-pressed="${sh.sid === sid}"><svg viewBox="-6 -6 ${sh.w + 12} ${sh.h + 12}"><path class="saved-icon" d="${customD(sh)}"/></svg><span class="tile-name">${escapeHTML(sh.name)}</span></button>`).join("") : "");
+  for (const el of document.querySelectorAll(".tabs[data-key]")) {
+    for (const b of el.children) b.setAttribute("aria-pressed", b.dataset.v === String(part[el.dataset.key]) ? "true" : "false");
+  }
+  for (const b of $("deco").children) b.setAttribute("aria-pressed", b.dataset.v === part.deco ? "true" : "false");
+  for (const row of document.querySelectorAll(".color-ctl")) {
+    const v = part[row.dataset.key];
+    const free = v[0] === "#";
+    row.querySelector("select").value = free ? "#" : v;
+    const pick = row.querySelector("input");
+    pick.disabled = !free;
+    pick.value = themeColor(v);
+  }
+  // 模様の色は模様があるときだけ、見出しの色は箱だけ。SVG の形(タグ・ハート・雲)には模様を付けない
+  document.querySelector('.color-ctl[data-key="pat"]').hidden = part.pattern === "none" || ubIsSvg(part);
+  document.querySelector('.color-ctl[data-key="tc"]').hidden = part.type !== "box";
+  $("patternCtl").hidden = ubIsSvg(part);
+  $("radiusCtl").hidden = !UB_RADIUS_SHAPES.includes(part.shape);
+  $("drawCtl").hidden = part.shape !== "custom";
+  if (part.shape === "custom") renderPad();
+  $("radius").value = part.radius;
+  $("radiusOut").textContent = part.radius + "px";
+  $("bw").value = part.bw;
+  $("bwOut").textContent = part.bw + "px";
+  $("bw").disabled = part.bs === "none";
+  for (const id of ["label", "labels", "title", "body", "desc"]) setValue($(id), part[id]);
+  try { sessionStorage.setItem("uimaker:draft", JSON.stringify({ part })); } catch {}
+}
+
+// ---------- 自分で描く ----------
+const GRID_NAMES = [["wide", "横長"], ["long", "細長"], ["square", "正方形"], ["tall", "縦長"]];
+// 見本の形(マスに対する割合 0〜1。mirror のものは左半分を上から下へ)
+const STARTS = [
+  { name: "豆", make: () => newCustomShape("wide") },
+  { name: "しずく", grid: "tall", mirror: true, pts: [[0.5, 0.02, 1], [0.28, 0.42], [0.08, 0.7], [0.5, 0.98]] },
+  { name: "星", grid: "square", mirror: true, pts: [[0.5, 0.03, 1], [0.37, 0.37, 1], [0.03, 0.38, 1], [0.29, 0.6, 1], [0.2, 0.96, 1], [0.5, 0.76, 1]] },
+  { name: "ひし形", grid: "wide", mirror: true, pts: [[0.5, 0.03, 1], [0.03, 0.5, 1], [0.5, 0.97, 1]] },
+  { name: "王冠", grid: "wide", mirror: true, pts: [[0.5, 0.35, 1], [0.32, 0.04, 1], [0.18, 0.4, 1], [0.03, 0.08, 1], [0.07, 0.96, 1], [0.5, 0.96, 1]] },
+  { name: "リボン", grid: "wide", mirror: true, pts: [[0.5, 0.3], [0.25, 0.06], [0.03, 0.2, 1], [0.03, 0.8, 1], [0.25, 0.94], [0.5, 0.7]] },
+  { name: "ふきだし雲", grid: "wide", mirror: false, pts: [[0.12, 0.12], [0.5, 0.04], [0.88, 0.12], [0.97, 0.5], [0.85, 0.82], [0.4, 0.84], [0.22, 0.98, 1], [0.24, 0.8], [0.04, 0.6], [0.03, 0.3]] },
+];
+let selPt = -1; // 選んでいる点
+let drag = null;
+let lastTap = null; // ダブルクリック(ダブルタップ)を見分けるための、前に押した点と時刻
+
+const cust = () => part.custom;
+function changeCustom(fn, mergeKey = null) {
+  remember(mergeKey);
+  fn(cust());
+  render();
+}
+
+$("gridTabs").innerHTML = GRID_NAMES.map(([v, n]) => `<button type="button" class="tab" data-v="${v}">${n}</button>`).join("");
+$("gridTabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b || b.dataset.v === cust().grid) return;
+  // マスの形を変えても、描いた形はそのまま(マスに合わせて伸び縮み)
+  changeCustom((c) => {
+    const [w, h] = UB_CUSTOM_GRIDS[b.dataset.v];
+    const kx = w / c.w, ky = h / c.h, sc = (hd) => (hd ? { x: hd.x * kx, y: hd.y * ky } : undefined);
+    c.pts = c.pts.map((p) => ({ ...p, x: p.x * kx, y: p.y * ky, hIn: sc(p.hIn), hOut: sc(p.hOut) }));
+    Object.assign(c, { grid: b.dataset.v, w, h });
+  });
+});
+$("starts").innerHTML = STARTS.map((s, i) => `<button type="button" class="chip" data-i="${i}">${s.name}</button>`).join("");
+$("starts").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  const s = STARTS[b.dataset.i];
+  selPt = -1;
+  changeCustom((c) => {
+    const keep = { keep: c.keep, width: c.width, pad: c.pad };
+    if (s.make) return Object.assign(c, s.make(), keep);
+    const [w, h] = UB_CUSTOM_GRIDS[s.grid];
+    Object.assign(c, { grid: s.grid, w, h, mirror: s.mirror, pts: s.pts.map(([x, y, corner]) => ({ x: x * w, y: y * h, ...(corner ? { corner: true } : {}) })) }, keep);
+  });
+});
+$("mirrorSw").addEventListener("click", () => {
+  selPt = -1;
+  changeCustom((c) => {
+    // 左右対称をやめるときは、反転した右半分も点として残す。始めるときは左半分だけ残す
+    if (c.mirror) c.pts = customOutline(c);
+    else c.pts = c.pts.filter((p) => p.x <= c.w / 2 + 0.5);
+    c.mirror = !c.mirror;
+  });
+});
+$("snapSw").addEventListener("click", (e) => e.currentTarget.setAttribute("aria-pressed", e.currentTarget.getAttribute("aria-pressed") === "true" ? "false" : "true"));
+$("keepTabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (b) changeCustom((c) => (c.keep = b.dataset.v === "true"));
+});
+$("cWidth").addEventListener("input", (e) => changeCustom((c) => (c.width = +e.target.value), "cWidth"));
+$("cPad").addEventListener("input", (e) => changeCustom((c) => (c.pad = +e.target.value), "cPad"));
+// 角 ⇔ なめらか。切り替えたら、ハンドルは自動に戻す
+function toggleCorner(i) {
+  changeCustom((c) => {
+    const p = c.pts[i];
+    p.corner = !p.corner;
+    delete p.hIn;
+    delete p.hOut;
+  });
+}
+$("cornerBtn").addEventListener("click", () => {
+  if (selPt >= 0) toggleCorner(selPt);
+});
+$("resetHandle").addEventListener("click", () => {
+  if (selPt >= 0) changeCustom((c) => {
+    delete c.pts[selPt].hIn;
+    delete c.pts[selPt].hOut;
+  });
+});
+function deletePoint() {
+  if (selPt < 0) return;
+  changeCustom((c) => c.pts.splice(selPt, 1));
+  selPt = Math.min(selPt, cust().pts.length - 1);
+  render();
+}
+$("delPt").addEventListener("click", deletePoint);
+$("undo").addEventListener("click", undo);
+$("redo").addEventListener("click", redo);
+$("clearPts").addEventListener("click", () => {
+  selPt = -1;
+  changeCustom((c) => (c.pts = []));
+});
+document.addEventListener("keydown", (e) => {
+  // 文字を入力している欄では、その欄の元に戻すを使う
+  const el = document.activeElement;
+  if (/INPUT|TEXTAREA|SELECT/.test(el?.tagName) && !["range", "color", "checkbox"].includes(el.type)) return;
+  const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  if (mod && k === "z" && !e.shiftKey) {
+    e.preventDefault();
+    undo();
+  } else if (mod && (k === "y" || (k === "z" && e.shiftKey))) {
+    e.preventDefault();
+    redo();
+  } else if (part.shape === "custom" && selPt >= 0 && (e.key === "Delete" || e.key === "Backspace")) {
+    e.preventDefault();
+    deletePoint();
+  }
+});
+
+// 点を足す。3つ未満のときは最後に足す。それ以降は、いちばん近い線の上(その区間の中)に差し込む
+//   線の上を押したときは、形が変わらないように線の上ぴったりに置く
+function addPoint(c, at, u) {
+  const n = c.pts.length;
+  if (n < 3) {
+    c.pts.push(placePoint(c, at.x, at.y));
+    return n;
+  }
+  let x = at.x;
+  if (c.mirror && x > c.w / 2) x = c.w - x; // 左右対称のときは、右半分を押しても左半分の線に足す
+  // 左右対称のときに調べるのは、左半分の区間と、上と下で真ん中をまたぐ区間だけ
+  const last = customOutline(c).length - 1;
+  const near = customNearest(c, x, at.y, (k) => !c.mirror || k <= n - 1 || k === last);
+  // 区間 k(k 番目の点と次の点のあいだ)に足すとき、点の並びのどこに入れるか
+  const at2 = c.mirror && near.seg === last && near.seg > n - 1 ? 0 : near.seg + 1;
+  const p = near.dist < 12 * u ? { x: c.mirror ? Math.min(near.x, c.w / 2) : near.x, y: near.y } : placePoint(c, x, at.y);
+  c.pts.splice(at2, 0, p);
+  return at2;
+}
+
+// マスの上の位置(画面の位置 → 描くマスの座標)
+const PAD_MARGIN = 0.06; // マスのまわりの余白(マスの長い辺に対する割合)
+function padPoint(e) {
+  const pad = $("pad"), m = pad.getScreenCTM().inverse();
+  const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m);
+  return { x: p.x, y: p.y };
+}
+// 画面上の 1px が、マスの座標でいくつか
+const padUnit = () => {
+  const c = cust(), r = $("pad").getBoundingClientRect();
+  return r.width ? (c.w + Math.max(c.w, c.h) * PAD_MARGIN * 2) / r.width : 1;
+};
+function placePoint(c, x, y) {
+  const snap = $("snapSw").getAttribute("aria-pressed") === "true";
+  const step = Math.max(c.w, c.h) / 20;
+  if (snap) {
+    x = Math.round(x / step) * step;
+    y = Math.round(y / step) * step;
+  }
+  x = Math.max(0, Math.min(c.w, x));
+  y = Math.max(0, Math.min(c.h, y));
+  if (c.mirror) {
+    x = Math.min(x, c.w / 2);
+    if (c.w / 2 - x < 8 * padUnit()) x = c.w / 2; // 真ん中の線の近くは、線の上にくっつける
+  }
+  return { x, y };
+}
+// 点のハンドルの位置(なめらかな点だけ)。{ in, out }(マスの座標)
+function handlePositions(c, i) {
+  const p = c.pts[i];
+  if (!p || p.corner) return null;
+  const P = customOutline(c), hi = customHandle(P, i, -1), ho = customHandle(P, i, 1);
+  return { in: { x: p.x + hi.x, y: p.y + hi.y }, out: { x: p.x + ho.x, y: p.y + ho.y } };
+}
+$("pad").addEventListener("pointerdown", (e) => {
+  if (e.button > 0) return;
+  const c = cust(), at = padPoint(e), u = padUnit();
+  $("pad").setPointerCapture(e.pointerId);
+  // ハンドル(選んでいる点の、曲がり具合のつまみ)
+  const hp = selPt >= 0 && c.pts.length >= 3 && handlePositions(c, selPt);
+  const which = hp && ["out", "in"].find((k) => Math.hypot(hp[k].x - at.x, hp[k].y - at.y) < 12 * u);
+  if (which) {
+    remember();
+    drag = { handle: which, i: selPt, moved: false };
+    return;
+  }
+  let i = c.pts.findIndex((p) => Math.hypot(p.x - at.x, p.y - at.y) < 14 * u);
+  // 同じ点をすぐにもう一度押したら、角 ⇔ なめらか
+  const now = Date.now();
+  if (i >= 0 && lastTap && lastTap.i === i && now - lastTap.time < 400) {
+    lastTap = null;
+    selPt = i;
+    toggleCorner(i);
+    return;
+  }
+  lastTap = i >= 0 ? { i, time: now } : null;
+  const isNew = i < 0;
+  remember();
+  if (isNew) i = addPoint(c, at, u);
+  selPt = i;
+  drag = { i, moved: false, isNew };
+  render();
+});
+$("pad").addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const c = cust(), at = padPoint(e);
+  const p = c.pts[drag.i];
+  if (drag.handle) {
+    // ハンドルを動かす。反対側のハンドルも一直線になるように回す(長さはそのまま)。Alt を押しながらだと片側だけ
+    const o = { x: at.x - p.x, y: at.y - p.y };
+    const onAxis = c.mirror && Math.abs(p.x - c.w / 2) < 0.5;
+    if (onAxis) o.y = 0; // 真ん中の線の上の点は、左右対称になるように横向きだけ
+    const key = drag.handle === "out" ? "hOut" : "hIn", other = drag.handle === "out" ? "hIn" : "hOut";
+    const cur = customHandle(customOutline(c), drag.i, drag.handle === "out" ? -1 : 1);
+    if (!e.altKey || onAxis) {
+      const len = Math.hypot(cur.x, cur.y), ol = Math.hypot(o.x, o.y) || 1;
+      p[other] = onAxis ? { x: -o.x, y: 0 } : { x: (-o.x / ol) * len, y: (-o.y / ol) * len };
+    } else if (!p[other]) {
+      p[other] = cur;
+    }
+    p[key] = o;
+  } else {
+    Object.assign(p, placePoint(c, at.x, at.y));
+  }
+  drag.moved = true;
+  render();
+});
+// 点を押しただけ(動かしていない)ときは、元に戻すの履歴に残さない
+const endDrag = () => {
+  if (drag && !drag.moved && !drag.isNew) hist.undo.pop();
+  drag = null;
+};
+$("pad").addEventListener("pointerup", endDrag);
+$("pad").addEventListener("pointercancel", endDrag);
+
+function renderPad() {
+  const c = cust(), pad = $("pad");
+  const m = Math.max(c.w, c.h) * PAD_MARGIN, u = padUnit();
+  pad.setAttribute("viewBox", `${-m} ${-m} ${c.w + m * 2} ${c.h + m * 2}`);
+  const step = Math.max(c.w, c.h) / 20;
+  let g = "";
+  for (let x = 0; x <= c.w + 0.01; x += step) g += `<line class="g${Math.abs(x - c.w / 2) < 0.01 ? " mid" : ""}" x1="${x}" y1="0" x2="${x}" y2="${c.h}"/>`;
+  for (let y = 0; y <= c.h + 0.01; y += step) g += `<line class="g${Math.abs(y - c.h / 2) < 0.01 ? " mid" : ""}" x1="0" y1="${y}" x2="${c.w}" y2="${y}"/>`;
+  const auto = c.mirror ? `<rect class="auto" x="${c.w / 2}" y="0" width="${c.w / 2}" height="${c.h}"/><line class="axis" x1="${c.w / 2}" y1="${-m}" x2="${c.w / 2}" y2="${c.h + m}"/>` : "";
+  const d = c.pts.length >= 3 ? customD(c) : "";
+  const line = c.pts.length === 2 ? `<path class="ghost" d="M${c.pts[0].x},${c.pts[0].y}L${c.pts[1].x},${c.pts[1].y}"/>` : "";
+  const r = 6 * u;
+  const pts = c.pts.map((p, i) => p.corner
+    ? `<rect class="pt${i === selPt ? " sel" : ""}" x="${p.x - r}" y="${p.y - r}" width="${r * 2}" height="${r * 2}"/>`
+    : `<circle class="pt${i === selPt ? " sel" : ""}" cx="${p.x}" cy="${p.y}" r="${r}"/>`).join("");
+  const hp = selPt >= 0 && c.pts.length >= 3 && handlePositions(c, selPt);
+  const sp = hp && c.pts[selPt];
+  const handles = hp ? ["in", "out"].map((k) => `<line class="hl" x1="${sp.x}" y1="${sp.y}" x2="${hp[k].x}" y2="${hp[k].y}"/><circle class="hd" cx="${hp[k].x}" cy="${hp[k].y}" r="${4.5 * u}"/>`).join("") : "";
+  pad.innerHTML = `${auto}${g}<rect class="frame" x="0" y="0" width="${c.w}" height="${c.h}"/>${d ? `<path class="shape" d="${d}"/>` : ""}${line}${handles}${pts}`;
+
+  for (const b of $("gridTabs").children) b.setAttribute("aria-pressed", b.dataset.v === c.grid ? "true" : "false");
+  $("mirrorSw").setAttribute("aria-pressed", c.mirror ? "true" : "false");
+  for (const b of $("keepTabs").children) b.setAttribute("aria-pressed", b.dataset.v === String(!!c.keep) ? "true" : "false");
+  $("widthCtl").hidden = !c.keep;
+  $("cWidth").value = c.width;
+  $("cWidthOut").textContent = c.width + "px";
+  $("cPad").value = c.pad;
+  $("cPadOut").textContent = c.pad + "px";
+  const savedShape = c.sid && loadShapes().find((x) => x.sid === c.sid);
+  $("savedShapeActs").hidden = !savedShape;
+  if (savedShape) {
+    $("overwriteShape").textContent = `「${savedShape.name}」に上書き`;
+    $("deleteShape").textContent = `「${savedShape.name}」を削除`;
+  }
+  $("cornerBtn").disabled = $("delPt").disabled = selPt < 0;
+  $("resetHandle").disabled = !(selPt >= 0 && c.pts[selPt] && (c.pts[selPt].hIn || c.pts[selPt].hOut));
+  $("undo").disabled = !hist.undo.length;
+  $("redo").disabled = !hist.redo.length;
+  $("padHint").textContent = c.pts.length < 3
+    ? (c.mirror ? "左半分を、上から下へ順に押して点を置いてください(3つ以上)。右半分は自動でできます" : "まわりを順に押して点を置いてください(3つ以上)")
+    : "線の上を押すと、そこに点を足す / 点をドラッグで動かす / 点をダブルクリックで角 ⇔ なめらか(■が角、●がなめらか) / なめらかな点を選ぶと出るハンドル(線の先の○)で曲がり具合を変える(Alt を押しながらだと片側だけ) / Ctrl+Z で元に戻す、Ctrl+Y でやり直す";
+}
+
+// ---------- 形の保存 ----------
+$("saveShape").addEventListener("click", () => {
+  const c = cust();
+  if (!c || c.pts.length < 3) return toast("点を3つ以上置いてから保存してください");
+  const list = loadShapes();
+  const name = $("shapeName").value.trim() || `自分の形 ${list.length + 1}`;
+  const sh = { ...JSON.parse(JSON.stringify(c)), sid: "s" + Date.now().toString(36), name };
+  list.push(sh);
+  if (!saveShapes(list)) return toast("保存できませんでした");
+  c.sid = sh.sid;
+  c.name = name;
+  $("shapeName").value = "";
+  render();
+  toast(`形「${name}」を保存しました`);
+});
+$("overwriteShape").addEventListener("click", () => {
+  const c = cust(), list = loadShapes(), i = list.findIndex((x) => x.sid === c?.sid);
+  if (i < 0) return;
+  list[i] = { ...JSON.parse(JSON.stringify(c)), sid: list[i].sid, name: list[i].name };
+  if (!saveShapes(list)) return toast("保存できませんでした");
+  render();
+  toast(`形「${list[i].name}」に上書きしました`);
+});
+// 書き出す:保存した形を全部、1つの .json ファイルに
+$("exportShapes").addEventListener("click", () => {
+  const list = loadShapes();
+  if (!list.length) return toast("保存した形がありません");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ shapes: list }, null, 1)], { type: "application/json" }));
+  a.download = "あめちゃんの形.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(`${list.length}個の形を書き出しました`);
+});
+// 読み込む:今ある形に足す(同じ形がすでにあれば足さない)
+$("importShapes").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const incoming = (Array.isArray(data) ? data : data.shapes ?? []).filter((x) => x?.sid && Array.isArray(x.pts));
+    const list = loadShapes();
+    const added = incoming.filter((x) => !list.some((y) => y.sid === x.sid));
+    if (!saveShapes([...list, ...added])) return toast("読み込めませんでした");
+    render();
+    toast(added.length ? `${added.length}個の形を読み込みました` : "新しい形はありませんでした(もう全部あります)");
+  } catch {
+    toast("読み込めませんでした(形のファイルか確認してください)");
+  }
+});
+$("deleteShape").addEventListener("click", () => {
+  const c = cust(), list = loadShapes(), sh = list.find((x) => x.sid === c?.sid);
+  if (!sh || !confirm(`保存した形「${sh.name}」を削除しますか?(今描いている形はそのまま残ります)`)) return;
+  saveShapes(list.filter((x) => x.sid !== sh.sid));
+  delete c.sid;
+  delete c.name;
+  render();
+});
+
+$("new").addEventListener("click", () => {
+  remember();
+  part = newPart(part.type);
+  selPt = -1;
+  render();
+});
+$("copyAI").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(partForAI(part));
+    toast("コピーしました。AI に貼ってください");
+  } catch {
+    toast("コピーできませんでした");
+  }
+});
+$("copyAnywhere").addEventListener("click", async () => {
+  try {
+    // 見た目のしくみ(ui/kit.css)も一緒に入れる
+    const kitCss = await (await fetch("ui/kit.css")).text();
+    await navigator.clipboard.writeText(partForAnywhere(part, kitCss));
+    toast("どこでも使える版をコピーしました");
+  } catch {
+    toast("コピーできませんでした(ページをサーバーから開いているか確認してください)");
+  }
+});
+
+// このタブで作りかけのものがあれば続ける
+try {
+  const d = JSON.parse(sessionStorage.getItem("uimaker:draft"));
+  if (d?.part) part = { ...newPart(d.part.type), ...d.part };
+} catch {}
+render();
+</script>
+</body>
+</html>
