@@ -77,6 +77,30 @@
     border-color: transparent;
     color: #fff;
   }
+  /* 隠しキャラ:ふだんは文字が透明。ドラッグで選ぶと色が付いて見え、そのあとは押せる */
+  .secret-line {
+    width: min(880px, 100%);
+    min-height: 1.8em;
+    margin: 12px 0 0;
+    text-align: center;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .secret-line:empty { display: none; } /* 隠しキャラがいないときは、すき間を作らない */
+  .secret {
+    font-weight: 700;
+    color: transparent;
+    padding: 0 .4em;
+    cursor: text;
+  }
+  .secret::selection { color: var(--accent); background: #ffe1ec; }
+  .secret.found {
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 4px;
+  }
+  .secret.found:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
   .char-btn .avatar {
     width: 40px;
     height: 40px;
@@ -287,6 +311,9 @@
 
 <div class="char-list" id="charList"></div>
 
+<!-- 隠しキャラ:見えない文字で名前が書いてある。ドラッグで文字を選ぶ(反転させる)と見つかる -->
+<p class="secret-line" id="secretLine"></p>
+
 <div class="profile" id="profile"></div>
 
 <div class="extras" id="extras"></div>
@@ -369,16 +396,55 @@ function attachAvatarFallback(root) {
   });
 }
 
+// 「プロフィール」シートに「隠し」という見出しの列を作り、何か書いたキャラは隠しキャラにする
+//   (「隠し」の列はプロフィールの項目としては表示しない)
+const SECRET_LABEL = "隠し";
+const isSecret = ch => (ch.fields || []).some(f => f.label === SECRET_LABEL && String(f.value).trim());
+const secretLine = document.getElementById("secretLine");
+
 function renderButtons() {
-  charList.innerHTML = characters.map((ch, i) =>
+  charList.innerHTML = characters.map((ch, i) => isSecret(ch) ? "" :
     `<button class="char-btn" type="button" data-index="${i}" aria-pressed="false">
       ${avatarHtml(ch)}<span>${escapeHtml(ch.name)}</span>
     </button>`).join("");
+  renderSecrets();
   attachAvatarFallback(charList);
   charList.querySelectorAll(".char-btn").forEach(btn => {
     btn.addEventListener("click", () => select(Number(btn.dataset.index)));
   });
 }
+
+// 隠しキャラの名前を、見えない文字で並べる
+function renderSecrets() {
+  secretLine.innerHTML = characters.map((ch, i) => isSecret(ch)
+    ? `<span class="secret" data-index="${i}">${escapeHtml(ch.name)}</span>` : "").join("");
+  secretLine.querySelectorAll(".secret").forEach(el => {
+    // 見つかったあとだけ押せる(見つける前に、たまたま押して開かないように)
+    el.addEventListener("click", () => {
+      if (el.classList.contains("found")) select(Number(el.dataset.index));
+    });
+    el.addEventListener("keydown", e => {
+      if ((e.key === "Enter" || e.key === " ") && el.classList.contains("found")) {
+        e.preventDefault();
+        select(Number(el.dataset.index));
+      }
+    });
+  });
+}
+// 文字を選んで(反転させて)隠しキャラの名前にかかったら、見つけたことにする
+function markFound(el) {
+  if (el.classList.contains("found")) return;
+  el.classList.add("found");
+  el.setAttribute("role", "button");
+  el.tabIndex = 0;
+}
+document.addEventListener("selectionchange", () => {
+  const sel = document.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
+  secretLine.querySelectorAll(".secret").forEach(el => {
+    if (sel.containsNode(el, true)) markFound(el);
+  });
+});
 
 function select(index) {
   const ch = characters[index];
@@ -387,8 +453,11 @@ function select(index) {
   charList.querySelectorAll(".char-btn").forEach(btn => {
     btn.setAttribute("aria-pressed", String(Number(btn.dataset.index) === index));
   });
+  // URL で直接開いたときも、隠しキャラは見つけたことにする
+  const secretEl = secretLine.querySelector(`.secret[data-index="${index}"]`);
+  if (secretEl) markFound(secretEl);
 
-  const fields = (ch.fields || []).filter(f => String(f.value).trim());
+  const fields = (ch.fields || []).filter(f => f.label !== SECRET_LABEL && String(f.value).trim());
   const fieldsHtml = fields.length
     ? `<dl class="fields">${fields.map(f =>
         `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.value)}</dd>`).join("")}</dl>`
