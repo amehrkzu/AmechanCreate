@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Background Page</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200;300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body { width: 100%; height: 100%; }
+
+    body {
+      background-image: url('BackGround.webp');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── keyframes ── */
+    @keyframes slideFromLeft {
+      from { transform: translateY(-50%) translateX(-120vw); opacity: 0; }
+      to   { transform: translateY(-50%) translateX(0);      opacity: 1; }
+    }
+    @keyframes slideFromRight {
+      from { transform: translateX(120vw); opacity: 0; }
+      to   { transform: translateX(0);     opacity: 1; }
+    }
+    @keyframes slideFromBottom {
+      from { transform: translateY(-50%) translateY(120vh); opacity: 0; }
+      to   { transform: translateY(-50%) translateY(0);     opacity: 1; }
+    }
+    @keyframes slideFromTop {
+      from { transform: translateY(-120vh); opacity: 0; }
+      to   { transform: translateY(0);      opacity: 1; }
+    }
+    @keyframes slideFromTopForBottom {
+      from { transform: translateY(-200vh); opacity: 0; }
+      to   { transform: translateY(0);      opacity: 1; }
+    }
+    @keyframes spinInRight {
+      from { transform: translateY(-50%) rotate(-360deg) scale(0); opacity: 0; }
+      to   { transform: translateY(-50%) rotate(0deg)   scale(1); opacity: 1; }
+    }
+    @keyframes spinInLeft {
+      from { transform: rotate(360deg) scale(0); opacity: 0; }
+      to   { transform: rotate(0deg)   scale(1); opacity: 1; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    /* ── テキスト ── */
+    .text-right {
+      position: fixed;
+      top: 30%;
+      right: 16vw;
+      transform: translateY(-50%);
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      font-family: 'Noto Serif JP', serif;
+      font-weight: 300;
+      font-size: clamp(2rem, 4vw, 1.5rem);
+      letter-spacing: 0.25em;
+      color: #ffffff;
+      mix-blend-mode: difference;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .text-left-bottom {
+      position: fixed;
+      bottom: 6vh;
+      left: 16vw;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-family: 'Noto Serif JP', serif;
+      font-weight: 200;
+      font-size: clamp(0.85rem, 1.6vw, 1.2rem);
+      letter-spacing: 0.4em;
+      color: #ffffff;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    /* ── コントロールUI ── */
+    .site-foot {
+      position: fixed;
+      left: 12px;
+      bottom: 8px;
+      max-width: 55vw;
+      z-index: 100;
+      font-family: sans-serif;
+      font-size: 10px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.75);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    }
+    .site-foot p { margin: 0; }
+    .site-foot a { color: inherit; }
+
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 100;
+    }
+
+    .controls select,
+    .controls input[type="number"] {
+      appearance: none;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #ffffff;
+      font-family: 'Noto Serif JP', serif;
+      font-size: 0.7rem;
+      border-radius: 4px;
+      backdrop-filter: blur(6px);
+      outline: none;
+    }
+
+    .controls select {
+      padding: 5px 24px 5px 10px;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.7)'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-color: rgba(255,255,255,0.12);
+    }
+
+    .controls select option { background: #222; color: #fff; }
+
+    .controls input[type="number"] {
+      padding: 5px 6px;
+      width: 52px;
+      text-align: center;
+    }
+
+    .controls input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+
+    .controls button {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #ffffff;
+      font-size: 0.75rem;
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .controls button:hover { background: rgba(255, 255, 255, 0.25); }
+  </style>
+</head>
+<body>
+  <div class="text-right" id="textRight">HNB</div>
+  <div class="text-left-bottom" id="textLeft">それはまぜまぜ</div>
+
+  <!-- 著作権の表記(FF14 の素材を使っているため) -->
+  <footer class="site-foot">
+    <p>記載されている会社名・製品名・システム名などは、各社の商標、または登録商標です。</p>
+    <p>(C) SQUARE ENIX / <a href="https://support.jp.square-enix.com/rule.php?id=5382&tag=authc" target="_blank" rel="noopener">FINAL FANTASY XIV 著作物利用条件</a></p>
+  </footer>
+
+  <div class="controls">
+    <select id="animSelect">
+      <option value="slide-x" selected>スライドイン（横）</option>
+      <option value="slide-y">スライドイン（縦）</option>
+      <option value="spin">スピンイン</option>
+      <option value="fade">フェードイン</option>
+    </select>
+    <select id="easingSelect">
+      <option value="ease-out" selected>イーズアウト</option>
+      <option value="ease-in">イーズイン</option>
+      <option value="linear">リニア</option>
+    </select>
+    <input id="durationInput" type="number" value="0.6" min="0.1" max="5" step="0.1" title="アニメーション秒数">
+    <button id="playBtn" title="再生">▶</button>
+  </div>
+
+  <script>
+    const textRight     = document.getElementById('textRight');
+    const textLeft      = document.getElementById('textLeft');
+    const animSelect    = document.getElementById('animSelect');
+    const easingSelect  = document.getElementById('easingSelect');
+    const durationInput = document.getElementById('durationInput');
+    const playBtn       = document.getElementById('playBtn');
+
+    const animMap = {
+      'slide-x': { right: 'slideFromLeft',  left: 'slideFromRight'  },
+      'slide-y': { right: 'slideFromBottom', left: 'slideFromTopForBottom' },
+      'spin':    { right: 'spinInRight',     left: 'spinInLeft'      },
+      'fade':    { right: 'fadeIn',          left: 'fadeIn'          },
+    };
+
+    function playAnimation() {
+      const anim     = animSelect.value;
+      const easing   = easingSelect.value;
+      const duration = parseFloat(durationInput.value) || 0.6;
+      const { right, left } = animMap[anim];
+
+      [textRight, textLeft].forEach(el => {
+        el.style.animation = 'none';
+        el.offsetHeight; // reflow
+      });
+
+      textRight.style.animation = `${right} ${duration}s 0.2s ${easing} both`;
+      textLeft.style.animation  = `${left}  ${duration}s 0.2s ${easing} both`;
+    }
+
+    playAnimation();
+    playBtn.addEventListener('click', playAnimation);
+  </script>
+</body>
+</html>

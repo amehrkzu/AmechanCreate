@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>キャラクター紹介</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fff5f8;
+    --bg2: #ffe4ee;
+    --card: #ffffff;
+    --text: #4a3340;
+    --muted: #9a7a8a;
+    --accent: #ff6f9c;
+    --accent2: #b58cff;
+    --border: #f5c6d6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    color: var(--text);
+    background: radial-gradient(circle at 20% 10%, var(--bg2), transparent 50%),
+                radial-gradient(circle at 80% 90%, #efe3ff, transparent 50%),
+                var(--bg);
+    background-attachment: fixed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 16px;
+  }
+  h1 {
+    margin: 0 0 32px;
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 0.05em;
+  }
+
+  /* キャラクターボタン */
+  .char-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    width: min(880px, 100%);
+  }
+  .char-btn {
+    font: inherit;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 18px 6px 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 111, 156, 0.12);
+    transition: transform .15s, border-color .2s, box-shadow .2s, background .2s;
+  }
+  .char-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 6px 16px rgba(255, 111, 156, 0.25);
+  }
+  .char-btn[aria-pressed="true"] {
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-color: transparent;
+    color: #fff;
+  }
+  .char-btn .avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+    border-width: 2px;
+  }
+
+  .avatar {
+    border-radius: 50%;
+    border: 3px solid var(--border);
+    background: linear-gradient(135deg, var(--bg2), #efe3ff);
+    object-fit: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  /* プロフィールカード */
+  .profile {
+    margin-top: 40px;
+    width: min(720px, 100%);
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 8px 24px rgba(181, 140, 255, 0.12);
+  }
+  .profile.pop { animation: pop .45s ease; }
+  @keyframes pop {
+    0% { transform: scale(.96); opacity: 0; }
+    60% { transform: scale(1.01); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  .profile-head {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .profile-head .avatar {
+    width: 160px;
+    height: 160px;
+    font-size: 3.5rem;
+    border-width: 4px;
+  }
+  .profile-name {
+    margin: 0;
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
+    font-weight: 800;
+    color: var(--accent);
+    word-break: break-word;
+  }
+  .fields {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    border-top: 2px dashed var(--border);
+  }
+  .fields dt, .fields dd {
+    margin: 0;
+    padding: 12px 8px;
+    border-bottom: 2px dashed var(--border);
+    line-height: 1.8;
+  }
+  .fields dt {
+    font-weight: 700;
+    color: var(--accent2);
+    padding-right: 24px;
+    white-space: nowrap;
+  }
+  .fields dd {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .placeholder, .loading {
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.8;
+    margin: 40px 0;
+  }
+  .error {
+    color: #d0507a;
+    text-align: center;
+    line-height: 1.8;
+    margin: 40px 0;
+  }
+
+  /* 補足ブロック（スクロールで表示） */
+  .extras {
+    width: min(720px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    margin-top: 32px;
+  }
+  .extras:empty { display: none; }
+  .extra {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(181, 140, 255, 0.12);
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity .7s ease, transform .7s ease;
+  }
+  .extra.shown { opacity: 1; transform: none; }
+  .extra img {
+    display: block;
+    width: 100%;
+    cursor: zoom-in;
+    background: linear-gradient(135deg, var(--bg2), #efe3ff);
+  }
+  .extra-title {
+    margin: 0 0 8px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .extra-body {
+    margin: 0;
+    line-height: 1.9;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* 画像だけ／画像＋見出し：大きく表示 */
+  .extra.full img {
+    max-height: 85vh;
+    object-fit: contain;
+  }
+  .extra.full .extra-caption {
+    padding: 12px 20px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* 画像＋本文：左右に並べる */
+  .extra.split {
+    display: grid;
+    grid-template-columns: 2fr 3fr;
+  }
+  .extra.split.reverse { grid-template-columns: 3fr 2fr; }
+  .extra.split.reverse .extra-media { order: 2; }
+  .extra.split img {
+    height: 100%;
+    min-height: 240px;
+    object-fit: cover;
+  }
+  .extra.split .extra-text { padding: 28px; align-self: center; }
+
+  /* 文章だけ */
+  .extra.text { padding: 28px 32px; }
+
+  /* 拡大表示 */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(40, 20, 35, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 100;
+    cursor: zoom-out;
+  }
+  .lightbox[hidden] { display: none; }
+  .lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 12px;
+  }
+
+  @media (max-width: 560px) {
+    .extra.split, .extra.split.reverse { grid-template-columns: 1fr; }
+    .extra.split.reverse .extra-media { order: 0; }
+    .extra.split img { height: auto; min-height: 0; max-height: 60vh; }
+    .extra.split .extra-text, .extra.text { padding: 20px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .extra { opacity: 1; transform: none; transition: none; }
+  }
+
+  @media (max-width: 560px) {
+    .profile { padding: 24px 20px; }
+    .profile-head { flex-direction: column; text-align: center; gap: 16px; }
+    .profile-head .avatar { width: 140px; height: 140px; }
+    .fields { grid-template-columns: 1fr; }
+    .fields dt { padding-bottom: 0; border-bottom: none; }
+    .fields dd { padding-top: 4px; }
+  }
+  /* 著作権の表記(FF14 の素材を使っているため) */
+  .site-foot { margin: 48px auto 20px; padding: 0 16px; max-width: 720px; text-align: center; color: var(--muted); font-size: 11px; line-height: 1.6; }
+  .site-foot p { margin: 2px 0; }
+  .site-foot a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>キャラクター紹介</h1>
+
+<div class="char-list" id="charList"></div>
+
+<div class="profile" id="profile"></div>
+
+<div class="extras" id="extras"></div>
+
+<div class="lightbox" id="lightbox" hidden><img alt=""></div>
+
+<footer class="site-foot">
+  <p>記載されている会社名・製品名・システム名などは、各社の商標、または登録商標です。</p>
+  <p>(C) SQUARE ENIX / <a href="https://support.jp.square-enix.com/rule.php?id=5382&tag=authc" target="_blank" rel="noopener">FINAL FANTASY XIV 著作物利用条件</a></p>
+</footer>
+
+<script>
+// ============================================================
+// 設定
+// ============================================================
+// プロフィール用 Apps Script をデプロイしたときの「ウェブアプリのURL」（…/exec）を貼る。
+// 空のままだと下のサンプルデータで表示する。
+const API_URL = "https://script.google.com/macros/s/AKfycbzT3eQmYJq7i8Vm3l3h1hNN0ZbJH-jLQvixA9hLLFTl7ZdjaxjsH-AOUmpaVYrmglXS2g/exec";
+
+const SAMPLE_DATA = {
+  characters: [
+    { name: "キャラA", image: "", fields: [
+      { label: "誕生日", value: "4月1日" },
+      { label: "身長", value: "165cm" },
+      { label: "好きなもの", value: "甘いもの、昼寝" },
+      { label: "紹介文", value: "ここに紹介文が入ります。\n改行もできます。" },
+    ], extras: [
+      { title: "画像＋本文", body: "画像と文章があるブロックは左右に並びます。\nスマホでは縦並びになります。", image: "https://picsum.photos/id/1011/800/800" },
+      { title: "", body: "", image: "https://picsum.photos/id/1015/1600/900" },
+      { title: "左右は交互", body: "2つ目の左右並びブロックは、画像が右側に来ます。", image: "https://picsum.photos/id/1025/800/800" },
+      { title: "画像＋見出しだけ", body: "", image: "https://picsum.photos/id/1035/900/1400" },
+      { title: "文章だけ", body: "画像のないブロックは文章だけのカードになります。", image: "" },
+    ]},
+    { name: "キャラB", image: "", fields: [
+      { label: "誕生日", value: "12月24日" },
+      { label: "身長", value: "178cm" },
+      { label: "好きなもの", value: "" },
+      { label: "紹介文", value: "空欄の項目は表示されません。" },
+    ]},
+    { name: "キャラC", image: "", fields: [] },
+  ],
+};
+
+// ============================================================
+// 表示
+// ============================================================
+const charList = document.getElementById("charList");
+const profile = document.getElementById("profile");
+
+let characters = [];
+
+async function loadData() {
+  if (!API_URL) return SAMPLE_DATA;
+  const res = await fetch(API_URL);
+  if (!res.ok) throw new Error(res.status);
+  return res.json();
+}
+
+function initial(name) {
+  return escapeHtml([...name][0] || "?");
+}
+
+function avatarHtml(ch) {
+  if (ch.image) {
+    return `<img class="avatar" src="${escapeHtml(ch.image)}" alt=""
+      data-initial="${initial(ch.name)}" referrerpolicy="no-referrer">`;
+  }
+  return `<div class="avatar">${initial(ch.name)}</div>`;
+}
+
+// 画像の読み込みに失敗したらイニシャル表示に差し替える
+function attachAvatarFallback(root) {
+  root.querySelectorAll("img.avatar").forEach(img => {
+    img.addEventListener("error", () => {
+      const div = document.createElement("div");
+      div.className = "avatar";
+      div.textContent = img.dataset.initial;
+      img.replaceWith(div);
+    }, { once: true });
+  });
+}
+
+function renderButtons() {
+  charList.innerHTML = characters.map((ch, i) =>
+    `<button class="char-btn" type="button" data-index="${i}" aria-pressed="false">
+      ${avatarHtml(ch)}<span>${escapeHtml(ch.name)}</span>
+    </button>`).join("");
+  attachAvatarFallback(charList);
+  charList.querySelectorAll(".char-btn").forEach(btn => {
+    btn.addEventListener("click", () => select(Number(btn.dataset.index)));
+  });
+}
+
+function select(index) {
+  const ch = characters[index];
+  if (!ch) return;
+
+  charList.querySelectorAll(".char-btn").forEach(btn => {
+    btn.setAttribute("aria-pressed", String(Number(btn.dataset.index) === index));
+  });
+
+  const fields = (ch.fields || []).filter(f => String(f.value).trim());
+  const fieldsHtml = fields.length
+    ? `<dl class="fields">${fields.map(f =>
+        `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.value)}</dd>`).join("")}</dl>`
+    : `<p class="placeholder">プロフィールはまだ準備中です</p>`;
+
+  profile.innerHTML = `
+    <div class="profile-head">
+      ${avatarHtml(ch)}
+      <h2 class="profile-name">${escapeHtml(ch.name)}</h2>
+    </div>
+    ${fieldsHtml}`;
+  attachAvatarFallback(profile);
+  renderExtras(ch.extras || []);
+
+  profile.classList.remove("pop");
+  void profile.offsetWidth; // アニメーション再生用
+  profile.classList.add("pop");
+
+  // URLの末尾に #キャラ名 を付けて、そのキャラのページを直接開けるようにする
+  history.replaceState(null, "", "#" + encodeURIComponent(ch.name));
+}
+
+// ============================================================
+// 補足ブロック
+// ============================================================
+const extrasEl = document.getElementById("extras");
+const lightbox = document.getElementById("lightbox");
+
+// 画面に入ったブロックから順にふわっと表示する
+const revealObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add("shown");
+      revealObserver.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.15 });
+
+function extraHtml(ex, splitCount) {
+  const hasTitle = ex.title.trim() !== "";
+  const hasBody = String(ex.body).trim() !== "";
+  const img = ex.image
+    ? `<img src="${escapeHtml(ex.image)}" alt="${escapeHtml(ex.title)}" loading="lazy" referrerpolicy="no-referrer">`
+    : "";
+  const title = hasTitle ? `<h3 class="extra-title">${escapeHtml(ex.title)}</h3>` : "";
+  const body = hasBody ? `<p class="extra-body">${escapeHtml(ex.body)}</p>` : "";
+
+  // 画像だけ／画像＋見出しだけ → 大きく表示
+  if (img && !hasBody) {
+    const caption = hasTitle ? `<div class="extra-caption">${escapeHtml(ex.title)}</div>` : "";
+    return `<section class="extra full"><div class="extra-media">${img}</div>${caption}</section>`;
+  }
+  // 画像＋本文 → 左右に並べる（左右は交互）
+  if (img) {
+    const reverse = splitCount % 2 === 1 ? " reverse" : "";
+    return `<section class="extra split${reverse}">
+      <div class="extra-media">${img}</div>
+      <div class="extra-text">${title}${body}</div>
+    </section>`;
+  }
+  // 文章だけ
+  return `<section class="extra text">${title}${body}</section>`;
+}
+
+function renderExtras(extras) {
+  let splitCount = 0;
+  extrasEl.innerHTML = extras.map(ex => {
+    const html = extraHtml(ex, splitCount);
+    if (html.includes("extra split")) splitCount++;
+    return html;
+  }).join("");
+
+  extrasEl.querySelectorAll(".extra").forEach(el => revealObserver.observe(el));
+  extrasEl.querySelectorAll("img").forEach(img => {
+    img.addEventListener("click", () => openLightbox(img.src));
+    // 読み込めなかった画像は消す（画像しかないブロックはブロックごと消す）
+    img.addEventListener("error", () => {
+      const block = img.closest(".extra");
+      img.closest(".extra-media").remove();
+      if (!block.querySelector(".extra-title, .extra-body, .extra-caption")) block.remove();
+      else block.className = "extra text shown";
+    }, { once: true });
+  });
+}
+
+function openLightbox(src) {
+  lightbox.querySelector("img").src = src;
+  lightbox.hidden = false;
+}
+
+lightbox.addEventListener("click", () => { lightbox.hidden = true; });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") lightbox.hidden = true;
+});
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+async function init() {
+  profile.innerHTML = `<p class="loading">読み込み中…♡</p>`;
+  try {
+    const data = await loadData();
+    characters = data.characters || [];
+  } catch (e) {
+    profile.innerHTML = `<p class="error">データの読み込みに失敗しました<br>時間をおいて再読み込みしてね</p>`;
+    return;
+  }
+  if (characters.length === 0) {
+    profile.innerHTML = `<p class="placeholder">キャラクターがまだ登録されていません</p>`;
+    return;
+  }
+  renderButtons();
+
+  const hashName = decodeURIComponent(location.hash.slice(1));
+  const hashIndex = characters.findIndex(c => c.name === hashName);
+  if (hashIndex >= 0) {
+    select(hashIndex);
+  } else {
+    profile.innerHTML = `<p class="placeholder">キャラクターをえらんでね</p>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

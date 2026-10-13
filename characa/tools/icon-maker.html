@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>アイコンメーカー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
+<style>
+/* キャラカメーカーと同じパステル・太めの枠線 */
+:root {
+  --bg: #fff4f8;
+  --dot: #ffe1ec;
+  --panel: #fffdfc;
+  --ink: #8a6f9e;
+  --ink-soft: #d9c6e6;
+  --line: #eadcf2;
+  --text: #4f3f5c;
+  --muted: #9b89a9;
+  --accent: #ff7fae;
+  --primary: #ffb3cf;
+  --mint: #bdeccd;
+  --sky: #bfdcff;
+  --lemon: #ffe7a3;
+  --lilac: #dccbff;
+  --danger: #e0567a;
+  --danger-bg: #ffe3ea;
+  --border: 2.5px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  color: var(--text);
+  font: 14px/1.55 "M PLUS Rounded 1c", system-ui, sans-serif;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--dot) 18%, transparent 19%), radial-gradient(var(--dot) 18%, transparent 19%);
+  background-size: 28px 28px;
+  background-position: 0 0, 14px 14px;
+}
+button, label.btn { touch-action: manipulation; }
+.top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: max(8px, env(safe-area-inset-top)) 14px 8px;
+  background: var(--panel);
+  border-bottom: var(--border) solid var(--ink);
+}
+.top h1 { margin: 0; font-size: 16px; white-space: nowrap; background: linear-gradient(transparent 62%, #ffd1e3 62%); padding: 0 2px; }
+.top .note { margin: 0 0 0 auto; }
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 14px;
+  padding: 14px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.stage { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.board {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: calc(100vh - 150px);
+  max-width: calc(100vh - 150px);
+  margin: 0 auto;
+  background: #fff;
+  border: var(--border) solid var(--ink);
+  border-radius: 20px;
+  box-shadow: 0 4px 0 var(--ink-soft);
+  overflow: hidden;
+}
+#editor { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
+#editor.mode-draw { cursor: crosshair; }
+#editor.mode-draft { cursor: grab; }
+.hint { margin: 0; color: var(--muted); font-size: 12px; text-align: center; }
+
+.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.box {
+  background: #fff;
+  border: var(--border) solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 0 3px 0 var(--ink-soft);
+  padding: 12px 14px;
+}
+.box h2 { margin: 0 0 10px; font-size: 14px; color: var(--accent); }
+.box h2::before { content: "✿ "; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row + .row { margin-top: 8px; }
+.field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.field + .field { margin-top: 8px; }
+.field--inline { flex-direction: row; align-items: center; gap: 8px; color: var(--text); }
+.field output { color: var(--text); font-weight: 400; }
+input, select {
+  background: #fff;
+  color: var(--text);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 9px;
+  font: inherit;
+  width: 100%;
+  accent-color: var(--accent);
+}
+input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px #ffe1ec; }
+input[type="range"] { padding: 0; border: none; box-shadow: none; }
+input[type="checkbox"] { width: auto; }
+input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #fff;
+  color: var(--text);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 0 3px 0 var(--ink-soft);
+  padding: 5px 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform .08s, box-shadow .08s, background .15s;
+}
+.btn:hover { background: #fff7fb; }
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink-soft); }
+.btn:disabled { opacity: .45; cursor: default; transform: none; }
+.btn--primary { background: var(--primary); }
+.btn--danger { color: var(--danger); background: var(--danger-bg); }
+.btn--small { padding: 2px 10px; font-size: 12px; box-shadow: 0 2px 0 var(--ink-soft); }
+.btn[aria-pressed="true"] { background: var(--sky); }
+.tool[aria-pressed="true"] { background: var(--lemon); }
+.note { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+.status { min-height: 1.4em; margin: 6px 0 0; font-size: 12px; font-weight: 700; color: #2f9e6e; }
+
+.preview { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; padding: 10px; border-radius: 12px; }
+.preview svg { display: block; }
+.preview--dark { background: #1c2333; }
+.preview--light { background: #f4edff; margin-top: 8px; }
+
+kbd { background: #f4edff; border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; font: inherit; font-size: 11px; }
+.help { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+.help li + li { margin-top: 3px; }
+
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .board { max-width: none; max-height: none; }
+  input, select { font-size: 16px; } /* iPhone でタップしたときに拡大されないように */
+  .top .note { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>アイコンメーカー</h1>
+  <p class="note">432×432 の正方形に描いて、SVG で保存できます</p>
+</header>
+
+<main class="app">
+  <section class="stage">
+    <div class="toolbar" role="group" aria-label="ツール">
+      <button type="button" class="btn tool" data-mode="draw" title="描く(D)">✏️ 描く</button>
+      <button type="button" class="btn tool" data-mode="move" title="動かす(V)">✋ 動かす</button>
+      <button type="button" class="btn tool" data-mode="draft" title="下書きを動かす(B)">🖼 下書きを動かす</button>
+      <span style="flex:1"></span>
+      <button type="button" class="btn btn--small" id="undo" title="元に戻す(Ctrl+Z)">↶ 戻す</button>
+      <button type="button" class="btn btn--small" id="redo" title="やり直す(Ctrl+Y)">↷ やり直す</button>
+    </div>
+    <div class="board">
+      <svg id="editor" viewBox="0 0 432 432" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="grid-s" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M18 0H0V18" fill="none" stroke="#efe6f6" stroke-width="1"/></pattern>
+          <pattern id="grid-l" width="108" height="108" patternUnits="userSpaceOnUse"><rect width="108" height="108" fill="url(#grid-s)"/><path d="M108 0H0V108" fill="none" stroke="#dccbe8" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect id="gridRect" width="432" height="432" fill="url(#grid-l)"/>
+        <!-- ほかのアイコンの目安:長い辺がだいたい 360(この点線の内側) -->
+        <rect x="36" y="36" width="360" height="360" fill="none" stroke="#ffc6dc" stroke-width="1.5" stroke-dasharray="6 6"/>
+        <g id="draftLayer"></g>
+        <g id="shapeLayer"></g>
+        <g id="overlayLayer"></g>
+      </svg>
+    </div>
+    <p class="hint" id="hint"></p>
+  </section>
+
+  <aside class="panel">
+    <section class="box">
+      <h2>ファイル</h2>
+      <div class="row">
+        <label class="btn btn--primary">下書きを読み込む<input id="draftFile" type="file" accept="image/*,.svg" hidden></label>
+        <label class="btn">SVG を開く<input id="openFile" type="file" accept=".svg,image/svg+xml" hidden></label>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <span>名前(保存するファイル名・コピーするときのジョブ名)</span>
+        <input id="iconName" type="text" placeholder="例: 魔獣使い">
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button type="button" class="btn btn--primary" id="saveSvg">SVG で保存</button>
+        <button type="button" class="btn" id="copyCode" title="job-icons.js にそのまま貼れる1行">job-icons.js 用にコピー</button>
+      </div>
+      <p class="status" id="status" role="status"></p>
+      <p class="note">画像はドラッグ&ドロップ・貼り付け(Ctrl+V)でも下書きにできます。保存した SVG はここで開くと、続きから編集できます。</p>
+    </section>
+
+    <section class="box">
+      <h2>選んでいる線</h2>
+      <div id="pathPanel"></div>
+    </section>
+
+    <section class="box">
+      <h2>全体</h2>
+      <label class="field">
+        <span>全体の線の太さ <output id="strokeOut"></output></span>
+        <input id="strokeW" type="range" min="4" max="80" step="1">
+      </label>
+      <label class="field field--inline"><input id="snap" type="checkbox"> グリッド(9 ごと)に吸着</label>
+      <label class="field field--inline"><input id="showGrid" type="checkbox" checked> マス目を表示</label>
+      <div class="row" style="margin-top:10px">
+        <button type="button" class="btn btn--small btn--danger" id="clearAll">ぜんぶ消す</button>
+      </div>
+    </section>
+
+    <section class="box">
+      <h2>下書き</h2>
+      <div id="draftPanel"></div>
+    </section>
+
+    <section class="box">
+      <h2>プレビュー</h2>
+      <div class="row"><span class="field" style="margin:0">色</span><input id="previewColor" type="color" value="#e6e9f0"></div>
+      <div class="preview preview--dark" id="previewDark"></div>
+      <div class="preview preview--light" id="previewLight"></div>
+    </section>
+
+    <section class="box">
+      <h2>使い方</h2>
+      <ul class="help">
+        <li><b>描く</b>:クリックで点を置くと、なめらかな線でつながります。最初の点を押すと閉じた形に。<kbd>Enter</kbd>・<kbd>Esc</kbd>・ダブルクリックで描き終わり</li>
+        <li>描くモードで、閉じていない線の端の点を押すと、その続きから描けます</li>
+        <li><b>動かす</b>:点や線をドラッグ。点をダブルクリックで「角 ⇔ なめらか」切り替え。線の上をダブルクリックで点を足す</li>
+        <li><b>ハンドル</b>:点を選ぶと青いハンドル(取っ手)が出ます。ドラッグすると曲がる向きと強さが変わります。ふだんは反対側も一直線に動き、<kbd>Alt</kbd>+ドラッグで片側だけ動かせます(くの字に折れる)。手で動かした点のハンドルは青く塗られ、「この点の曲がり方を自動に戻す」で元に戻せます</li>
+        <li><kbd>Delete</kbd>:選んでいる点を消す(点を選んでいなければ線ごと消す)</li>
+        <li><b>下書きを動かす</b>:ドラッグで移動、ホイールで拡大縮小、<kbd>Shift</kbd>+ホイールで回転</li>
+        <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> 元に戻す / <kbd>Ctrl</kbd>+<kbd>Y</kbd> やり直す / <kbd>D</kbd> 描く / <kbd>V</kbd> 動かす / <kbd>B</kbd> 下書き</li>
+        <li>線はどれも同じ太さ・丸い先端です。閉じた形は「塗る」にすると塗りつぶしになります(重なった所は穴になります)</li>
+      </ul>
+    </section>
+  </aside>
+</main>
+
+<script>
+"use strict";
+// ---------- 状態 ----------
+const SIZE = 432;
+const STORAGE_KEY = "iconmaker:v1";
+const NS = "http://www.w3.org/2000/svg";
+const $ = (id) => document.getElementById(id);
+const editor = $("editor");
+
+const blank = () => ({
+  name: "",
+  strokeW: 33,
+  paths: [], // { id, closed, fill, pts: [{ x, y, corner }] }
+  draft: { src: "", x: SIZE / 2, y: SIZE / 2, scale: 1, rot: 0, opacity: 0.45, show: true, w: 0, h: 0 },
+});
+let doc = load() ?? blank();
+let mode = "draw";
+let sel = { path: null, point: -1 }; // 選んでいる線(id)と点(番号)
+let drawing = null; // 描いている途中の線の id
+let drag = null;
+const undoStack = [], redoStack = [];
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return d && Array.isArray(d.paths) ? { ...blank(), ...d, draft: { ...blank().draft, ...d.draft } } : null;
+  } catch {
+    return null;
+  }
+}
+let saveTimer;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(doc));
+    } catch {
+      // 下書きの画像が大きすぎると入らないので、画像なしで保存する
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...doc, draft: { ...doc.draft, src: "" } }));
+      } catch {}
+    }
+  }, 300);
+}
+const uid = () => "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const findPath = (id) => doc.paths.find((p) => p.id === id) ?? null;
+
+// 変更の前に呼ぶ(元に戻す用)
+function snapshot() {
+  undoStack.push(JSON.stringify(doc));
+  if (undoStack.length > 150) undoStack.shift();
+  redoStack.length = 0;
+}
+function undo() {
+  if (!undoStack.length) return;
+  redoStack.push(JSON.stringify(doc));
+  doc = JSON.parse(undoStack.pop());
+  afterHistory();
+}
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push(JSON.stringify(doc));
+  doc = JSON.parse(redoStack.pop());
+  afterHistory();
+}
+function afterHistory() {
+  drawing = null;
+  renderAll();
+}
+// 消したり元に戻したりして、選んでいた線・点が無くなっていたら選択を外す
+function fixSelection() {
+  const p = findPath(sel.path);
+  if (!p) sel = { path: null, point: -1 };
+  else if (sel.point >= p.pts.length) sel.point = -1;
+}
+
+// ---------- 曲線 ----------
+const r1 = (n) => Math.round(n * 10) / 10;
+// 点 i の曲がり具合を決める取っ手(ハンドル)。in は前の点側、out は次の点側
+//   手で動かした点は hIn / hOut を持つ。持っていなければ自動(Catmull-Rom:前後の点からなめらかに決める)
+//   「角」の点は、ハンドルが点そのものの位置(とがる)
+function handlesOf(p, i) {
+  const P = p.pts, n = P.length, q = P[i];
+  const at = (k) => (p.closed ? P[(k + n) % n] : P[Math.max(0, Math.min(n - 1, k))]);
+  const hasIn = p.closed || i > 0, hasOut = p.closed || i < n - 1;
+  if (q.corner) return { in: hasIn ? q : null, out: hasOut ? q : null };
+  const a = at(i - 1), b = at(i + 1);
+  const autoIn = { x: q.x - (b.x - a.x) / 6, y: q.y - (b.y - a.y) / 6 };
+  const autoOut = { x: q.x + (b.x - a.x) / 6, y: q.y + (b.y - a.y) / 6 };
+  return { in: hasIn ? q.hIn ?? autoIn : null, out: hasOut ? q.hOut ?? autoOut : null };
+}
+const isManual = (q) => !!(q.hIn || q.hOut);
+
+// 区間 i(点 i → 次の点)の曲線
+function segmentPart(p, i) {
+  const P = p.pts, n = P.length, j = (i + 1) % n;
+  const p1 = P[i], p2 = P[j];
+  if (p1.corner && p2.corner) return `L${r1(p2.x)},${r1(p2.y)}`;
+  const c1 = handlesOf(p, i).out, c2 = handlesOf(p, j).in;
+  return `C${r1(c1.x)},${r1(c1.y)} ${r1(c2.x)},${r1(c2.y)} ${r1(p2.x)},${r1(p2.y)}`;
+}
+
+// 点をつないだ線(「角」の点ではとがる)
+function pathD(p) {
+  const P = p.pts, n = P.length;
+  if (!n) return "";
+  if (n === 1) return `M${r1(P[0].x)},${r1(P[0].y)}l0.01,0`;
+  let d = `M${r1(P[0].x)},${r1(P[0].y)}`;
+  const segs = p.closed ? n : n - 1;
+  for (let i = 0; i < segs; i++) d += segmentPart(p, i);
+  return p.closed ? d + "Z" : d;
+}
+
+// 点を動かすとき、手で決めたハンドルも一緒に動かす(o は動かす前の点)
+function placePoint(q, o, dx, dy) {
+  q.x = snapV(o.x + dx);
+  q.y = snapV(o.y + dy);
+  const mx = q.x - o.x, my = q.y - o.y;
+  if (o.hIn) q.hIn = { x: o.hIn.x + mx, y: o.hIn.y + my };
+  if (o.hOut) q.hOut = { x: o.hOut.x + mx, y: o.hOut.y + my };
+}
+
+// 線の太さ:線ごとに決めていればその太さ、無ければ全体の太さ
+const widthOf = (p) => p.w ?? doc.strokeW;
+
+// 書き出す SVG(色は使う側で color を指定する。fill="currentColor")
+function exportSvg(withMeta) {
+  const isFill = (p) => p.fill && p.closed && p.pts.length > 2;
+  const fills = doc.paths.filter(isFill).map(pathD).join("");
+  let body = "";
+  if (fills) body += `<path fill-rule="evenodd" d="${fills}"/>`;
+  // 同じ太さの線は1つの path にまとめる
+  const byWidth = new Map();
+  for (const p of doc.paths) {
+    if (isFill(p) || !p.pts.length) continue;
+    const w = widthOf(p);
+    byWidth.set(w, (byWidth.get(w) ?? "") + pathD(p));
+  }
+  for (const [w, d] of byWidth) {
+    body += `<path fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" d="${d}"/>`;
+  }
+  const meta = withMeta ? `<metadata id="icon-maker">${escapeXml(JSON.stringify({ name: doc.name, strokeW: doc.strokeW, paths: doc.paths }))}</metadata>` : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIZE} ${SIZE}" fill="currentColor">${meta}${body}</svg>`;
+}
+const escapeXml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// ---------- 描画 ----------
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.append(e);
+  return e;
+}
+
+function renderDraft() {
+  const g = $("draftLayer");
+  g.replaceChildren();
+  const d = doc.draft;
+  if (!d.src || !d.show) return;
+  el("image", {
+    href: d.src,
+    x: -d.w / 2, y: -d.h / 2, width: d.w, height: d.h,
+    opacity: d.opacity,
+    transform: `translate(${d.x} ${d.y}) rotate(${d.rot}) scale(${d.scale})`,
+    preserveAspectRatio: "none",
+    "pointer-events": "none",
+  }, g);
+}
+
+function renderShapes() {
+  const g = $("shapeLayer");
+  g.replaceChildren();
+  for (const p of doc.paths) {
+    const d = pathD(p);
+    if (!d) continue;
+    const filled = p.fill && p.closed && p.pts.length > 2;
+    const isSel = p.id === sel.path;
+    el("path", {
+      d,
+      fill: filled ? "#4f3f5c" : "none",
+      "fill-rule": "evenodd",
+      stroke: filled ? "none" : "#4f3f5c",
+      "stroke-width": widthOf(p),
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      opacity: isSel ? 0.88 : 0.78,
+      "pointer-events": "none",
+    }, g);
+  }
+}
+
+function renderOverlay() {
+  const g = $("overlayLayer");
+  g.replaceChildren();
+  // 線をつかむための見えない太い線(選びやすくするため)
+  for (const p of doc.paths) {
+    const d = pathD(p);
+    if (!d) continue;
+    const filled = p.fill && p.closed && p.pts.length > 2;
+    el("path", {
+      d,
+      fill: filled ? "rgba(0,0,0,0.001)" : "none",
+      stroke: "rgba(0,0,0,0.001)",
+      "stroke-width": Math.max(widthOf(p), 16),
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      "data-path": p.id,
+      class: "hit",
+    }, g);
+  }
+  // 選んでいる線の中心線と点
+  const p = findPath(sel.path);
+  if (!p) return;
+  el("path", { d: pathD(p), fill: "none", stroke: "#ff7fae", "stroke-width": 2, "stroke-dasharray": "5 4", "pointer-events": "none" }, g);
+  p.pts.forEach((q, i) => {
+    const active = i === sel.point;
+    const attrs = { "data-path": p.id, "data-point": i, class: "pt", fill: active ? "#ff7fae" : "#fff", stroke: "#ff5f9b", "stroke-width": 2.5 };
+    if (q.corner) el("rect", { ...attrs, x: q.x - 6, y: q.y - 6, width: 12, height: 12, rx: 2 }, g); // 角は四角
+    else el("circle", { ...attrs, cx: q.x, cy: q.y, r: 6.5 }, g); // なめらかは丸
+  });
+  // 選んでいる点のハンドル(角の点には出さない)
+  const q = p.pts[sel.point];
+  if (q && !q.corner) {
+    const h = handlesOf(p, sel.point);
+    for (const which of ["in", "out"]) {
+      const c = h[which];
+      if (!c) continue;
+      el("line", { x1: q.x, y1: q.y, x2: c.x, y2: c.y, stroke: "#5aa0e6", "stroke-width": 1.8, "pointer-events": "none" }, g);
+      el("circle", { cx: c.x, cy: c.y, r: 6, fill: isManual(q) ? "#5aa0e6" : "#fff", stroke: "#5aa0e6", "stroke-width": 2.5, class: "handle", "data-handle": which, "data-hpath": p.id, "data-hpoint": sel.point }, g);
+    }
+  }
+  // 描いている途中:閉じられる最初の点を目立たせる
+  if (drawing === p.id && p.pts.length > 2) {
+    el("circle", { cx: p.pts[0].x, cy: p.pts[0].y, r: 11, fill: "none", stroke: "#2f9e6e", "stroke-width": 2, "stroke-dasharray": "3 3", "pointer-events": "none" }, g);
+  }
+}
+
+function renderPreview() {
+  const svg = exportSvg(false);
+  const color = $("previewColor").value;
+  for (const [box, sizes, c] of [["previewDark", [96, 48, 32, 20], color], ["previewLight", [96, 48, 32, 20], "#4f3f5c"]]) {
+    $(box).innerHTML = sizes.map((s) => svg.replace("<svg ", `<svg width="${s}" height="${s}" style="color:${c}" `)).join("");
+  }
+}
+
+// 線の向きを逆にしたとき用:前後のハンドルを入れ替える
+function swapHandles(q) {
+  const a = q.hIn, b = q.hOut;
+  delete q.hIn;
+  delete q.hOut;
+  if (b) q.hIn = b;
+  if (a) q.hOut = a;
+}
+// 手で決めた曲がり方を捨てて自動に戻す
+function toAuto(q) {
+  delete q.hIn;
+  delete q.hOut;
+  delete q.broken;
+}
+
+function renderPathPanel() {
+  const box = $("pathPanel");
+  box.replaceChildren();
+  const p = findPath(sel.path);
+  if (!p) {
+    box.innerHTML = `<p class="note" style="margin:0">「動かす」で線を押すと、ここで設定できます。線の数:${doc.paths.length}</p>`;
+    return;
+  }
+  const row = document.createElement("div");
+  row.className = "row";
+  const toggle = (label, on, fn, disabled) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn btn--small";
+    b.textContent = label;
+    b.setAttribute("aria-pressed", String(on));
+    b.disabled = !!disabled;
+    b.addEventListener("click", fn);
+    return b;
+  };
+  row.append(
+    toggle("閉じた形", p.closed, () => { snapshot(); p.closed = !p.closed; if (!p.closed) p.fill = false; renderAll(); }, p.pts.length < 3),
+    toggle("塗る", p.fill, () => { snapshot(); p.fill = !p.fill; if (p.fill) p.closed = true; renderAll(); }, p.pts.length < 3),
+    toggle("向きを逆に", false, () => { snapshot(); p.pts.reverse(); p.pts.forEach(swapHandles); sel.point = sel.point >= 0 ? p.pts.length - 1 - sel.point : -1; renderAll(); }),
+  );
+  const row2 = document.createElement("div");
+  row2.className = "row";
+  const del = toggle("線を消す", false, () => deleteSelection(true));
+  del.className = "btn btn--small btn--danger";
+  const dup = toggle("複製", false, () => {
+    snapshot();
+    const copy = { ...structuredClone(p), id: uid() };
+    copy.pts.forEach((q) => placePoint(q, structuredClone(q), 12, 12));
+    doc.paths.push(copy);
+    sel = { path: copy.id, point: -1 };
+    renderAll();
+  });
+  row2.append(dup, del);
+  if (sel.point >= 0) {
+    const q = p.pts[sel.point];
+    row2.prepend(toggle(q.corner ? "この点:角 → なめらかに" : "この点:なめらか → 角に", false, () => { snapshot(); q.corner = !q.corner; if (q.corner) toAuto(q); renderAll(); }));
+    if (isManual(q)) row2.prepend(toggle("この点の曲がり方を自動に戻す", false, () => { snapshot(); toAuto(q); renderAll(); }));
+  }
+  // この線の太さ(「全体と同じ」なら全体の太さに合わせて変わる)
+  const wrap = document.createElement("div");
+  wrap.className = "field";
+  wrap.style.marginTop = "10px";
+  const head = document.createElement("span");
+  const out = document.createElement("output");
+  out.textContent = widthOf(p) + (p.w == null ? "(全体と同じ)" : "");
+  head.append("この線の太さ ", out);
+  const range = document.createElement("input");
+  Object.assign(range, { type: "range", min: 2, max: 80, step: 1, value: widthOf(p) });
+  range.addEventListener("pointerdown", snapshot);
+  range.addEventListener("input", () => { p.w = Number(range.value); out.textContent = p.w; renderLive(); save(); });
+  range.addEventListener("change", () => renderPathPanel());
+  const same = document.createElement("label");
+  same.className = "field field--inline";
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.checked = p.w == null;
+  cb.addEventListener("change", () => { snapshot(); if (cb.checked) delete p.w; else p.w = doc.strokeW; renderAll(); });
+  same.append(cb, "全体の太さと同じにする");
+  wrap.append(head, range, same);
+
+  const info = document.createElement("p");
+  info.className = "note";
+  info.textContent = `点の数:${p.pts.length}${sel.point >= 0 ? ` / 選んでいる点:${sel.point + 1} 番目(${r1(p.pts[sel.point].x)}, ${r1(p.pts[sel.point].y)})` : ""}`;
+  box.append(row, row2);
+  if (!(p.fill && p.closed && p.pts.length > 2)) box.append(wrap); // 塗りの形には太さが無い
+  box.append(info);
+}
+
+function renderDraftPanel() {
+  const box = $("draftPanel");
+  box.replaceChildren();
+  const d = doc.draft;
+  if (!d.src) {
+    box.innerHTML = `<p class="note" style="margin:0">「下書きを読み込む」で画像を入れると、うすく表示されます。</p>`;
+    return;
+  }
+  const range = (key, label, min, max, step, fmt = (v) => v) => {
+    const wrap = document.createElement("label");
+    wrap.className = "field";
+    const span = document.createElement("span");
+    const out = document.createElement("output");
+    out.textContent = fmt(d[key]);
+    span.append(label + " ", out);
+    const input = document.createElement("input");
+    Object.assign(input, { type: "range", min, max, step, value: d[key] });
+    input.addEventListener("pointerdown", snapshot);
+    input.addEventListener("input", () => { d[key] = Number(input.value); out.textContent = fmt(d[key]); renderDraft(); save(); });
+    wrap.append(span, input);
+    return wrap;
+  };
+  const show = document.createElement("label");
+  show.className = "field field--inline";
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.checked = d.show;
+  cb.addEventListener("change", () => { d.show = cb.checked; renderDraft(); save(); });
+  show.append(cb, "下書きを表示");
+  const row = document.createElement("div");
+  row.className = "row";
+  const btn = (label, fn, cls = "btn btn--small") => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = label; b.addEventListener("click", fn); return b; };
+  row.append(
+    btn("真ん中・ぴったりに戻す", () => { snapshot(); Object.assign(d, { x: SIZE / 2, y: SIZE / 2, scale: 1, rot: 0 }); renderDraft(); renderDraftPanel(); save(); }),
+    btn("下書きを外す", () => { snapshot(); doc.draft = { ...blank().draft }; renderDraft(); renderDraftPanel(); save(); }, "btn btn--small btn--danger"),
+  );
+  box.append(
+    show,
+    range("opacity", "うすさ", 0.05, 1, 0.05, (v) => `${Math.round(v * 100)}%`),
+    range("scale", "大きさ", 0.2, 4, 0.01, (v) => `${Math.round(v * 100)}%`),
+    range("rot", "回転", -180, 180, 1, (v) => `${v}°`),
+    row,
+  );
+  row.style.marginTop = "10px";
+}
+
+function renderAll() {
+  fixSelection();
+  renderDraft();
+  renderShapes();
+  renderOverlay();
+  renderPathPanel();
+  renderDraftPanel();
+  renderPreview();
+  $("strokeW").value = doc.strokeW;
+  $("strokeOut").textContent = doc.strokeW;
+  $("iconName").value = doc.name;
+  $("undo").disabled = !undoStack.length;
+  $("redo").disabled = !redoStack.length;
+  save();
+}
+// 点を動かしている間など、軽く描き直す
+function renderLive() {
+  renderShapes();
+  renderOverlay();
+  renderPreview();
+}
+
+// ---------- 操作 ----------
+const HINTS = {
+  draw: "クリックで点を置く / 最初の点を押すと閉じる / Enter・Esc・ダブルクリックで描き終わり / 線の端の点を押すと続きから描く",
+  move: "点・線をドラッグで移動 / 点を選ぶと青いハンドル:ドラッグで曲がり具合、Alt+ドラッグで片側だけ / 点をダブルクリックで角⇔なめらか / 線の上をダブルクリックで点を足す / Delete で消す",
+  draft: "ドラッグで下書きを移動 / ホイールで拡大縮小 / Shift+ホイールで回転",
+};
+function setMode(m) {
+  if (drawing) finishDrawing();
+  mode = m;
+  editor.setAttribute("class", "mode-" + m);
+  document.querySelectorAll(".tool").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+  $("hint").textContent = HINTS[m];
+}
+
+function toUnit(e) {
+  const pt = editor.createSVGPoint();
+  pt.x = e.clientX;
+  pt.y = e.clientY;
+  const p = pt.matrixTransform(editor.getScreenCTM().inverse());
+  return { x: p.x, y: p.y };
+}
+const snapV = (v) => ($("snap").checked ? Math.round(v / 9) * 9 : Math.round(v * 10) / 10);
+
+function finishDrawing() {
+  const p = findPath(drawing);
+  drawing = null;
+  if (p && p.pts.length < 2) {
+    doc.paths = doc.paths.filter((x) => x !== p);
+    sel = { path: null, point: -1 };
+  }
+  renderAll();
+}
+
+function deleteSelection(wholePath = false) {
+  const p = findPath(sel.path);
+  if (!p) return;
+  snapshot();
+  if (!wholePath && sel.point >= 0 && p.pts.length > 2) {
+    p.pts.splice(sel.point, 1);
+    sel.point = -1;
+    if (p.pts.length < 3) { p.closed = false; p.fill = false; }
+  } else {
+    doc.paths = doc.paths.filter((x) => x !== p);
+    sel = { path: null, point: -1 };
+    if (drawing === p.id) drawing = null;
+  }
+  renderAll();
+}
+
+// 線の上の、押した所にいちばん近い区間に点を足す
+function insertPoint(p, at) {
+  // 長さを測る線は、画面に入れておかないと測れないブラウザがあるので一時的に入れる
+  const probe = el("path", { d: "", fill: "none", stroke: "none" }, editor);
+  let best = { dist: Infinity, seg: 0 };
+  const n = p.pts.length, segs = p.closed ? n : n - 1;
+  for (let i = 0; i < segs; i++) {
+    // 区間 i の曲線だけを作って、押した所との近さを測る
+    probe.setAttribute("d", segmentD(p, i));
+    const len = probe.getTotalLength();
+    for (let t = 0; t <= len; t += 2) {
+      const q = probe.getPointAtLength(t);
+      const dd = Math.hypot(q.x - at.x, q.y - at.y);
+      if (dd < best.dist) best = { dist: dd, seg: i, point: { x: q.x, y: q.y } };
+    }
+  }
+  probe.remove();
+  if (best.dist > Math.max(widthOf(p), 16)) return;
+  snapshot();
+  p.pts.splice(best.seg + 1, 0, { x: r1(best.point.x), y: r1(best.point.y), corner: false });
+  sel = { path: p.id, point: best.seg + 1 };
+  renderAll();
+}
+// 区間 i だけの曲線(pathD と同じ計算)
+function segmentD(p, i) {
+  const q = p.pts[i];
+  return `M${q.x},${q.y}${segmentPart(p, i)}`;
+}
+
+// ドラッグ中に指やマウスが外に出ても追いかける(使えない環境では何もしない)
+function capture(e) {
+  try {
+    editor.setPointerCapture(e.pointerId);
+  } catch {}
+}
+
+editor.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0) return;
+  const at = toUnit(e);
+  const t = e.target;
+  const pid = t.getAttribute?.("data-path");
+  const pi = t.hasAttribute?.("data-point") ? Number(t.getAttribute("data-point")) : -1;
+
+  if (mode === "draft") {
+    if (!doc.draft.src) return;
+    snapshot();
+    drag = { kind: "draft", start: at, orig: { x: doc.draft.x, y: doc.draft.y } };
+    capture(e);
+    return;
+  }
+
+  // ハンドルをつかんだ
+  if (t.hasAttribute?.("data-handle") && mode !== "draft") {
+    const hp = findPath(t.getAttribute("data-hpath")), hi = Number(t.getAttribute("data-hpoint"));
+    if (hp?.pts[hi]) {
+      drag = { kind: "handle", path: hp.id, index: hi, which: t.getAttribute("data-handle"), start: at };
+      capture(e);
+      return;
+    }
+  }
+
+  if (mode === "draw") {
+    const p = findPath(drawing);
+    // 描いている線の最初の点を押したら閉じる
+    if (p && pid === p.id && pi === 0 && p.pts.length > 2) {
+      snapshot();
+      p.closed = true;
+      drawing = null;
+      sel = { path: p.id, point: -1 };
+      renderAll();
+      return;
+    }
+    // 描いていないとき、閉じていない線の端の点を押したら、その続きから描く
+    if (!p && pid && pi >= 0) {
+      const q = findPath(pid);
+      if (q && !q.closed && (pi === 0 || pi === q.pts.length - 1)) {
+        if (pi === 0) {
+          q.pts.reverse();
+          q.pts.forEach(swapHandles);
+        }
+        drawing = q.id;
+        sel = { path: q.id, point: q.pts.length - 1 };
+        renderAll();
+        return;
+      }
+    }
+    snapshot();
+    const pt = { x: snapV(at.x), y: snapV(at.y), corner: false };
+    if (p) {
+      p.pts.push(pt);
+      sel = { path: p.id, point: p.pts.length - 1 };
+    } else {
+      const np = { id: uid(), closed: false, fill: false, pts: [pt] };
+      doc.paths.push(np);
+      drawing = np.id;
+      sel = { path: np.id, point: 0 };
+    }
+    // 置いた点はそのままドラッグで位置を調整できる
+    drag = { kind: "point", path: sel.path, index: sel.point, start: at, orig: { ...pt }, noSnapshot: true };
+    capture(e);
+    renderAll();
+    return;
+  }
+
+  // 動かすモード
+  if (pid && pi >= 0) {
+    sel = { path: pid, point: pi };
+    const q = findPath(pid).pts[pi];
+    drag = { kind: "point", path: pid, index: pi, start: at, orig: structuredClone(q) };
+  } else if (pid) {
+    sel = { path: pid, point: -1 };
+    drag = { kind: "path", path: pid, start: at, orig: structuredClone(findPath(pid).pts) };
+  } else {
+    sel = { path: null, point: -1 };
+  }
+  if (drag) capture(e);
+  renderAll();
+});
+
+editor.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const at = toUnit(e);
+  const dx = at.x - drag.start.x, dy = at.y - drag.start.y;
+  if (!drag.moved && Math.hypot(dx, dy) < 1) return;
+  if (!drag.moved && !drag.noSnapshot && drag.kind !== "draft") snapshot();
+  drag.moved = true;
+  if (drag.kind === "draft") {
+    doc.draft.x = drag.orig.x + dx;
+    doc.draft.y = drag.orig.y + dy;
+    renderDraft();
+    return;
+  }
+  const p = findPath(drag.path);
+  if (!p) return;
+  if (drag.kind === "handle") {
+    const q = p.pts[drag.index];
+    // 初めて手で動かす点は、今の(自動の)ハンドルの位置から始める
+    if (!isManual(q)) {
+      const h = handlesOf(p, drag.index);
+      if (h.in) q.hIn = { x: h.in.x, y: h.in.y };
+      if (h.out) q.hOut = { x: h.out.x, y: h.out.y };
+    }
+    const key = drag.which === "in" ? "hIn" : "hOut", other = drag.which === "in" ? "hOut" : "hIn";
+    q[key] = { x: snapV(at.x), y: snapV(at.y) };
+    if (e.altKey) q.broken = true; // Alt で片側だけ動かす(くの字に折れる)
+    // ふだんは反対側のハンドルを一直線に保つ(長さはそのまま)
+    if (!q.broken && q[other]) {
+      const len = Math.hypot(q[other].x - q.x, q[other].y - q.y);
+      const vx = q.x - q[key].x, vy = q.y - q[key].y, L = Math.hypot(vx, vy) || 1;
+      q[other] = { x: q.x + (vx / L) * len, y: q.y + (vy / L) * len };
+    }
+  } else if (drag.kind === "point") {
+    placePoint(p.pts[drag.index], drag.orig, dx, dy);
+  } else {
+    p.pts.forEach((q, i) => placePoint(q, drag.orig[i], dx, dy));
+  }
+  renderLive();
+});
+
+const endDrag = () => {
+  if (!drag) return;
+  drag = null;
+  renderAll();
+};
+editor.addEventListener("pointerup", endDrag);
+editor.addEventListener("pointercancel", endDrag);
+
+editor.addEventListener("dblclick", (e) => {
+  const t = e.target;
+  const pid = t.getAttribute?.("data-path");
+  const pi = t.hasAttribute?.("data-point") ? Number(t.getAttribute("data-point")) : -1;
+  if (mode === "draw") {
+    // ダブルクリックの2回目で置いた点を取り消してから描き終わる
+    const p = findPath(drawing);
+    if (p && p.pts.length > 2) {
+      const a = p.pts[p.pts.length - 1], b = p.pts[p.pts.length - 2];
+      if (Math.hypot(a.x - b.x, a.y - b.y) < 4) p.pts.pop();
+    }
+    finishDrawing();
+    return;
+  }
+  if (mode !== "move" || !pid) return;
+  const p = findPath(pid);
+  if (pi >= 0) {
+    snapshot();
+    p.pts[pi].corner = !p.pts[pi].corner;
+    if (p.pts[pi].corner) toAuto(p.pts[pi]);
+    sel = { path: pid, point: pi };
+    renderAll();
+  } else {
+    insertPoint(p, toUnit(e));
+  }
+});
+
+// 下書き:ホイールで拡大縮小、Shift+ホイールで回転
+editor.addEventListener("wheel", (e) => {
+  if (mode !== "draft" || !doc.draft.src) return;
+  e.preventDefault();
+  const d = doc.draft;
+  if (e.shiftKey) d.rot = Math.round(((d.rot + (e.deltaY > 0 ? 1 : -1) + 540) % 360) - 180);
+  else d.scale = Math.max(0.2, Math.min(4, d.scale * Math.exp(-Math.max(-20, Math.min(20, e.deltaY)) * 0.01)));
+  renderDraft();
+  renderDraftPanel();
+  save();
+}, { passive: false });
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest("input, select, textarea")) return;
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); redo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (k === "enter" || k === "escape") { if (drawing) finishDrawing(); else if (k === "escape") { sel = { path: null, point: -1 }; renderAll(); } return; }
+  if (k === "delete" || k === "backspace") { e.preventDefault(); deleteSelection(); return; }
+  if (k === "d") setMode("draw");
+  if (k === "v") setMode("move");
+  if (k === "b") setMode("draft");
+  // 矢印キーで選んでいる点(または線)を少し動かす
+  const arrows = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] }[k];
+  const p = findPath(sel.path);
+  if (arrows && p) {
+    e.preventDefault();
+    snapshot();
+    const step = e.shiftKey ? 9 : 1;
+    const targets = sel.point >= 0 ? [p.pts[sel.point]] : p.pts;
+    targets.forEach((q) => placePoint(q, structuredClone(q), arrows[0] * step, arrows[1] * step));
+    renderAll();
+  }
+});
+
+// ---------- ファイル ----------
+function setStatus(text) {
+  $("status").textContent = text;
+  clearTimeout(setStatus.t);
+  setStatus.t = setTimeout(() => ($("status").textContent = ""), 4000);
+}
+
+function readAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+function imageSize(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth || SIZE, h: img.naturalHeight || SIZE });
+    img.onerror = () => resolve({ w: SIZE, h: SIZE });
+    img.src = src;
+  });
+}
+
+// 画像を下書きにする。正方形に収まる大きさで真ん中に置く
+async function setDraft(src) {
+  const { w, h } = await imageSize(src);
+  const s = SIZE / Math.max(w, h);
+  snapshot();
+  doc.draft = { ...doc.draft, src, w: w * s, h: h * s, x: SIZE / 2, y: SIZE / 2, scale: 1, rot: 0, show: true };
+  renderAll();
+  setStatus("下書きを読み込みました");
+}
+
+// このツールで保存した SVG なら続きから編集。ほかの SVG は下書きとして表示する
+async function openSvgText(text, fileName) {
+  const m = text.match(/<metadata id="icon-maker">([\s\S]*?)<\/metadata>/);
+  if (m) {
+    const json = m[1].replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+    const data = JSON.parse(json);
+    snapshot();
+    doc = { ...doc, name: data.name ?? doc.name, strokeW: data.strokeW ?? doc.strokeW, paths: data.paths ?? [] };
+    sel = { path: null, point: -1 };
+    drawing = null;
+    renderAll();
+    setStatus(`「${fileName}」を開きました(続きから編集できます)`);
+    return;
+  }
+  // 色の指定が無い SVG(currentColor)は黒で表示されるように
+  const colored = text.replace("<svg", '<svg color="#000000"');
+  await setDraft("data:image/svg+xml;charset=utf-8," + encodeURIComponent(colored));
+  setStatus(`「${fileName}」は下書きとして読み込みました`);
+}
+
+async function handleFile(file, asDraft) {
+  if (!file) return;
+  if (!asDraft && (file.type === "image/svg+xml" || /\.svg$/i.test(file.name))) {
+    await openSvgText(await file.text(), file.name);
+    return;
+  }
+  if (file.type === "image/svg+xml" || /\.svg$/i.test(file.name)) {
+    const text = await file.text();
+    if (/<metadata id="icon-maker">/.test(text) && confirm("このツールで作った SVG です。続きから編集しますか?(キャンセルで下書きとして読み込み)")) {
+      await openSvgText(text, file.name);
+      return;
+    }
+    await setDraft("data:image/svg+xml;charset=utf-8," + encodeURIComponent(text.replace("<svg", '<svg color="#000000"')));
+    return;
+  }
+  if (!file.type.startsWith("image/")) { setStatus("画像か SVG のファイルを選んでください"); return; }
+  await setDraft(await readAsDataURL(file));
+}
+
+$("draftFile").addEventListener("change", async (e) => { await handleFile(e.target.files[0], true); e.target.value = ""; });
+$("openFile").addEventListener("change", async (e) => { await handleFile(e.target.files[0], false); e.target.value = ""; });
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", async (e) => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file) await handleFile(file, !/\.svg$/i.test(file.name));
+});
+document.addEventListener("paste", async (e) => {
+  if (e.target.closest?.("input, textarea")) return;
+  const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith("image/"));
+  if (item) await handleFile(item.getAsFile(), true);
+});
+
+const safeName = () => (doc.name || "icon").replace(/[\\/:*?"<>|\s]+/g, "_");
+$("saveSvg").addEventListener("click", () => {
+  if (!doc.paths.length) { setStatus("まだ何も描かれていません"); return; }
+  const blob = new Blob([exportSvg(true)], { type: "image/svg+xml" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = safeName() + ".svg";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  setStatus(`「${a.download}」を保存しました`);
+});
+$("copyCode").addEventListener("click", async () => {
+  if (!doc.paths.length) { setStatus("まだ何も描かれていません"); return; }
+  const line = `  "${doc.name || "名前"}": '${exportSvg(false)}',`;
+  try {
+    await navigator.clipboard.writeText(line);
+    setStatus("コピーしました。job-icons.js の JOB_ICONS の中に貼り付けてください");
+  } catch {
+    prompt("コピーできなかったので、ここから手でコピーしてください", line);
+  }
+});
+
+$("iconName").addEventListener("input", (e) => { doc.name = e.target.value; save(); });
+$("strokeW").addEventListener("pointerdown", snapshot);
+$("strokeW").addEventListener("input", (e) => { doc.strokeW = Number(e.target.value); $("strokeOut").textContent = doc.strokeW; renderLive(); save(); });
+$("strokeW").addEventListener("change", renderPathPanel);
+$("showGrid").addEventListener("change", (e) => { $("gridRect").style.display = e.target.checked ? "" : "none"; });
+$("previewColor").addEventListener("input", renderPreview);
+$("clearAll").addEventListener("click", () => {
+  if (!doc.paths.length || !confirm("描いた線をぜんぶ消します(下書きは残ります)。よろしいですか?")) return;
+  snapshot();
+  doc.paths = [];
+  sel = { path: null, point: -1 };
+  drawing = null;
+  renderAll();
+});
+$("undo").addEventListener("click", undo);
+$("redo").addEventListener("click", redo);
+document.querySelectorAll(".tool").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+setMode("draw");
+renderAll();
+</script>
+</body>
+</html>

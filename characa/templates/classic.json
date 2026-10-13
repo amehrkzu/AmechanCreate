@@ -1,0 +1,16 @@
+{
+ "version": 2,
+ "name": "クラシック",
+ "card": { "w": 1920, "h": 1080, "bg": { "type": "gradient", "color1": "@bg1", "color2": "@bg2", "angle": 135 } },
+ "layers": [
+  { "type": "image", "x": 0, "y": 0, "w": 1920, "h": 1080 },
+  { "type": "rect", "x": 1000, "y": 60, "w": 860, "h": 960, "opacity": 0.55, "radius": 28, "borderWidth": 2 },
+  { "type": "text", "text": "{title}", "x": 1060, "y": 110, "size": 36, "color": "@accent" },
+  { "type": "text", "text": "{name}", "x": 1056, "y": 160, "size": 96, "font": "Cinzel", "bold": true },
+  { "type": "text", "text": "{server} [{dataCenter}]", "x": 1060, "y": 290, "size": 40, "color": "@sub" },
+  { "type": "text", "text": "{race} / {tribe} / {gender}\nFC: {freeCompany}", "x": 1060, "y": 355, "size": 34, "lineHeight": 1.5, "color": "@sub" },
+  { "type": "jobs", "x": 1060, "y": 500, "cols": 5, "cellW": 155 },
+  { "type": "text", "text": "ここに好きなテキストを書けます\nクリックで選択して、右のパネルで編集", "x": 1060, "y": 820, "size": 30, "width": 760 },
+  { "type": "text", "text": "(C) SQUARE ENIX", "x": 1890, "y": 1040, "size": 20, "align": "right", "color": "@sub", "opacity": 0.7 }
+ ]
+}

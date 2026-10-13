@@ -1,0 +1,16 @@
+{
+ "version": 2,
+ "name": "シネマ",
+ "card": { "w": 1920, "h": 1080, "bg": { "type": "gradient", "color1": "@bg1", "color2": "@bg2", "angle": 90 } },
+ "layers": [
+  { "type": "image", "x": 0, "y": 0, "w": 1920, "h": 1080 },
+  { "type": "rect", "x": 0, "y": 700, "w": 1920, "h": 380, "opacity": 0.6, "radius": 0 },
+  { "type": "rect", "x": 0, "y": 700, "w": 1920, "h": 4, "color": "@accent", "opacity": 0.9, "radius": 0 },
+  { "type": "text", "text": "{title}", "x": 124, "y": 735, "size": 30, "color": "@accent", "spacing": 3 },
+  { "type": "text", "text": "{name}", "x": 120, "y": 775, "size": 108, "font": "Cinzel", "bold": true },
+  { "type": "text", "text": "{server} [{dataCenter}]　/　{race}・{tribe}", "x": 124, "y": 905, "size": 32, "color": "@sub" },
+  { "type": "text", "text": "ここに好きなテキストを書けます", "x": 124, "y": 965, "size": 28, "width": 880 },
+  { "type": "jobs", "x": 1090, "y": 760, "cols": 6, "cellW": 128, "size": 24 },
+  { "type": "text", "text": "(C) SQUARE ENIX", "x": 1890, "y": 1045, "size": 18, "align": "right", "color": "@sub", "opacity": 0.7 }
+ ]
+}

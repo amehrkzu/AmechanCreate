@@ -1,0 +1,15 @@
+{
+ "version": 2,
+ "name": "スクエア",
+ "card": { "w": 1080, "h": 1080, "bg": { "type": "gradient", "color1": "@bg1", "color2": "@bg2", "angle": 135 } },
+ "layers": [
+  { "type": "image", "x": 0, "y": 0, "w": 1080, "h": 1080 },
+  { "type": "rect", "x": 60, "y": 690, "w": 960, "h": 330, "opacity": 0.55, "radius": 24, "borderWidth": 2 },
+  { "type": "text", "text": "{title}", "x": 100, "y": 725, "size": 24, "color": "@accent" },
+  { "type": "text", "text": "{name}", "x": 98, "y": 758, "size": 60, "font": "Cinzel", "bold": true },
+  { "type": "text", "text": "{server} [{dataCenter}]", "x": 100, "y": 840, "size": 26, "color": "@sub" },
+  { "type": "text", "text": "ここに好きなテキストを書けます", "x": 100, "y": 900, "size": 22, "width": 410, "lineHeight": 1.5 },
+  { "type": "jobs", "x": 560, "y": 728, "cols": 4, "cellW": 110, "size": 21 },
+  { "type": "text", "text": "(C) SQUARE ENIX", "x": 1040, "y": 1050, "size": 15, "align": "right", "color": "@sub", "opacity": 0.7 }
+ ]
+}

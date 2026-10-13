@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カップリング辞典</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fff5f8;
+    --bg2: #ffe4ee;
+    --card: #ffffff;
+    --text: #4a3340;
+    --muted: #9a7a8a;
+    --accent: #ff6f9c;
+    --accent2: #b58cff;
+    --border: #f5c6d6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    color: var(--text);
+    background: radial-gradient(circle at 20% 10%, var(--bg2), transparent 50%),
+                radial-gradient(circle at 80% 90%, #efe3ff, transparent 50%),
+                var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+  h1 {
+    margin: 0 0 32px;
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 0.05em;
+  }
+  .picker {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  select {
+    appearance: none;
+    font: inherit;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff6f9c' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 16px center;
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    padding: 12px 44px 12px 22px;
+    min-width: 200px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 111, 156, 0.12);
+    transition: border-color .2s, box-shadow .2s;
+  }
+  select:hover, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 4px 16px rgba(255, 111, 156, 0.25);
+  }
+  .cross {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .result {
+    margin-top: 40px;
+    width: min(560px, 100%);
+    min-height: 180px;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 24px;
+    padding: 28px;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(181, 140, 255, 0.12);
+  }
+  .result.pop { animation: pop .45s ease; }
+  @keyframes pop {
+    0% { transform: scale(.94); opacity: 0; }
+    60% { transform: scale(1.02); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  .pair-label {
+    color: var(--muted);
+    font-size: .95rem;
+    margin-bottom: 8px;
+  }
+  .cp-name {
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
+    font-weight: 800;
+    margin: 0 0 16px;
+    color: var(--accent);
+  }
+  .cp-note {
+    line-height: 1.8;
+    white-space: pre-wrap;
+    text-align: left;
+    margin: 0;
+  }
+  .placeholder {
+    color: var(--muted);
+    line-height: 1.8;
+    margin: 40px 0;
+  }
+  .hearts { font-size: 1.4rem; letter-spacing: .3em; margin-bottom: 4px; }
+  .avatars {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .avatars .cross { font-size: 1.4rem; }
+  .avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    border: 3px solid var(--border);
+    background: linear-gradient(135deg, var(--bg2), #efe3ff);
+    object-fit: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .loading { color: var(--muted); margin: 60px 0; }
+  .error { color: #d0507a; margin: 40px 0; line-height: 1.8; }
+  /* 著作権の表記(FF14 の素材を使っているため) */
+  .site-foot { margin: 48px auto 20px; padding: 0 16px; max-width: 720px; text-align: center; color: var(--muted); font-size: 11px; line-height: 1.6; }
+  .site-foot p { margin: 2px 0; }
+  .site-foot a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>カップリング辞典</h1>
+
+<div class="picker">
+  <select id="charA" aria-label="キャラクター1"></select>
+  <span class="cross">×</span>
+  <select id="charB" aria-label="キャラクター2"></select>
+</div>
+
+<div class="result" id="result"></div>
+
+<footer class="site-foot">
+  <p>記載されている会社名・製品名・システム名などは、各社の商標、または登録商標です。</p>
+  <p>(C) SQUARE ENIX / <a href="https://support.jp.square-enix.com/rule.php?id=5382&tag=authc" target="_blank" rel="noopener">FINAL FANTASY XIV 著作物利用条件</a></p>
+</footer>
+
+<script>
+// ============================================================
+// 設定
+// ============================================================
+// Apps Script をデプロイしたときの「ウェブアプリのURL」を貼る。
+// 空のままだと下のサンプルデータで表示する。
+const API_URL = "https://script.google.com/macros/s/AKfycbyAH4dvm6m59T2Uqhh6L6IkYsokz1aFbDLf05fi26EjPKV801Hieq9FM5JafksZp57ShQ/exec";
+
+const SAMPLE_DATA = {
+  characters: [
+    { name: "キャラA", image: "" },
+    { name: "キャラB", image: "" },
+    { name: "キャラC", image: "" },
+    { name: "キャラD", image: "" },
+  ],
+  // a × b の順で登録。逆順（b × a）が未登録なら、逆順の組み合わせも探す。
+  couplings: [
+    { a: "キャラA", b: "キャラB", name: "ABコンビ", note: "ここに補足文が入ります。\n改行もできます。" },
+    { a: "キャラB", b: "キャラA", name: "BA", note: "順番が逆だと別カプとして登録できます。" },
+    { a: "キャラA", b: "キャラC", name: "ACカプ", note: "補足文のサンプルです。" },
+    { a: "キャラC", b: "キャラD", name: "CD", note: "補足文のサンプルです。" },
+  ],
+};
+
+// ============================================================
+// 表示
+// ============================================================
+const selA = document.getElementById("charA");
+const selB = document.getElementById("charB");
+const result = document.getElementById("result");
+
+let characters = [];
+let couplings = [];
+
+async function loadData() {
+  if (!API_URL) return SAMPLE_DATA;
+  const res = await fetch(API_URL);
+  if (!res.ok) throw new Error(res.status);
+  return res.json();
+}
+
+function fillSelect(sel) {
+  sel.innerHTML = '<option value="">えらんでね</option>' +
+    characters.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join("");
+}
+
+function findCoupling(a, b) {
+  return couplings.find(c => c.a === a && c.b === b)
+      || couplings.find(c => c.a === b && c.b === a);
+}
+
+function initial(name) {
+  return escapeHtml([...name][0] || "?");
+}
+
+function avatarHtml(name) {
+  const ch = characters.find(c => c.name === name);
+  if (ch && ch.image) {
+    return `<img class="avatar" src="${escapeHtml(ch.image)}" alt="${escapeHtml(name)}"
+      data-initial="${initial(name)}" referrerpolicy="no-referrer">`;
+  }
+  return `<div class="avatar">${initial(name)}</div>`;
+}
+
+// 画像の読み込みに失敗したらイニシャル表示に差し替える
+function attachAvatarFallback() {
+  result.querySelectorAll("img.avatar").forEach(img => {
+    img.addEventListener("error", () => {
+      const div = document.createElement("div");
+      div.className = "avatar";
+      div.textContent = img.dataset.initial;
+      img.replaceWith(div);
+    }, { once: true });
+  });
+}
+
+function render() {
+  const a = selA.value, b = selB.value;
+  let html;
+
+  if (!a || !b) {
+    html = `<p class="placeholder">左右どちらもえらぶと<br>カップリングが表示されます</p>`;
+  } else {
+    const cp = findCoupling(a, b);
+    const [first, second] = cp ? [cp.a, cp.b] : [a, b];
+    const avatars = `<div class="avatars">${avatarHtml(first)}<span class="cross">×</span>${avatarHtml(second)}</div>`;
+    if (cp) {
+      html = `
+        ${avatars}
+        <div class="pair-label">${escapeHtml(cp.a)} × ${escapeHtml(cp.b)}</div>
+        <h2 class="cp-name">${escapeHtml(cp.name)}</h2>
+        <p class="cp-note">${escapeHtml(cp.note)}</p>`;
+    } else {
+      html = `
+        ${avatars}
+        <div class="pair-label">${escapeHtml(a)} × ${escapeHtml(b)}</div>
+        <p class="placeholder">この組み合わせはまだ登録されていません</p>`;
+    }
+  }
+
+  result.innerHTML = html;
+  attachAvatarFallback();
+  result.classList.remove("pop");
+  void result.offsetWidth; // アニメーション再生用
+  result.classList.add("pop");
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+async function init() {
+  result.innerHTML = `<p class="loading">読み込み中…♡</p>`;
+  selA.disabled = selB.disabled = true;
+  try {
+    const data = await loadData();
+    characters = data.characters || [];
+    couplings = data.couplings || [];
+  } catch (e) {
+    result.innerHTML = `<p class="error">データの読み込みに失敗しました<br>時間をおいて再読み込みしてね</p>`;
+    return;
+  }
+  if (characters.length === 0) {
+    result.innerHTML = `<p class="placeholder">キャラクターがまだ登録されていません</p>`;
+    return;
+  }
+  fillSelect(selA);
+  fillSelect(selB);
+  selA.disabled = selB.disabled = false;
+  selA.addEventListener("change", render);
+  selB.addEventListener("change", render);
+  render();
+}
+
+init();
+</script>
+</body>
+</html>

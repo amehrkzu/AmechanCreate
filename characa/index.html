@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FF14 キャラカメーカー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@400;700&family=M+PLUS+Rounded+1c:wght@400;700&family=Zen+Maru+Gothic:wght@400;700&family=Dela+Gothic+One&family=Yusei+Magic&family=Shippori+Mincho:wght@400;700&family=Kaisei+Decol:wght@400;700&family=Cinzel:wght@400;700&family=Cormorant+Garamond:wght@400;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1>FF14 キャラカメーカー</h1>
+  <button id="exportPng" class="btn btn--primary">PNGで保存</button>
+</header>
+
+<main class="app" id="app">
+  <section class="workspace" id="workspace">
+    <div class="artboard" id="artboard">
+      <canvas id="card"></canvas>
+      <div class="grid" id="grid" aria-hidden="true"></div>
+    </div>
+    <div class="stage-bar" id="stageBar">
+      <div class="zoom-ctl" role="group" aria-label="表示の拡大縮小">
+        <button type="button" id="zoomOut" title="縮小" aria-label="縮小">－</button>
+        <button type="button" id="zoomFit" title="全体表示に戻す">100%</button>
+        <button type="button" id="zoomIn" title="拡大" aria-label="拡大">＋</button>
+      </div>
+      <button type="button" class="grid-toggle" id="gridToggle" aria-pressed="true" title="グリッドの表示/非表示">グリッド</button>
+    </div>
+  </section>
+
+  <section class="sheet" id="sheet">
+    <nav class="sheet-tabs" role="tablist" aria-label="設定">
+      <button type="button" class="sheet-tab" role="tab" data-tab="design" style="--c:#ffc6dc">デザイン</button>
+      <button type="button" class="sheet-tab" role="tab" data-tab="chara" style="--c:#ffe7a3">キャラ</button>
+      <button type="button" class="sheet-tab" role="tab" data-tab="layers" style="--c:#bdeccd">要素</button>
+      <button type="button" class="sheet-tab" role="tab" data-tab="list" style="--c:#bfdcff">レイヤー</button>
+      <button type="button" class="sheet-tab" role="tab" data-tab="card" style="--c:#dccbff">カード</button>
+    </nav>
+
+    <div class="sheet-body" id="sheetBody">
+      <div class="tab-panel" role="tabpanel" data-panel="design">
+        <section class="box">
+          <h2>デザイン</h2>
+          <div class="tabs" role="group" aria-label="サイズで絞り込み">
+            <button type="button" class="tab" data-orient="all" aria-pressed="true">すべて</button>
+            <button type="button" class="tab" data-orient="landscape" aria-pressed="false">横長</button>
+            <button type="button" class="tab" data-orient="square" aria-pressed="false">正方形</button>
+            <button type="button" class="tab" data-orient="portrait" aria-pressed="false">縦長</button>
+          </div>
+          <div id="gallery" class="gallery"></div>
+          <p id="designNote" class="note"></p>
+        </section>
+        <section class="box">
+          <h2>枠の形</h2>
+          <div id="frames" class="frames"></div>
+          <div id="frameActions" class="actions" style="margin-top:10px"></div>
+          <p class="note">パネル(図形)の形がまとめて変わります。細い帯や線には飾りを付けません。</p>
+        </section>
+        <section class="box">
+          <h2>配色</h2>
+          <div id="palettes" class="swatches"></div>
+          <details class="inner">
+            <summary>色を細かく変える</summary>
+            <div id="paletteForm" class="fields"></div>
+            <p class="note">要素の色で「配色の色」を選んでいると、ここの色に合わせて変わります。</p>
+          </details>
+        </section>
+      </div>
+
+      <div class="tab-panel" role="tabpanel" data-panel="chara">
+        <section class="box">
+          <h2>キャラのスクショ</h2>
+          <label class="btn btn--primary btn--block">スクショを選ぶ<input id="mainShot" type="file" accept="image/*" hidden></label>
+          <p class="note">カード上の画像枠にドラッグ&ドロップでも入れられます。</p>
+        </section>
+        <section class="box">
+          <h2>Lodestoneから文字情報を取得</h2>
+          <form id="fetchForm" class="row">
+            <input id="lodestoneId" type="text" inputmode="numeric" placeholder="ID または キャラページのURL">
+            <button id="fetchBtn" class="btn btn--primary" type="submit">取得</button>
+          </form>
+          <p class="note">ID はキャラページの URL 末尾の数字です<br>例: jp.finalfantasyxiv.com/lodestone/character/<b>12345678</b>/</p>
+          <p id="fetchStatus" class="status" role="status"></p>
+          <p class="note">名前・ワールド・ジョブレベルなどがカードに入ります。</p>
+        </section>
+        <details class="box">
+          <summary>キャラ情報(手入力・修正もできます)</summary>
+          <div id="dataForm" class="fields"></div>
+        </details>
+      </div>
+
+      <div class="tab-panel" role="tabpanel" data-panel="layers">
+        <section class="box">
+          <h2>要素を追加</h2>
+          <div id="addTiles" class="frames"></div>
+          <div id="symbolActions" class="actions" style="margin-top:10px"></div>
+          <p class="note">押すと、カードの真ん中に追加されます。</p>
+        </section>
+        <section class="box">
+          <h2>選択中の要素</h2>
+          <div id="props" class="fields"></div>
+        </section>
+        <p class="hint" id="hint">クリックで選択 / ドラッグで移動 / 辺・角(ピンクの●)をドラッグで大きさを変える(角は Shift で縦横比を保つ) / 画像はホイールでズーム・Alt+ドラッグで位置調整 / 矢印キーで微調整(Shiftで10px) / Deleteで削除 / 表示の拡大縮小は下の＋－・素材の無い所でホイール・Ctrl+ホイール / 表示を動かすのは余白のドラッグ・スペース+ドラッグ</p>
+      </div>
+
+      <div class="tab-panel" role="tabpanel" data-panel="list">
+        <section class="box">
+          <h2>レイヤー</h2>
+          <p class="note">上にあるものほど前面です。押すと選択して、「要素」タブで調整できます。ドラッグで順番を入れ替えられます(行の上で離すと、その行のすぐ下に入ります。スマホは、行を長押ししてから動かします)。</p>
+          <ul id="layers" class="layers"></ul>
+        </section>
+      </div>
+
+      <div class="tab-panel" role="tabpanel" data-panel="card">
+        <section class="box">
+          <h2>カード設定</h2>
+          <div id="cardForm" class="fields"></div>
+        </section>
+        <section class="box">
+          <h2>自分のデザインを保存・読み込み</h2>
+          <div class="add">
+            <button id="exportJson" class="btn">書き出し</button>
+            <label class="btn">読み込み<input id="importJson" type="file" accept="application/json,.json" hidden></label>
+            <button id="reset" class="btn btn--danger">初期レイアウトに戻す</button>
+          </div>
+          <p class="note">レイアウトはこのブラウザに自動保存されます。</p>
+        </section>
+      </div>
+
+      <footer class="foot">
+        <p>記載されている会社名・製品名・システム名などは、各社の商標、または登録商標です。</p>
+        <p>(C) SQUARE ENIX / <a href="https://support.jp.square-enix.com/rule.php?id=5382&tag=authc" target="_blank" rel="noopener">FINAL FANTASY XIV 著作物利用条件</a></p>
+      </footer>
+    </div>
+  </section>
+</main>
+
+<script src="job-icons.js"></script>
+<script src="templates/index.js"></script>
+<script src="effects.js"></script>
+<script src="frames.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
