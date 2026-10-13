@@ -13,7 +13,7 @@ const editor = $("editor");
 const FALLBACK_COLORS = { accent: "#e0c27a", text: "#ffffff", sub: "#cfd6e6", muted: "#6b7280", panel: "#000000", bg1: "#1c2333", bg2: "#4a3558", shadow: "#000000" };
 let palette = { ...FALLBACK_COLORS, ...(window.CHARACA_PALETTES?.[0]?.colors ?? {}) };
 try {
-  const p = JSON.parse(localStorage.getItem("characa:v1"));
+  const p = JSON.parse(sessionStorage.getItem("characa:v1"));
   if (p?.palette) palette = { ...palette, ...p.palette };
 } catch {}
 const col = (v) => (typeof v === "string" && v[0] === "@" ? palette[v.slice(1)] ?? "#ff00ff" : v);

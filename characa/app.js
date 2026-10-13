@@ -1,6 +1,8 @@
 "use strict";
 
 const WORKER = "https://characa.game-rain-0406.workers.dev";
+// 作りかけのカードは、このタブを開いているあいだだけ覚えておく(sessionStorage)
+// 枠・シンボルエディタとの行き来や再読み込みでは残り、タブを閉じて開きなおすと最初の状態に戻る
 const STORAGE_KEY = "characa:v1";
 const HANDLE = 14; // 選択枠の拡大縮小ハンドル(画面上の px)
 
@@ -144,6 +146,10 @@ const mainCtx = canvas.getContext("2d");
 // 描画関数はこの ctx / project に描く。サムネイルを描くときだけ一時的に差し替える
 let ctx = mainCtx;
 
+// 以前は localStorage に保存していたので、残っているデータは消しておく
+try {
+  localStorage.removeItem(STORAGE_KEY);
+} catch {}
 let project = load() ?? defaultProject();
 let selectedId = null;
 let exporting = false;
@@ -193,7 +199,7 @@ function defaultProject() {
 
 function load() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
     if (!saved?.card || !Array.isArray(saved.layers)) return null;
     return normalize(saved);
   } catch {
@@ -218,7 +224,7 @@ function normalize(p) {
 function saveNow() {
   clearTimeout(saveTimer);
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(project));
   } catch {}
 }
 
@@ -227,7 +233,7 @@ function saveSoon() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(project));
     } catch {
       setStatus("自動保存できませんでした(画像が大きすぎる可能性があります)。PNG保存とテンプレート書き出しは使えます", "error");
     }
