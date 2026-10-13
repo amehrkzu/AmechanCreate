@@ -1,17 +1,17 @@
 /* 合言葉は「かわいく」:パステルカラー・太めの枠線・まるい角・ぷっくりしたボタン */
 :root {
-  --bg: #fff4f8;
-  --dot: #ffe1ec;
+  --bg: #fff6ee;
+  --dot: #ffe6cf;
   --panel: #fffdfc;
   --box: #ffffff;
-  --ink: #8a6f9e; /* 太い枠線の色(やさしいラベンダーブラウン) */
-  --ink-soft: #d9c6e6; /* ボタンの下のぷっくり影・細い区切り */
-  --line: #eadcf2;
-  --text: #4f3f5c;
-  --muted: #9b89a9;
-  --accent: #ff7fae; /* 見出し・強調(いちごミルク) */
-  --primary: #ffb3cf;
-  --primary-hover: #ffc5da;
+  --ink: #a8714a; /* 太い枠線の色(やさしいキャラメルブラウン) */
+  --ink-soft: #ecd0b8; /* ボタンの下のぷっくり影・細い区切り */
+  --line: #f3e1d0;
+  --text: #5a3f2c;
+  --muted: #b0907a;
+  --accent: #ff8a3d; /* 見出し・強調(みかん) */
+  --primary: #ffbf8a;
+  --primary-hover: #ffcfa3;
   --mint: #bdeccd;
   --sky: #bfdcff;
   --lemon: #ffe7a3;
@@ -40,7 +40,7 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 button, label.btn, .tab, .sheet-tab { touch-action: manipulation; } /* ダブルタップで拡大しない */
-::selection { background: #ffd1e3; }
+::selection { background: #ffd9b5; }
 
 .top {
   display: flex;
@@ -62,8 +62,8 @@ button, label.btn, .tab, .sheet-tab { touch-action: manipulation; } /* ダブル
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* タイトルに蛍光ペンみたいなピンクの下線 */
-.top h1 { background: linear-gradient(transparent 62%, #ffd1e3 62%) no-repeat; background-size: 100% 100%; padding: 0 2px; }
+/* タイトルに蛍光ペンみたいなオレンジの下線 */
+.top h1 { background: linear-gradient(transparent 62%, #ffd9b5 62%) no-repeat; background-size: 100% 100%; padding: 0 2px; }
 
 /* 縦に並べる(スマホ縦向き): 上に作業エリア、下に付箋タブのシート */
 .app {
@@ -91,7 +91,7 @@ button, label.btn, .tab, .sheet-tab { touch-action: manipulation; } /* ダブル
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f4edff;
+  background: #fff0e2;
   border: var(--border) solid var(--ink);
   border-radius: 20px;
   box-shadow: 0 4px 0 var(--ink-soft);
@@ -103,7 +103,7 @@ button, label.btn, .tab, .sheet-tab { touch-action: manipulation; } /* ダブル
   position: absolute; /* 位置と大きさは app.js の applyView(拡大縮小・スクロール) */
   flex: none;
   border-radius: 4px;
-  box-shadow: 0 6px 18px rgba(138, 111, 158, .35);
+  box-shadow: 0 6px 18px rgba(168, 113, 74, .35);
   touch-action: none;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -116,8 +116,8 @@ button, label.btn, .tab, .sheet-tab { touch-action: manipulation; } /* ダブル
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(to right, rgba(138, 111, 158, .16) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(138, 111, 158, .16) 1px, transparent 1px);
+    linear-gradient(to right, rgba(168, 113, 74, .16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(168, 113, 74, .16) 1px, transparent 1px);
   background-size: var(--g, 24px) var(--g, 24px);
   background-position: var(--gx, 0) var(--gy, 0);
 }
@@ -156,7 +156,7 @@ button, label.btn, .tab, .sheet-tab { touch-action: manipulation; } /* ダブル
   cursor: pointer;
   touch-action: manipulation;
 }
-.zoom-ctl button:hover { background: #fff3f8; }
+.zoom-ctl button:hover { background: #fff4ea; }
 #zoomFit { min-width: 4.2em; font-size: 11px; border-left: 2px solid var(--line); border-right: 2px solid var(--line); }
 .artboard { cursor: grab; } /* 余白をドラッグすると表示が動く */
 .artboard.space-pan #card { cursor: grab !important; }
@@ -243,7 +243,7 @@ input, select, textarea {
   width: 100%;
   accent-color: var(--accent);
 }
-input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px #ffe1ec; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px #ffe6cf; }
 textarea { resize: vertical; }
 input[type="color"] { padding: 2px; height: 34px; cursor: pointer; }
 input[type="checkbox"] { width: auto; }
@@ -266,7 +266,7 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   white-space: nowrap;
   transition: transform .08s, box-shadow .08s, background .15s;
 }
-.btn:hover { background: #fff7fb; }
+.btn:hover { background: #fff9f3; }
 .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink-soft); }
 .btn:disabled { opacity: .5; cursor: wait; }
 .btn--primary { background: var(--primary); }
@@ -292,13 +292,13 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   border-radius: 12px;
   cursor: pointer;
 }
-.layers li:hover { background: #fff3f8; }
-.layers li.selected { background: #ffe3ef; border-color: var(--accent); }
+.layers li:hover { background: #fff4ea; }
+.layers li.selected { background: #ffe8d6; border-color: var(--accent); }
 .layers li.hidden .layer-label { opacity: .4; }
-/* ドラッグで並べ替え:動かしている行はうすく、差し込む位置にピンクの線 */
+/* ドラッグで並べ替え:動かしている行はうすく、差し込む位置にオレンジの線 */
 /*   指でなぞるとスクロール、長押しで並べ替えモード(.lifted)になる */
 .layers li { touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-.layers li.lifted { transform: scale(1.03); box-shadow: 0 4px 10px rgba(138, 111, 158, .35); background: #fff; }
+.layers li.lifted { transform: scale(1.03); box-shadow: 0 4px 10px rgba(168, 113, 74, .35); background: #fff; }
 .layers li.dragging { opacity: .45; }
 .layers li.drop-below { box-shadow: 0 4px 0 -1px var(--accent); }
 .layers li.drop-above { box-shadow: 0 -4px 0 -1px var(--accent); }
@@ -423,9 +423,9 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   cursor: pointer;
 }
 .frame-btn:hover { border-color: var(--accent); }
-.frame-btn[aria-pressed="true"] { border-color: var(--accent); background: #fff3f8; box-shadow: 0 0 0 3px #ffe1ec; }
+.frame-btn[aria-pressed="true"] { border-color: var(--accent); background: #fff4ea; box-shadow: 0 0 0 3px #ffe6cf; }
 .frame-btn .frame-canvas { width: 48px; height: 32px; }
-.frame-btn svg { width: 48px; height: 32px; fill: #f4edff; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.frame-btn svg { width: 48px; height: 32px; fill: #fff0e2; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
 
 .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 .swatch {
@@ -443,7 +443,7 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   cursor: pointer;
 }
 .swatch:hover { border-color: var(--accent); }
-.swatch[aria-pressed="true"] { border-color: var(--accent); background: #fff3f8; box-shadow: 0 0 0 3px #ffe1ec; }
+.swatch[aria-pressed="true"] { border-color: var(--accent); background: #fff4ea; box-shadow: 0 0 0 3px #ffe6cf; }
 .swatch-colors { display: flex; height: 18px; border-radius: 999px; overflow: hidden; border: 2px solid var(--ink); }
 .swatch-colors i { flex: 1; }
 .inner { margin-top: 10px; }

@@ -721,9 +721,9 @@ function drawSelection() {
   const b = boundsById.get(selectedId);
   if (!b) return;
   const s = viewScale();
-  // 選択枠はピンクの点線。4つの角と4つの辺の真ん中に、白ふちのまるいつまみ(どの辺・角をドラッグしても大きさが変わる)
+  // 選択枠はオレンジの点線。4つの角と4つの辺の真ん中に、白ふちのまるいつまみ(どの辺・角をドラッグしても大きさが変わる)
   ctx.save();
-  ctx.strokeStyle = "#ff6fa5";
+  ctx.strokeStyle = "#ff7a2e";
   ctx.lineWidth = 2.5 / s;
   ctx.setLineDash([7 / s, 5 / s]);
   ctx.strokeRect(b.x, b.y, b.w, b.h);
@@ -732,7 +732,7 @@ function drawSelection() {
   const knob = (x, y, r) => {
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = "#ff8fb7";
+    ctx.fillStyle = "#ffa45c";
     ctx.fill();
     ctx.lineWidth = 2 / s;
     ctx.strokeStyle = "#ffffff";
@@ -2200,7 +2200,7 @@ if (savedTab === "edit") savedTab = "layers"; // 「編集」タブは「要素�
 openTab(document.querySelector(`.sheet-tab[data-tab="${savedTab}"]`) ? savedTab : "design");
 
 if (matchMedia("(pointer: coarse)").matches) {
-  $("hint").textContent = "タップで選択 / ドラッグで移動 / 辺・角(ピンクの●)をドラッグで大きさを変える / 2本指でつまむと表示を拡大縮小、2本指で動かすとスクロール";
+  $("hint").textContent = "タップで選択 / ドラッグで移動 / 辺・角(オレンジの●)をドラッグで大きさを変える / 2本指でつまむと表示を拡大縮小、2本指で動かすとスクロール";
 }
 
 // 枠エディタで保存して戻ってきたときは、その枠を選んだ状態にする

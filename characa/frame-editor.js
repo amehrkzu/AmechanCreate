@@ -157,8 +157,8 @@ function renderGuides() {
   const g = $("guideLayer");
   g.replaceChildren();
   // マス目(10 ごと。見えている範囲いっぱいに)
-  for (let x = Math.ceil(v.x / 10) * 10; x <= v.x + v.w; x += 10) el("line", { x1: x, y1: v.y, x2: x, y2: v.y + v.h, stroke: "#f1e8f7", "stroke-width": 0.4 * u() }, g);
-  for (let y = Math.ceil(v.y / 10) * 10; y <= v.y + v.h; y += 10) el("line", { x1: v.x, y1: y, x2: v.x + v.w, y2: y, stroke: "#f1e8f7", "stroke-width": 0.4 * u() }, g);
+  for (let x = Math.ceil(v.x / 10) * 10; x <= v.x + v.w; x += 10) el("line", { x1: x, y1: v.y, x2: x, y2: v.y + v.h, stroke: "#f6ebe0", "stroke-width": 0.4 * u() }, g);
+  for (let y = Math.ceil(v.y / 10) * 10; y <= v.y + v.h; y += 10) el("line", { x1: v.x, y1: y, x2: v.x + v.w, y2: y, stroke: "#f6ebe0", "stroke-width": 0.4 * u() }, g);
   renderContext(g, v.x, v.y, v.w, v.h);
   // パネルの縁(太い線)と、部品の大きさ(点線の四角)
   const edgeAt = piece === "symbol" || piece === "border" ? 0 : piece === "base" ? 0 : -(def.inset ?? 0.02) / (piece === "corner" ? def.corner.size || 0.2 : def.edge.size || 0.07) * (piece === "corner" ? CORNER_BOX : EDGE_H);
@@ -167,11 +167,11 @@ function renderGuides() {
     // 枠線の画面・シンボルは、パネルの縁の目安を出さない(シンボルは点線の四角がマス)
     // 枠線の画面は、真ん中の横線(上で描く)が枠線なので、縁の目安は出さない
   } else if (piece !== "edge") {
-    el("path", { d: `M${e},${v.y + v.h}V${e}H${v.x + v.w}`, fill: "none", stroke: "#d9c6e6", "stroke-width": 3 * u() }, g);
+    el("path", { d: `M${e},${v.y + v.h}V${e}H${v.x + v.w}`, fill: "none", stroke: "#ecd0b8", "stroke-width": 3 * u() }, g);
   } else {
-    el("line", { x1: v.x, y1: e, x2: v.x + v.w, y2: e, stroke: "#d9c6e6", "stroke-width": 3 * u() }, g);
+    el("line", { x1: v.x, y1: e, x2: v.x + v.w, y2: e, stroke: "#ecd0b8", "stroke-width": 3 * u() }, g);
   }
-  el("rect", { x: 0, y: 0, width: w, height: h, fill: "none", stroke: "#ffb3cf", "stroke-width": 0.8 * u(), "stroke-dasharray": `${3 * u()} ${3 * u()}` }, g);
+  el("rect", { x: 0, y: 0, width: w, height: h, fill: "none", stroke: "#ffbf8a", "stroke-width": 0.8 * u(), "stroke-dasharray": `${3 * u()} ${3 * u()}` }, g);
 }
 
 // 今編集していない部分(土台の形・枠線・ほかの飾り)を、プレビューと同じ描き方でうすく重ねる
@@ -250,7 +250,7 @@ function pathAttrs(p, extra = {}) {
     return {
       d: pieceD(p),
       fill: "none",
-      stroke: bw ? col(def.border.color ?? "@accent") : "#c9b6d6",
+      stroke: bw ? col(def.border.color ?? "@accent") : "#dcc0a8",
       "stroke-width": bw || 0.8 * u(),
       "stroke-linecap": "round",
       "stroke-linejoin": "round",
@@ -336,7 +336,7 @@ function renderShapes() {
   // 切り抜きの形は見えなくなるので、点線でふちを示す
   if (piece !== "base") {
     for (const p of paths()) {
-      if (p.cut && p.pts.length) el("path", { d: pieceD(p), fill: "none", stroke: "#8a6f9e", "stroke-width": 0.6 * u(), "stroke-dasharray": `${1.5 * u()} ${1.2 * u()}`, "pointer-events": "none" }, g);
+      if (p.cut && p.pts.length) el("path", { d: pieceD(p), fill: "none", stroke: "#a8714a", "stroke-width": 0.6 * u(), "stroke-dasharray": `${1.5 * u()} ${1.2 * u()}`, "pointer-events": "none" }, g);
     }
   }
 }
@@ -350,15 +350,15 @@ function renderOverlay() {
   }
   if (sel.path === BORDER_ID) {
     const v = viewRect();
-    el("line", { x1: v.x, y1: 50, x2: v.x + v.w, y2: 50, stroke: "#ff7fae", "stroke-width": 0.6 * u(), "stroke-dasharray": `${2 * u()} ${1.5 * u()}`, "pointer-events": "none" }, g);
+    el("line", { x1: v.x, y1: 50, x2: v.x + v.w, y2: 50, stroke: "#ff8a3d", "stroke-width": 0.6 * u(), "stroke-dasharray": `${2 * u()} ${1.5 * u()}`, "pointer-events": "none" }, g);
     return;
   }
   const p = findPath(sel.path);
   if (!p) return;
   const s = u();
-  el("path", { d: pieceD(p), fill: "none", stroke: "#ff7fae", "stroke-width": 0.6 * s, "stroke-dasharray": `${2 * s} ${1.5 * s}`, "pointer-events": "none" }, g);
+  el("path", { d: pieceD(p), fill: "none", stroke: "#ff8a3d", "stroke-width": 0.6 * s, "stroke-dasharray": `${2 * s} ${1.5 * s}`, "pointer-events": "none" }, g);
   p.pts.forEach((q, i) => {
-    const attrs = { "data-path": p.id, "data-point": i, fill: i === sel.point ? "#ff7fae" : "#fff", stroke: "#ff5f9b", "stroke-width": 0.9 * s };
+    const attrs = { "data-path": p.id, "data-point": i, fill: i === sel.point ? "#ff8a3d" : "#fff", stroke: "#f57524", "stroke-width": 0.9 * s };
     if (q.corner) el("rect", { ...attrs, x: q.x - 2 * s, y: q.y - 2 * s, width: 4 * s, height: 4 * s, rx: 0.6 * s }, g);
     else el("circle", { ...attrs, cx: q.x, cy: q.y, r: 2.2 * s }, g);
   });
