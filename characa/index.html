@@ -20,13 +20,11 @@
 <main class="app" id="app">
   <!-- レイヤーの引き出し:画面の前面に、左からにょきっと出る。右はしの付箋のつまみで出し入れする -->
   <aside class="layer-drawer" id="layerDrawer" aria-label="レイヤー">
-    <section class="box box--fit">
+    <section class="box">
       <h2>追加</h2>
       <div id="addTiles" class="frames"></div>
       <div id="symbolActions" class="actions" style="margin-top:10px"></div>
-    </section>
-    <section class="box">
-      <h2>階層</h2>
+      <h2 class="next">階層</h2>
       <div class="actions"><button type="button" class="btn btn--small btn--primary" id="addFolder">＋ フォルダーを作る</button></div>
       <ul id="layers" class="layers"></ul>
     </section>
@@ -74,12 +72,6 @@
           <p id="designNote" class="note"></p>
         </section>
         <section class="box">
-          <h2>枠の形</h2>
-          <div id="frames" class="frames"></div>
-          <div id="frameActions" class="actions" style="margin-top:10px"></div>
-          <p class="note">パネル(図形)の形がまとめて変わります。細い帯や線には飾りを付けません。</p>
-        </section>
-        <section class="box">
           <h2>配色</h2>
           <div id="palettes" class="swatches"></div>
           <details class="inner">
@@ -106,6 +98,18 @@
           <p id="fetchStatus" class="status" role="status"></p>
           <p class="note">名前・ワールド・ジョブレベルなどがカードに入ります。</p>
         </section>
+        <section class="box">
+          <h2>メイン・サブジョブ</h2>
+          <div id="jobPickForm"></div>
+        </section>
+        <section class="box">
+          <h2>時間帯</h2>
+          <div id="playTimeForm"></div>
+        </section>
+        <section class="box">
+          <h2>やっているコンテンツ</h2>
+          <div id="activityForm"></div>
+        </section>
         <details class="box">
           <summary>キャラ情報(手入力・修正もできます)</summary>
           <div id="dataForm" class="fields"></div>
@@ -114,7 +118,7 @@
 
       <div class="tab-panel" role="tabpanel" data-panel="layers">
         <section class="box">
-          <h2>詳細</h2>
+          <h2 class="head-row">詳細<button type="button" class="trash-btn" id="deleteSelected" title="削除(Delete キー)" aria-label="削除" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7H20M9 7V4.5H15V7M6.5 7L7.5 20H16.5L17.5 7M10 11V16.5M14 11V16.5"/></svg></button></h2>
           <div id="props" class="fields"></div>
         </section>
       </div>

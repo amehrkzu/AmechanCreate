@@ -51,7 +51,7 @@ const SIZES = [
   [1080, 1920, "縦 9:16(1080×1920)"],
 ];
 
-const TYPE_LABEL = { text: "テキスト", image: "画像", rect: "図形", jobs: "ジョブ", symbol: "シンボル", folder: "フォルダー" };
+const TYPE_LABEL = { text: "テキスト", image: "画像", rect: "枠", jobs: "ジョブ", activities: "コンテンツ", playtime: "時間帯", mainjob: "メインジョブ", symbol: "シンボル", folder: "フォルダー" };
 
 // 配色の役割。要素の色に "@accent" のように書くと、選んでいる配色のその色になる
 const ROLES = [
@@ -72,9 +72,15 @@ const PALETTES = window.CHARACA_PALETTES ?? [];
 const DEFAULTS = {
   text: { text: "テキスト", font: "Noto Sans JP", size: 48, color: "@text", bold: false, italic: false, align: "left", lineHeight: 1.4, spacing: 0, width: 0, strokeColor: "#000000", strokeWidth: 0, shadow: true, opacity: 1 },
   image: { src: "", w: 640, h: 360, fit: "cover", zoom: 1, posX: 0, posY: 0, radius: 0, flip: false, opacity: 1, ...FX_DEFAULTS },
-  rect: { w: 400, h: 240, color: "@panel", radius: 16, borderColor: "@accent", borderWidth: 0, opacity: 0.4 },
+  rect: { frame: "round", w: 400, h: 240, color: "@panel", radius: 16, borderColor: "@accent", borderWidth: 0, opacity: 0.4 },
   symbol: { symbol: "", w: 240, h: 240, color: "@accent", opacity: 1 }, // シンボルエディタで作った形(symbol は id)
-  jobs: { display: "icon", filter: "battle", hideUnlearned: false, cols: 6, cellW: 155, font: "Noto Sans JP", size: 28, bold: false, iconColor: "@text", color: "@text", levelColor: "@accent", dimColor: "@muted", shadow: true, opacity: 1 },
+  jobs: { display: "icon", filter: "battle", hideUnlearned: false, cols: 6, h: 0, cellW: 155, font: "Noto Sans JP", size: 28, bold: false, iconColor: "@text", color: "@text", levelColor: "@accent", dimColor: "@muted", mainColor: "@accent", subColor: "@accent", boardFrame: "pill", panelFrame: "none", panelColor: "@panel", panelOpacity: 0.4, shadow: true, opacity: 1 },
+  // やっているコンテンツ(タグを並べる)。どれをやっているかは、キャラ情報の data.activities に入る
+  activities: { w: 800, h: 0, font: "Noto Sans JP", size: 24, bold: true, color: "@text", chipColor: "@accent", chipStyle: "soft", chipLine: 0, chipFrame: "pill", panelFrame: "none", panelColor: "@panel", panelOpacity: 0.4, opacity: 1 },
+  // 時間帯(エオ住/不定期 + 朝〜深夜をタグで並べる)。data.playStyle / data.playTimes
+  playtime: { w: 800, h: 0, font: "Noto Sans JP", size: 24, bold: true, color: "@text", chipColor: "@sub", chipStyle: "soft", chipLine: 0, chipFrame: "pill", panelFrame: "none", panelColor: "@panel", panelOpacity: 0.4, opacity: 1 },
+  // メインジョブ(アイコン+ジョブ名+レベル)。data.mainJob
+  mainjob: { font: "Noto Sans JP", size: 34, bold: true, color: "@text", iconColor: "@accent", levelColor: "@accent", showLevel: true, shadow: true, opacity: 1 },
   folder: { name: "フォルダー", open: true, opacity: 1 }, // レイヤーをまとめる入れ物(それ自体は描かない)
 };
 
@@ -105,6 +111,7 @@ const FIELDS = {
     ["flip", "左右反転", "checkbox"],
   ],
   rect: [
+    ["frame", "枠の形", "frame"],
     ["w", "幅", "number", { min: 4 }],
     ["h", "高さ", "number", { min: 4 }],
     ["color", "色", "color"],
@@ -121,15 +128,62 @@ const FIELDS = {
     ["display", "表示形式", "select", { options: [["icon", "アイコン+レベル"], ["iconName", "アイコン+名前+レベル"], ["name", "名前+レベル"]] }],
     ["filter", "表示するジョブ", "select", { options: [["battle", "戦闘職"], ["craft", "クラフター・ギャザラー"], ["all", "すべて"]] }],
     ["hideUnlearned", "未習得を隠す", "checkbox"],
-    ["cols", "列数", "number", { min: 1 }],
-    ["cellW", "列の幅", "number", { min: 20 }],
+    ["w", "幅", "number", { min: 20 }],
+    ["h", "高さ(0 = 中身に合わせる)", "number", { min: 0 }],
+    ["cellW", "1つぶんの幅", "number", { min: 20 }],
     ["font", "フォント", "font"],
     ["size", "サイズ", "number", { min: 4 }],
     ["iconColor", "アイコンの色", "color"],
     ["color", "ジョブ名の色", "color"],
     ["levelColor", "レベルの色", "color"],
     ["dimColor", "未習得の色", "color"],
+    ["mainColor", "メインジョブの強調の色", "color"],
+    ["subColor", "サブジョブの色", "color"],
+    ["boardFrame", "メイン・サブの板の形", "frame", { first: [["pill", "標準(角丸)"]] }],
+    ["panelFrame", "背景の板(形)", "frame", { first: [["none", "なし"]] }],
+    ["panelColor", "背景の板の色", "color"],
+    ["panelOpacity", "背景の板の不透明度", "range", { min: 0, max: 1, step: 0.05 }],
     ["bold", "太字", "checkbox"],
+    ["shadow", "影", "checkbox"],
+  ],
+  activities: [
+    ["w", "幅", "number", { min: 20 }],
+    ["h", "高さ(0 = 中身に合わせる)", "number", { min: 0 }],
+    ["chipFrame", "タグの形", "frame", { first: [["pill", "標準(まるいタグ)"]] }],
+    ["chipStyle", "タグの塗り", "select", { options: [["soft", "うす塗り+線"], ["fill", "しっかり塗り"], ["line", "線だけ"]] }],
+    ["chipLine", "タグの線の太さ(0 = 自動)", "number", { min: 0, step: 0.5 }],
+    ["chipColor", "タグの色", "color"],
+    ["color", "文字の色", "color"],
+    ["font", "フォント", "font"],
+    ["size", "サイズ", "number", { min: 4 }],
+    ["bold", "太字", "checkbox"],
+    ["panelFrame", "背景の板(形)", "frame", { first: [["none", "なし"]] }],
+    ["panelColor", "背景の板の色", "color"],
+    ["panelOpacity", "背景の板の不透明度", "range", { min: 0, max: 1, step: 0.05 }],
+  ],
+  playtime: [
+    ["w", "幅", "number", { min: 20 }],
+    ["h", "高さ(0 = 中身に合わせる)", "number", { min: 0 }],
+    ["chipFrame", "タグの形", "frame", { first: [["pill", "標準(まるいタグ)"]] }],
+    ["chipStyle", "タグの塗り", "select", { options: [["soft", "うす塗り+線"], ["fill", "しっかり塗り"], ["line", "線だけ"]] }],
+    ["chipLine", "タグの線の太さ(0 = 自動)", "number", { min: 0, step: 0.5 }],
+    ["chipColor", "タグの色", "color"],
+    ["color", "文字の色", "color"],
+    ["font", "フォント", "font"],
+    ["size", "サイズ", "number", { min: 4 }],
+    ["bold", "太字", "checkbox"],
+    ["panelFrame", "背景の板(形)", "frame", { first: [["none", "なし"]] }],
+    ["panelColor", "背景の板の色", "color"],
+    ["panelOpacity", "背景の板の不透明度", "range", { min: 0, max: 1, step: 0.05 }],
+  ],
+  mainjob: [
+    ["font", "フォント", "font"],
+    ["size", "サイズ", "number", { min: 4 }],
+    ["bold", "太字", "checkbox"],
+    ["color", "ジョブ名の色", "color"],
+    ["iconColor", "アイコンの色", "color"],
+    ["levelColor", "レベルの色", "color"],
+    ["showLevel", "レベルを出す", "checkbox"],
     ["shadow", "影", "checkbox"],
   ],
 };
@@ -156,10 +210,30 @@ let selectedId = null;
 let exporting = false;
 const boundsById = new Map();
 
+// やっているコンテンツの選択肢(グループ → タグ)。増やすときはここに足す。自由に足したタグは data.activities にそのまま入る
+const ACTIVITY_GROUPS = [
+  ["戦う", ["ルーレット", "レイド", "極", "零式", "絶", "PvP", "モブハント", "DD"]],
+  ["作る・集める", ["クラフター", "ギャザラー", "金策", "ゴールドソーサー", "マウント収集", "ミニオン収集", "アチブ収集"]],
+  ["その他", ["ミラプリ", "グルポ", "ハウジング", "FC活動", "雑談", "ロールプレイ", "配信"]],
+];
+const PLAY_TIMES = ["朝", "昼", "夕方", "夜", "深夜"];
+const PLAY_STYLES = ["不定期", "エオ住"];
+const ACTIVITY_KNOWN = ACTIVITY_GROUPS.flatMap(([, tags]) => tags);
+// チェックしたタグを、選択肢の順に(自分で足したものは、そのあとに入れた順で)
+function activityList() {
+  const sel = project.data.activities ?? [];
+  return [...ACTIVITY_KNOWN.filter((t) => sel.includes(t)), ...sel.filter((t) => !ACTIVITY_KNOWN.includes(t))];
+}
+
 function emptyData() {
   const data = Object.fromEntries(VARS.map(([k, label]) => [k, label]));
   Object.assign(data, { gender: "♂", birthday: "", guardian: "", hometown: "", grandCompany: "", grandCompanyRank: "", selfIntroduction: "" });
   data.levels = BATTLE_JOBS.map((name) => ({ name, level: "--" }));
+  data.activities = []; // やっているコンテンツ(チェックしたタグ)
+  data.playTimes = []; // プレイする時間帯
+  data.playStyle = ""; // "" / "不定期" / "エオ住"
+  data.mainJob = ""; // メインジョブ(1つ)
+  data.subJobs = []; // サブジョブ(複数)
   return data;
 }
 
@@ -184,7 +258,6 @@ function defaultProject() {
     card: { w: 1920, h: 1080, bg: { type: "gradient", color1: "@bg1", color2: "@bg2", angle: 135, image: "", dim: 0.3 } },
     palette: defaultPalette(),
     paletteId: PALETTES[0]?.id ?? "",
-    frame: "round", // 枠の形
     data: emptyData(),
     layers: [
       // スクショがカード全体の土台。その上に文字やパネルを載せる
@@ -194,8 +267,11 @@ function defaultProject() {
       inStatus("text", { text: "{name}", x: 1056, y: 160, size: 96, font: "Cinzel", bold: true }),
       inStatus("text", { text: "{server} [{dataCenter}]", x: 1060, y: 290, size: 40, color: "@sub" }),
       inStatus("text", { text: "{race} / {tribe} / {gender}\nFC: {freeCompany}", x: 1060, y: 355, size: 34, lineHeight: 1.5, color: "@sub" }),
-      inStatus("jobs", { x: 1060, y: 500, cols: 5 }),
-      inStatus("text", { text: "ここに好きなテキストを書けます\nクリックで選択して、右のパネルで編集", x: 1060, y: 820, size: 30, width: 760 }),
+      inStatus("mainjob", { x: 1060, y: 478, size: 30 }),
+      inStatus("jobs", { x: 1060, y: 540, w: 780, cellW: 145, size: 26 }),
+      inStatus("playtime", { x: 1060, y: 792, w: 780, size: 22 }),
+      inStatus("activities", { x: 1060, y: 844, w: 780, size: 22 }),
+      inStatus("text", { text: "ここに好きなテキストを書けます", x: 1060, y: 950, size: 26, width: 760 }),
       inStatus("text", { text: "(C) SQUARE ENIX", x: 1890, y: 1040, size: 20, align: "right", color: "@sub", opacity: 0.7 }),
       status,
     ],
@@ -218,15 +294,20 @@ function numbered(layers) {
 }
 
 // 古い保存データや読み込んだテンプレートに足りない項目を補う
+// 以前のデータの「カード全体の枠の形」。使えない値なら丸い角
+function oldFrame(frame) {
+  return FRAMES.some(([id]) => id === frame) || findCustomFrame(frame) ? frame : "round";
+}
+
 function normalize(p) {
   const base = defaultProject();
   return {
     card: { ...base.card, ...p.card, bg: { ...base.card.bg, ...p.card?.bg } },
     palette: { ...base.palette, ...p.palette },
     paletteId: p.palette ? p.paletteId ?? "" : base.paletteId,
-    frame: FRAMES.some(([id]) => id === p.frame) || findCustomFrame(p.frame) ? p.frame : base.frame,
     data: (({ face, image, ...d }) => d)({ ...emptyData(), ...p.data }), // 以前保存した Lodestone の画像URLは捨てる
-    layers: numbered(tidyFolders(p.layers.filter((l) => DEFAULTS[l.type]).map(({ bind, ...l }) => ({ ...makeLayer(l.type), ...l })))), // bind は以前の「Lodestone の画像を表示」設定(廃止)
+    // bind は以前の「Lodestone の画像を表示」設定(廃止)。p.frame は以前の「カード全体の枠の形」(今は枠ごと)
+    layers: numbered(tidyFolders(p.layers.filter((l) => DEFAULTS[l.type]).map(({ bind, ...l }) => ({ ...makeLayer(l.type), ...l, ...(l.type === "rect" && !l.frame ? { frame: oldFrame(p.frame) } : {}) })))),
   };
 }
 
@@ -257,7 +338,7 @@ function selected() {
 // ---------- フォルダー ----------
 // フォルダーもレイヤーの1つ(type: "folder"。それ自体は何も描かない)。中のレイヤーは folder にフォルダーの id を持つ
 //   並びの決まり:中のレイヤーは、フォルダーのすぐ後ろにまとめて置く(配列ではフォルダーの直前。一覧ではフォルダーの行のすぐ下)
-//   フォルダーの中にフォルダーは入れない
+//   フォルダーの中にフォルダーも入れられる(何段でも)。中のフォルダーも、その中身ごとまとめて置く
 //   (保存データを読むときにも使うので、const ではなく function で書く)
 function isFolder(l) {
   return l?.type === "folder";
@@ -265,38 +346,69 @@ function isFolder(l) {
 function folderOf(l) {
   return l?.folder ? project.layers.find((x) => x.id === l.folder) ?? null : null;
 }
+// すぐ中に入っているもの(中のフォルダーの、さらに中身は含まない)
 function childrenOf(f, layers = project.layers) {
   return layers.filter((l) => l.folder === f.id);
 }
-// 自分が隠れているか、入っているフォルダーが隠れているか
-function isHidden(l) {
-  return l.hidden || !!folderOf(l)?.hidden;
-}
-
-// 並びの決まりに合わせて並べ直す(なくなったフォルダーの印も消す)
-function tidyFolders(layers) {
-  const ids = new Set(layers.filter(isFolder).map((f) => f.id));
-  for (const l of layers) if (l.folder && (isFolder(l) || !ids.has(l.folder))) delete l.folder;
+// 入っているフォルダーを、内側から外側へ順に(いちばん外のフォルダーが最後)
+function ancestorsOf(l, layers = project.layers) {
   const out = [];
-  for (const l of layers) {
-    if (l.folder) continue;
-    if (isFolder(l)) out.push(...childrenOf(l, layers));
-    out.push(l);
+  let p = l?.folder ? layers.find((x) => x.id === l.folder) : null;
+  while (p && !out.includes(p)) {
+    out.push(p);
+    p = p.folder ? layers.find((x) => x.id === p.folder) : null;
   }
   return out;
 }
-
-// 前面・背面の入れ替えに使う、ひとまとまり(フォルダーは中身ごと)の並び
-function layerBlocks(layers) {
-  return layers.filter((l) => !l.folder).map((l) => (isFolder(l) ? [...childrenOf(l, layers), l] : [l]));
+// フォルダーの中身をぜんぶ(中のフォルダーとその中身も。並びは配列の順)
+function subtreeOf(f, layers = project.layers) {
+  return layers.filter((l) => ancestorsOf(l, layers).includes(f));
+}
+// フォルダーの中の、描かれる要素だけ(中のフォルダーの中身も含む)
+function contentsOf(f, layers = project.layers) {
+  return subtreeOf(f, layers).filter((l) => !isFolder(l));
+}
+// 自分が隠れているか、入っているフォルダー(外側のどれか)が隠れているか
+function isHidden(l) {
+  return l.hidden || ancestorsOf(l).some((f) => f.hidden);
+}
+// 不透明度は、入っているフォルダーぜんぶの分を掛ける
+function folderOpacity(l) {
+  return ancestorsOf(l).reduce((a, f) => a * (f.opacity ?? 1), 1);
 }
 
-// フォルダーを作る。フォルダーに入っていない要素を選んでいたら、それを入れる
+// 並びの決まりに合わせて並べ直す(なくなったフォルダーの印や、自分の中に自分が入るような印も消す)
+function tidyFolders(layers) {
+  const byId = new Map(layers.map((l) => [l.id, l]));
+  for (const l of layers) if (l.folder && !isFolder(byId.get(l.folder))) delete l.folder;
+  for (const l of layers) {
+    // たどっていって自分に戻ってくる(輪になっている)ときは、フォルダーから出す
+    const seen = new Set([l.id]);
+    for (let p = l.folder && byId.get(l.folder); p; p = p.folder && byId.get(p.folder)) {
+      if (seen.has(p.id)) {
+        delete l.folder;
+        break;
+      }
+      seen.add(p.id);
+    }
+  }
+  const out = [];
+  const put = (l) => {
+    if (isFolder(l)) for (const c of layers) if (c.folder === l.id) put(c);
+    out.push(l);
+  };
+  for (const l of layers) if (!l.folder) put(l);
+  return out;
+}
+
+// フォルダーを作る。選んでいるもの(要素でもフォルダーでも)があれば、それを入れる。
+//   選んでいるものがフォルダーの中にあれば、新しいフォルダーもその中に作る
 function createFolder() {
   const n = project.layers.filter(isFolder).length + 1;
   const f = makeLayer("folder", { name: `フォルダー ${n}` });
   const sel = selected();
-  if (sel && !isFolder(sel) && !sel.folder) {
+  if (sel) {
+    if (sel.folder) f.folder = sel.folder;
     sel.folder = f.id;
     project.layers.splice(project.layers.indexOf(sel) + 1, 0, f);
   } else {
@@ -309,31 +421,17 @@ function createFolder() {
 
 $("addFolder").addEventListener("click", createFolder);
 
-// 要素を入れるフォルダーを変える(id が空ならフォルダーから出す)
-function setLayerFolder(l, id) {
-  const old = folderOf(l);
-  const rest = project.layers.filter((x) => x !== l);
-  if (id) {
-    // そのフォルダーのいちばん前に入れる
-    l.folder = id;
-    rest.splice(rest.findIndex((x) => x.id === id), 0, l);
-  } else {
-    // 入っていたフォルダーのすぐ前に出す
-    delete l.folder;
-    rest.splice(old ? rest.indexOf(old) + 1 : rest.length, 0, l);
-  }
-  project.layers = tidyFolders(rest);
-  changed();
-  renderProps();
-}
-
 // フォルダーをなくす。withChildren なら中身も消す。そうでなければ中身はその場に残す(フォルダーから出すだけ)
+//   (フォルダーの中のフォルダーを解除したときは、中身は1つ外のフォルダーに入る)
 function removeFolder(f, withChildren) {
-  const kids = childrenOf(f);
+  const kids = withChildren ? subtreeOf(f) : childrenOf(f);
   if (withChildren) project.layers = project.layers.filter((l) => l !== f && !kids.includes(l));
   else {
-    for (const k of kids) delete k.folder;
-    project.layers = project.layers.filter((l) => l !== f);
+    for (const k of kids) {
+      if (f.folder) k.folder = f.folder;
+      else delete k.folder;
+    }
+    project.layers = tidyFolders(project.layers.filter((l) => l !== f));
   }
   if (selectedId === f.id || (withChildren && kids.some((k) => k.id === selectedId))) selectedId = null;
   changed();
@@ -342,7 +440,7 @@ function removeFolder(f, withChildren) {
 
 // フォルダーの中身をまとめて動かす
 function moveFolderBy(f, dx, dy) {
-  for (const k of childrenOf(f)) {
+  for (const k of contentsOf(f)) {
     k.x = Math.round(k.x + dx);
     k.y = Math.round(k.y + dy);
   }
@@ -386,13 +484,13 @@ function drawScene(target, p, bounds, scale = 1) {
     for (const l of p.layers) {
       if (isFolder(l) || isHidden(l)) continue;
       ctx.save();
-      ctx.globalAlpha = (l.opacity ?? 1) * (folderOf(l)?.opacity ?? 1);
+      ctx.globalAlpha = (l.opacity ?? 1) * folderOpacity(l);
       bounds.set(l.id, DRAW[l.type](l));
       ctx.restore();
     }
     // フォルダーの枠 = 中の見えている要素の枠をぜんぶ囲む枠
     for (const f of p.layers.filter(isFolder)) {
-      const bs = childrenOf(f).map((c) => bounds.get(c.id)).filter(Boolean);
+      const bs = contentsOf(f).map((c) => bounds.get(c.id)).filter(Boolean);
       if (!bs.length) continue;
       const x = Math.min(...bs.map((b) => b.x)), y = Math.min(...bs.map((b) => b.y));
       bounds.set(f.id, { x, y, w: Math.max(...bs.map((b) => b.x + b.w)) - x, h: Math.max(...bs.map((b) => b.y + b.h)) - y });
@@ -518,11 +616,9 @@ const DRAW = {
     return { x: l.x, y: l.y, w: l.w, h: l.h };
   },
 
-  // 図形(パネル)。形は「枠の形」(project.frame)で決まる(描き方は frames.js)
+  // 枠(パネル)。形は枠ごとに選ぶ(l.frame)。塗り・枠線(オリジナル枠は、その線の色・太さ)・飾り・切り抜きは frames.js
   rect(l) {
-    const frame = project.frame ?? "round";
-    // 塗り・枠線(土台を自分で描いた枠は、その線の色・太さ)・飾り。切り抜きもここで(frames.js)
-    drawFramePanel(ctx, frame, l, col, col(l.color));
+    drawFramePanel(ctx, l.frame || "round", l, col, col(l.color));
     return { x: l.x, y: l.y, w: l.w, h: l.h };
   },
 
@@ -539,27 +635,55 @@ const DRAW = {
     const rowH = lineH + l.size * (withIcon ? 0.5 : 0.6);
     const gap = l.size * 0.35;
     const nameX = withIcon ? iconSize + gap : 0;
+    // 最後の1つは「1つぶんの幅」まるごとではなく、実際に見える幅(アイコン+レベルなど)が入ればよい
+    const itemW = Math.min(l.cellW, l.display === "icon" ? nameX + ctx.measureText("100").width : l.cellW - l.size * 0.6);
+    const cols = jobCols(l, itemW);
+    const maxRows = l.h > 0 ? Math.max(1, Math.floor((l.h - lineH) / rowH) + 1) : Infinity; // 高さに入らない行は出さない
     // 長いジョブ名はレベルと重ならないよう横に縮める
     const nameMax = Math.max(1, l.cellW - nameX - l.size * 1.1 - ctx.measureText("100").width);
 
-    list.forEach((j, i) => {
-      const x = l.x + (i % l.cols) * l.cellW;
-      const cy = l.y + Math.floor(i / l.cols) * rowH + lineH / 2;
+    {
+      const rows = Math.min(maxRows, Math.max(1, Math.ceil(list.length / cols)));
+      drawElementPanel(l, l.x, l.y, jobWidth(l), l.h > 0 ? l.h : (rows - 1) * rowH + lineH);
+    }
+    list.slice(0, cols * maxRows).forEach((j, i) => {
+      const x = l.x + (i % cols) * l.cellW;
+      const cy = l.y + Math.floor(i / cols) * rowH + lineH / 2;
       const learned = /^\d+$/.test(j.level);
-      const dim = learned ? null : col(l.dimColor);
+      const isMain = j.name === project.data.mainJob;
+      const isSub = !isMain && (project.data.subJobs ?? []).includes(j.name);
+      // サブジョブは、アイコン・名前・レベルをサブジョブの色にする(レベルが未取得でも、未習得の色より優先)
+      const tone = isSub ? col(l.subColor ?? "@accent") : null;
+      const dim = learned || tone ? null : col(l.dimColor);
+      if (isMain || tone) {
+        // うしろに板を敷く。メインジョブ=濃い板+ふち、サブジョブ=うすい板だけ
+        const pad = l.size * 0.28;
+        ctx.save();
+        clearShadow();
+        shapePath(l.boardFrame, x - pad, cy - lineH / 2 - pad, itemW + pad * 2, lineH + pad * 2, (lineH + pad * 2) / 3);
+        const mc = tone ?? col(l.mainColor ?? "@accent");
+        ctx.fillStyle = rgba(mc, isMain ? 0.28 : 0.14);
+        ctx.fill();
+        if (isMain) {
+          ctx.strokeStyle = mc;
+          ctx.lineWidth = Math.max(1.5, l.size * 0.07);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
 
       if (withIcon) {
-        const icon = jobIcon(j.name, dim ?? col(l.iconColor));
+        const icon = jobIcon(j.name, dim ?? tone ?? (isMain ? col(l.mainColor ?? "@accent") : col(l.iconColor)));
         if (icon) {
           ctx.drawImage(icon, x, cy - iconSize / 2, iconSize, iconSize);
         } else {
           // アイコンが無いジョブ(クラフター・ギャザラー)は頭文字で代用
           ctx.textAlign = "center";
-          ctx.fillStyle = dim ?? col(l.iconColor);
+          ctx.fillStyle = dim ?? tone ?? col(l.iconColor);
           ctx.fillText(j.name[0], x + iconSize / 2, cy);
         }
       }
-      ctx.fillStyle = dim ?? col(l.levelColor);
+      ctx.fillStyle = dim ?? tone ?? col(l.levelColor);
       if (l.display === "icon") {
         ctx.textAlign = "left";
         ctx.fillText(j.level, x + nameX, cy);
@@ -568,13 +692,211 @@ const DRAW = {
       ctx.textAlign = "right";
       ctx.fillText(j.level, x + l.cellW - l.size * 0.6, cy);
       ctx.textAlign = "left";
-      ctx.fillStyle = dim ?? col(l.color);
+      ctx.fillStyle = dim ?? tone ?? col(l.color);
       ctx.fillText(j.name, x + nameX, cy, nameMax);
     });
-    const rows = Math.max(1, Math.ceil(list.length / l.cols));
-    return { x: l.x, y: l.y, w: l.cols * l.cellW, h: (rows - 1) * rowH + lineH };
+    const rows = Math.min(maxRows, Math.max(1, Math.ceil(list.length / cols)));
+    return { x: l.x, y: l.y, w: jobWidth(l), h: l.h > 0 ? l.h : (rows - 1) * rowH + lineH };
+  },
+
+  activities(l) {
+    return drawTags(l, activityList(), "やっているコンテンツ");
+  },
+
+  playtime(l) {
+    const d = project.data;
+    return drawTags(l, [...(d.playStyle ? [d.playStyle] : []), ...PLAY_TIMES.filter((t) => d.playTimes?.includes(t))], "時間帯");
+  },
+
+  mainjob(l) {
+    const d = project.data;
+    if (!d.mainJob) return null; // メインジョブを選んでいないときは出さない(キャラタブで選ぶと出る)
+    const size = l.size, iconSize = size * 1.4, gap = size * 0.35;
+    const label = d.mainJob;
+    const lv = l.showLevel === false ? "" : d.levels.find((j) => j.name === d.mainJob)?.level ?? "";
+    const lvText = /^\d+$/.test(lv) ? "Lv" + lv : "";
+    ctx.font = fontString(l);
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    ensureFont(ctx.font, label + lvText);
+    if (l.shadow) setShadow(size);
+    const cy = l.y + iconSize / 2;
+    let x = l.x;
+    const icon = jobIcon(d.mainJob, col(l.iconColor));
+    if (icon) {
+      ctx.drawImage(icon, x, l.y, iconSize, iconSize);
+      x += iconSize + gap;
+    }
+    ctx.fillStyle = col(l.color);
+    ctx.fillText(label, x, cy);
+    x += ctx.measureText(label).width;
+    if (lvText) {
+      x += gap;
+      ctx.fillStyle = col(l.levelColor);
+      ctx.fillText(lvText, x, cy);
+      x += ctx.measureText(lvText).width;
+    }
+    return { x: l.x, y: l.y, w: Math.max(size, x - l.x), h: iconSize };
   },
 };
+
+// タグ(角の丸いラベル)を、枠の幅に入る分だけ並べて、入らなければ折り返す。高さを決めたときは、入らない行は出さない。
+//   tags が空のときは、編集中だけ placeholder を薄く出す(保存する画像には出ない)
+function drawTags(l, tags, placeholder) {
+  const size = l.size, padX = size * 0.7, chipH = size * 1.8, gap = size * 0.45;
+  const w = l.w > 0 ? l.w : 800;
+  ctx.font = fontString(l);
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  const empty = !tags.length;
+  if (empty) {
+    tags = exporting ? [] : [placeholder];
+    ctx.globalAlpha *= 0.45;
+  }
+  ensureFont(ctx.font, tags.join(""));
+  const maxRows = l.h > 0 ? Math.max(1, Math.floor((l.h + gap) / (chipH + gap))) : Infinity;
+  const chip = col(l.chipColor);
+  // 並べ方(どのタグを、どこに)
+  const placed = [];
+  let x = 0, row = 0;
+  for (const tag of tags) {
+    const cw = ctx.measureText(tag).width + padX * 2;
+    if (x > 0 && x + cw > w) {
+      x = 0;
+      row++;
+    }
+    if (row >= maxRows) break;
+    placed.push({ tag, cw, cx: l.x + x, cy: l.y + row * (chipH + gap) });
+    x += cw + gap;
+  }
+  const rows = placed.length ? Math.round((placed.at(-1).cy - l.y) / (chipH + gap)) + 1 : 1;
+  const h = l.h > 0 ? l.h : rows * chipH + (rows - 1) * gap;
+  if (!empty) drawElementPanel(l, l.x, l.y, w, h);
+  for (const { tag, cw, cx, cy } of placed) {
+    shapePath(l.chipFrame, cx, cy, cw, chipH, chipH / 2);
+    let text = col(l.color);
+    if (l.chipStyle === "fill") {
+      ctx.fillStyle = chip;
+      ctx.fill();
+      text = lightness(chip) > 0.6 ? "#1a1a1a" : "#ffffff"; // 塗りの上で読める色
+    } else {
+      if (l.chipStyle === "soft") {
+        ctx.fillStyle = rgba(chip, 0.22);
+        ctx.fill();
+      }
+      ctx.strokeStyle = chip;
+      ctx.lineWidth = l.chipLine > 0 ? l.chipLine : Math.max(1.5, size * 0.08);
+      ctx.stroke();
+    }
+    ctx.fillStyle = text;
+    ctx.fillText(tag, cx + cw / 2, cy + chipH / 2 + size * 0.04);
+  }
+  return { x: l.x, y: l.y, w, h };
+}
+
+// ジョブ一覧は、枠の幅に入る分だけ横に並べて、入らなければ折り返す(列の数は決めない)。
+//   幅が未設定の古いデータは、これまでの列数ぶんの幅
+function jobWidth(l) {
+  return l.w > 0 ? l.w : l.cols * l.cellW;
+}
+function jobCols(l, itemW = l.cellW) {
+  return Math.max(1, Math.floor((jobWidth(l) - itemW) / l.cellW) + 1);
+}
+
+// 「なし」「標準」の見本
+const FRAME_FIRST_PREVIEW = {
+  none: '<rect x="4" y="4" width="52" height="32" rx="6" fill="none" stroke-dasharray="4 4"/>',
+  pill: '<rect x="4" y="11" width="52" height="18" rx="9"/>',
+};
+// 詳細の「枠の形」の欄:見本のアイコンを横に並べて、スクロールして選ぶ(first は「なし」「標準」など、先頭に足す選択肢)。
+//   いちばん右は「＋ 作る」(枠エディタ)。オリジナル枠を選んでいるときは、その枠の編集・削除
+function framePicker(l, key, label, first = []) {
+  const wrap = document.createElement("div");
+  wrap.className = "field field--wide";
+  wrap.append(Object.assign(document.createElement("span"), { textContent: label }));
+  const list = document.createElement("div");
+  list.className = "frame-pick";
+  const current = l[key];
+  const tile = (id, name, preview, onClick) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "frame-btn";
+    b.title = name;
+    b.setAttribute("aria-pressed", String(current === id));
+    b.append(preview, Object.assign(document.createElement("span"), { textContent: name }));
+    b.addEventListener("click", onClick ?? (() => {
+      l[key] = id;
+      changed();
+      renderProps();
+    }));
+    list.append(b);
+    return b;
+  };
+  const svg = (inner) => {
+    const span = document.createElement("span");
+    span.innerHTML = `<svg viewBox="0 0 60 40" aria-hidden="true">${inner}</svg>`;
+    return span.firstChild;
+  };
+  for (const [id, name] of first) tile(id, name, svg(FRAME_FIRST_PREVIEW[id] ?? ""));
+  for (const [id, name] of FRAMES) tile(id, name, svg(FRAME_PREVIEW[id]));
+  for (const def of loadCustomFrames()) {
+    const c = document.createElement("canvas");
+    c.width = 120;
+    c.height = 80;
+    c.className = "frame-canvas";
+    drawFramePreview(c, def, col, { pad: 8, radius: 10, alpha: 0.85, borderWidth: 2 });
+    tile(CUSTOM_PREFIX + def.id, def.name || "オリジナル枠", c);
+  }
+  tile("", "作る", svg('<path d="M30 10V30M20 20H40" fill="none"/>'), () => openFrameEditor(null, { id: l.id, key }));
+  wrap.append(list);
+  // 選んでいる見本が見える所まで、横にスクロールしておく
+  requestAnimationFrame(() => list.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" }));
+
+  const def = findCustomFrame(current);
+  if (def) {
+    const row = document.createElement("div");
+    row.className = "actions";
+    row.append(
+      button("この枠を編集", () => openFrameEditor(def.id, { id: l.id, key })),
+      button("この枠を削除", () => {
+        if (!confirm(`「${def.name || "オリジナル枠"}」を削除します。よろしいですか?`)) return;
+        saveCustomFrames(loadCustomFrames().filter((f) => f.id !== def.id));
+        // この枠を使っていた所は、ふつうの形に戻す
+        const gone = CUSTOM_PREFIX + def.id;
+        for (const x of project.layers) {
+          if (x.frame === gone) x.frame = "round";
+          if (x.panelFrame === gone) x.panelFrame = "round";
+          if (x.chipFrame === gone) x.chipFrame = "pill";
+          if (x.boardFrame === gone) x.boardFrame = "pill";
+        }
+        changed();
+        renderProps();
+        renderAddTiles();
+      }, "btn btn--small btn--danger"),
+    );
+    wrap.append(row);
+  }
+  return wrap;
+}
+// 小さい部品(タグ・ジョブの板)の形の道すじ。"pill" は今までどおりの角丸、ほかは枠の形
+function shapePath(frame, x, y, w, h, r) {
+  if (!frame || frame === "pill") return roundRectPath(x, y, w, h, r);
+  framePath(ctx, frame, x, y, w, h, Math.min(r, h / 4));
+}
+// ジョブ一覧・時間帯・コンテンツのうしろに敷く「背景の板」(大きさは中身 + すき間)
+function drawElementPanel(l, x, y, w, h) {
+  if (!l.panelFrame || l.panelFrame === "none") return;
+  const pad = l.size * 0.6;
+  ctx.save();
+  clearShadow();
+  drawFramePanel(ctx, l.panelFrame, { x: x - pad, y: y - pad, w: w + pad * 2, h: h + pad * 2, radius: l.size * 0.6, borderColor: "@accent", borderWidth: 2 }, col, col(l.panelColor ?? "@panel"), l.panelOpacity ?? 0.4);
+  ctx.restore();
+}
+
+function lightness(hex) {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(hex);
+  return m ? (parseInt(m[1], 16) * 0.299 + parseInt(m[2], 16) * 0.587 + parseInt(m[3], 16) * 0.114) / 255 : 0.5;
+}
 
 function jobList(l) {
   return project.data.levels.filter((j) => {
@@ -958,7 +1280,7 @@ canvas.addEventListener("pointerdown", (e) => {
   }
   const sel = selected();
   if (isFolder(sel) && inside(p, boundsById.get(sel.id))) {
-    drag = { mode: "folder", start: p, layer: sel, kids: childrenOf(sel).map((k) => ({ l: k, x: k.x, y: k.y })) };
+    drag = { mode: "folder", start: p, layer: sel, kids: contentsOf(sel).map((k) => ({ l: k, x: k.x, y: k.y })) };
     try {
       canvas.setPointerCapture(e.pointerId);
     } catch {}
@@ -1036,11 +1358,24 @@ function resize({ layer: l, orig: o, b, edge }, dx, dy, keepRatio) {
     l.y = edge.includes("n") ? Math.round(o.y + o.h - l.h) : o.y;
     return;
   }
+  // ジョブ一覧・コンテンツのタグは、枠の幅・高さを自由に変える(文字の大きさは変えない。並ぶ数は枠に合わせて変わる)
+  if (l.type === "jobs" || l.type === "activities" || l.type === "playtime") {
+    let w = Math.max(20, W), h = Math.max(10, H);
+    if (keepRatio && edge.length === 2) {
+      const f = Math.max(w / b.w, h / b.h);
+      w = b.w * f;
+      h = b.h * f;
+    }
+    l.w = Math.round(w);
+    l.h = Math.round(h);
+    l.x = edge.includes("w") ? Math.round(o.x + b.w - l.w) : o.x;
+    l.y = edge.includes("n") ? Math.round(o.y + b.h - l.h) : o.y;
+    return;
+  }
   // 左右の辺(と角)は幅の比率、上下の辺は高さの比率
   const f = Math.max(0.05, /[ew]/.test(edge) ? W / b.w : H / b.h);
   l.size = Math.max(4, Math.round(o.size * f));
   if (l.type === "text" && o.width) l.width = Math.round(o.width * f);
-  if (l.type === "jobs") l.cellW = Math.max(20, Math.round(o.cellW * f));
   const k = l.size / o.size; // 丸めたあとの実際の比率
   const bw = b.w * k, bh = b.h * k;
   const bx = edge.includes("w") ? b.x + b.w - bw : b.x;
@@ -1123,8 +1458,7 @@ document.addEventListener("keydown", (e) => {
   if (!l) return;
   if (e.key === "Delete" || e.key === "Backspace") {
     e.preventDefault();
-    if (!isFolder(l)) removeLayer(l.id);
-    else if (confirm(`「${l.name}」を中身ごと削除しますか?`)) removeFolder(l, true);
+    deleteSelected();
     return;
   }
   const step = e.shiftKey ? 10 : 1;
@@ -1166,13 +1500,34 @@ function addLayer(type, symbolId) {
     image: { x: Math.round(w / 2 - 200), y: Math.round(h / 2 - 270) },
     rect: { x: Math.round(w / 2 - 200), y: Math.round(h / 2 - 120) },
     jobs: { x: Math.round(w / 2 - 470), y: Math.round(h / 2 - 120) },
+    activities: { x: Math.round(w / 2 - 400), y: Math.round(h / 2 - 60) },
+    playtime: { x: Math.round(w / 2 - 400), y: Math.round(h / 2 - 60) },
     symbol: { x: Math.round(w / 2 - sw / 2), y: Math.round(h / 2 - sh / 2), w: sw, h: sh, symbol: symbolId },
   }[type];
   const l = makeLayer(type, props);
+  if (type === "jobs") {
+    const f = makeLayer("folder", { name: "ジョブ一覧" });
+    const main = makeLayer("mainjob", { x: l.x, y: l.y - 60, size: 30, folder: f.id });
+    l.folder = f.id;
+    project.layers.push(l, main, f); // フォルダーの中身は、フォルダーのすぐ前(下)に並べる
+    project.layers = tidyFolders(project.layers);
+    changed();
+    select(f.id);
+    return;
+  }
   project.layers.push(l);
   changed();
   select(l.id);
 }
+
+// 選んでいるものを消す(「詳細」の見出しのごみ箱・Delete キー)。フォルダーは中身ごと(確かめてから)
+function deleteSelected() {
+  const l = selected();
+  if (!l) return;
+  if (!isFolder(l)) removeLayer(l.id);
+  else if (confirm(`「${l.name}」を中身ごと削除しますか?`)) removeFolder(l, true);
+}
+$("deleteSelected").addEventListener("click", deleteSelected);
 
 function removeLayer(id) {
   const f = project.layers.find((l) => l.id === id);
@@ -1181,43 +1536,6 @@ function removeLayer(id) {
   if (selectedId === id) selectedId = null;
   changed();
   renderProps();
-}
-
-function duplicateLayer(id) {
-  const f = project.layers.find((l) => l.id === id);
-  if (isFolder(f)) {
-    // フォルダーは中身ごと複製して、元のフォルダーのすぐ前に置く
-    const copy = { ...structuredClone(f), id: uid(), name: f.name + " のコピー" };
-    const kids = childrenOf(f).map((k) => ({ ...structuredClone(k), id: uid(), no: undefined, folder: copy.id, x: k.x + 30, y: k.y + 30 }));
-    project.layers.splice(project.layers.indexOf(f) + 1, 0, ...kids, copy);
-    changed();
-    select(copy.id);
-    return;
-  }
-  const i = project.layers.findIndex((l) => l.id === id);
-  const copy = { ...structuredClone(project.layers[i]), id: uid(), no: undefined, x: project.layers[i].x + 30, y: project.layers[i].y + 30 };
-  project.layers.splice(i + 1, 0, copy);
-  changed();
-  select(copy.id);
-}
-
-// 前面へ(dir = 1)・背面へ(dir = -1)。フォルダーの中の要素は、そのフォルダーの中で入れ替える。フォルダーは中身ごと動く
-function moveLayer(id, dir) {
-  const l = project.layers.find((x) => x.id === id);
-  const f = folderOf(l);
-  if (f) {
-    const sib = childrenOf(f), i = sib.indexOf(l), j = i + dir;
-    if (j < 0 || j >= sib.length) return;
-    const a = project.layers.indexOf(sib[i]), b = project.layers.indexOf(sib[j]);
-    [project.layers[a], project.layers[b]] = [project.layers[b], project.layers[a]];
-  } else {
-    const blocks = layerBlocks(project.layers);
-    const i = blocks.findIndex((bl) => bl.includes(l)), j = i + dir;
-    if (j < 0 || j >= blocks.length) return;
-    [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
-    project.layers = blocks.flat();
-  }
-  changed();
 }
 
 function changed() {
@@ -1368,8 +1686,11 @@ function layerLabel(l) {
   if (isFolder(l)) return `${l.name}(${childrenOf(l).length})`;
   if (l.type === "text") return resolveText(l.text).replace(/\n/g, " ").slice(0, 30) || "(空)";
   if (l.type === "image") return l.src ? "スクショ" : "(未設定)";
-  if (l.type === "rect") return `図形 ${l.no ?? ""}`.trim();
+  if (l.type === "rect") return `枠 ${l.no ?? ""}`.trim();
   if (l.type === "symbol") return findSymbol(l.symbol)?.name || "(消されたシンボル)";
+  if (l.type === "activities") return "やっているコンテンツ";
+  if (l.type === "playtime") return "時間帯";
+  if (l.type === "mainjob") return project.data.mainJob ? "メインジョブ" : "メインジョブ(未選択)";
   return { battle: "戦闘職", craft: "クラフター・ギャザラー", all: "すべて" }[l.filter];
 }
 
@@ -1379,8 +1700,10 @@ function renderLayers() {
   // 上にあるほど前面。フォルダーの中身は、フォルダーの行のすぐ下に字下げして並ぶ(閉じていれば出さない)
   for (const l of [...project.layers].reverse()) {
     const f = folderOf(l);
-    if (f && !f.open) continue;
+    const outer = ancestorsOf(l);
+    if (outer.some((g) => !g.open)) continue;
     const li = document.createElement("li");
+    if (outer.length > 1) li.style.marginLeft = `${22 * outer.length}px`; // 中のフォルダーの中身は、もっと字下げ
     li.dataset.id = l.id;
     li.className = [l.id === selectedId && "selected", isHidden(l) && "hidden", f && "in-folder", isFolder(l) && "folder-row"].filter(Boolean).join(" ");
     if (isFolder(l)) {
@@ -1504,15 +1827,7 @@ function startLayerDrag(e, li, ul, layer) {
 function renderFolderProps(box, f) {
   const actions = document.createElement("div");
   actions.className = "actions";
-  actions.append(
-    button("前面へ", () => moveLayer(f.id, 1)),
-    button("背面へ", () => moveLayer(f.id, -1)),
-    button("複製", () => duplicateLayer(f.id)),
-    button("フォルダーを解除", () => removeFolder(f, false)),
-    button("中身ごと削除", () => {
-      if (confirm(`「${f.name}」を中身ごと削除しますか?`)) removeFolder(f, true);
-    }, "btn btn--small btn--danger"),
-  );
+  actions.append(button("フォルダーを解除", () => removeFolder(f, false)));
   box.append(actions);
   box.append(field(f, "name", "フォルダーの名前", "text", { wide: true }));
 
@@ -1529,13 +1844,6 @@ function renderFolderProps(box, f) {
     box.append(field(pos, "x", "X", "number", {}, onPos), field(pos, "y", "Y", "number", {}, onPos));
   }
   box.append(field(f, "opacity", "不透明度(中身ぜんぶ)", "range", { min: 0, max: 1, step: 0.05 }));
-
-  const note = document.createElement("p");
-  note.className = "note";
-  note.textContent = childrenOf(f).length
-    ? "フォルダーを選んでいる間は、カード上の点線の枠の中をドラッグすると、中身がまとめて動きます(矢印キーでも動きます)。中に入れる・出すは、「レイヤー」タブで行をドラッグするか、要素の「フォルダー」の欄で選びます。"
-    : "まだ空っぽです。「レイヤー」タブで、要素の行をこのフォルダーの行の下へドラッグすると入ります(要素の「フォルダー」の欄で選んでも入ります)。";
-  box.append(note);
 }
 
 // 一覧でドラッグして離したときの並べ替え。belowId の行のすぐ下(= その要素のすぐ後ろ)に入れる。belowId がなければいちばん上(前面)
@@ -1543,33 +1851,31 @@ function renderFolderProps(box, f) {
 //   ・閉じているフォルダーの行の下 → フォルダーには入らず、フォルダーのまるごと後ろに置く
 //   ・フォルダーの中の行の下 → そのフォルダーに入る
 //   ・フォルダーに入っていない行の下 → フォルダーから出る
-//   フォルダーを動かすときは中身ごと。フォルダーの中には入らない(行のフォルダーのまるごと後ろに置く)
+//   フォルダーを動かすときは中身ごと。フォルダーも、ほかのフォルダーの中に入れられる(自分の中には入れない)
 function dropLayer(layer, belowId) {
-  const moving = isFolder(layer) ? [...childrenOf(layer), layer] : [layer];
+  const moving = isFolder(layer) ? [...subtreeOf(layer), layer] : [layer];
   if (belowId && moving.some((m) => m.id === belowId)) return; // 自分のフォルダーの中身の上で離したときは、そのまま
   const rest = project.layers.filter((x) => !moving.includes(x));
   const below = belowId ? rest.find((x) => x.id === belowId) : null;
-  const behindFolder = (g) => rest.indexOf(rest.find((x) => x.folder === g.id) ?? g); // フォルダーのまるごと後ろの位置
+  const behindFolder = (g) => rest.indexOf(subtreeOf(g, rest)[0] ?? g); // フォルダーのまるごと後ろの位置
   let index, parent = null;
   if (!below) index = rest.length;
-  else if (isFolder(layer)) {
-    const g = isFolder(below) ? below : below.folder ? rest.find((x) => x.id === below.folder) : null;
-    index = g ? behindFolder(g) : rest.indexOf(below);
+  else if (isFolder(below) && below.open) {
+    parent = below.id;
+    index = rest.indexOf(below);
   } else if (isFolder(below)) {
-    if (below.open) parent = below.id;
-    index = below.open ? rest.indexOf(below) : behindFolder(below);
+    parent = below.folder ?? null;
+    index = behindFolder(below);
   } else {
     parent = below.folder ?? null;
     index = rest.indexOf(below);
   }
-  if (!isFolder(layer)) {
-    if (parent) layer.folder = parent;
-    else delete layer.folder;
-  }
+  if (parent) layer.folder = parent;
+  else delete layer.folder;
   rest.splice(index, 0, ...moving);
   project.layers = tidyFolders(rest);
   changed();
-  if (layer.id === selectedId) renderProps(); // 「フォルダー」の欄を新しくする
+  if (layer.id === selectedId) renderProps();
 }
 
 // 「エフェクト」タブ:選んでいる画像のエフェクトを調整する(画像以外を選んでいるときは案内だけ)
@@ -1588,6 +1894,7 @@ function renderProps() {
   const box = $("props");
   box.replaceChildren();
   const l = selected();
+  $("deleteSelected").hidden = !l;
   if (!l) {
     const p = document.createElement("p");
     p.className = "note";
@@ -1597,36 +1904,24 @@ function renderProps() {
   }
   if (isFolder(l)) return renderFolderProps(box, l);
 
-  const actions = document.createElement("div");
-  actions.className = "actions";
-  actions.append(
-    button("前面へ", () => moveLayer(l.id, 1)),
-    button("背面へ", () => moveLayer(l.id, -1)),
-    button("複製", () => duplicateLayer(l.id)),
-    button("削除", () => removeLayer(l.id), "btn btn--small btn--danger"),
-  );
-  box.append(actions);
-
-  // 入れるフォルダー(フォルダーがあるときだけ)
-  const folders = project.layers.filter(isFolder);
-  if (folders.length) {
-    const holder = { folder: l.folder ?? "" };
-    box.append(field(holder, "folder", "フォルダー", "select", { options: [["", "(入れない)"], ...folders.map((f) => [f.id, f.name])] }, () => setLayerFolder(l, holder.folder)));
-    const f = folderOf(l);
-    if (f) box.append(Object.assign(button(`「${f.name}」ごと選ぶ`, () => select(f.id)), { title: "フォルダーを選ぶと、中身をまとめて動かせます" }));
-  }
-
   for (const [key, label, type, opt] of FIELDS[l.type]) {
+    if (type === "frame") {
+      box.append(framePicker(l, key, label, opt?.first));
+      continue;
+    }
+    if (l.type === "jobs" && !l.w) l.w = jobWidth(l); // 古いデータは、今の幅を入れる
     // 表示形式を変えたら列の幅もそれに合う幅にする
     const onChange = key === "display" ? () => {
       l.cellW = Math.round(l.size * { icon: 5.5, iconName: 10, name: 9 }[l.display]);
       changed();
       renderProps();
     } : changed;
-    const f = field(l, key, label, type, opt, onChange);
+    const shown = l.type === "rect" && key === "borderWidth" && findCustomFrame(l.frame) ? "枠線の太さ(0 = 枠エディタの太さ)" : label;
+    const f = field(l, key, shown, type, opt, onChange);
     box.append(f);
     if (key === "text") box.append(varChips(f.querySelector("textarea"), l));
   }
+  if (l.type === "activities" || l.type === "playtime" || l.type === "mainjob") box.append(button("キャラタブで選ぶ →", () => openTab("chara"), "btn btn--small btn--primary"));
   if (l.type === "image") {
     const row = document.createElement("div");
     row.className = "actions";
@@ -1774,6 +2069,118 @@ function renderData() {
   }
 }
 
+// 「やっているコンテンツ」のチェック(キャラタブ)。チェックしたものが、カードの「コンテンツ」の要素に並ぶ
+function renderActivities() {
+  const box = $("activityForm");
+  box.replaceChildren();
+  const sel = () => (project.data.activities ??= []);
+  const toggle = (tag, on) => {
+    project.data.activities = on ? [...sel().filter((t) => t !== tag), tag] : sel().filter((t) => t !== tag);
+    changed();
+    if (!on && !ACTIVITY_KNOWN.includes(tag)) renderActivities(); // 自分で足したタグは、外すと消える
+  };
+  const tagBox = (tag) => {
+    const label = document.createElement("label");
+    label.className = "act-tag";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = sel().includes(tag);
+    cb.addEventListener("change", () => toggle(tag, cb.checked));
+    label.append(cb, Object.assign(document.createElement("span"), { textContent: tag }));
+    return label;
+  };
+  const group = (title, tags) => {
+    const g = document.createElement("div");
+    g.className = "act-group";
+    g.append(Object.assign(document.createElement("h3"), { textContent: title }));
+    const row = document.createElement("div");
+    row.className = "act-tags";
+    row.append(...tags.map(tagBox));
+    g.append(row);
+    box.append(g);
+  };
+  for (const [title, tags] of ACTIVITY_GROUPS) group(title, tags);
+  const custom = sel().filter((t) => !ACTIVITY_KNOWN.includes(t));
+  if (custom.length) group("自分で足した", custom);
+  const form = document.createElement("form");
+  form.className = "row";
+  const input = Object.assign(document.createElement("input"), { type: "text", placeholder: "ほかのコンテンツを足す", maxLength: 20 });
+  form.append(input, Object.assign(document.createElement("button"), { type: "submit", className: "btn btn--small", textContent: "足す" }));
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const tag = input.value.trim();
+    if (!tag) return;
+    if (!sel().includes(tag)) project.data.activities = [...sel(), tag];
+    changed();
+    renderActivities();
+  });
+  box.append(form);
+}
+
+// キャラタブで使う、チェックボックス付きのタグと、見出し付きのまとまり
+function checkTag(name, checked, onChange) {
+  const label = document.createElement("label");
+  label.className = "act-tag";
+  const cb = Object.assign(document.createElement("input"), { type: "checkbox", checked });
+  cb.addEventListener("change", () => onChange(cb.checked));
+  label.append(cb, Object.assign(document.createElement("span"), { textContent: name }));
+  return label;
+}
+function checkGroup(box, title, nodes) {
+  const g = document.createElement("div");
+  g.className = "act-group";
+  g.append(Object.assign(document.createElement("h3"), { textContent: title }));
+  const row = document.createElement("div");
+  row.className = "act-tags";
+  row.append(...nodes);
+  g.append(row);
+  box.append(g);
+}
+
+// メインジョブ(1つ)・サブジョブ(いくつでも)。メインはジョブ一覧で強調、サブは色違いになる
+function renderJobPicks() {
+  const box = $("jobPickForm");
+  box.replaceChildren();
+  const d = project.data;
+  d.subJobs ??= [];
+  const names = d.levels.map((j) => j.name).filter((n) => !CRAFT_GATHER.has(n) && !SPECIAL.has(n));
+  const main = document.createElement("select");
+  main.add(new Option("(選ばない)", ""));
+  for (const n of names) main.add(new Option(n, n));
+  main.value = names.includes(d.mainJob) ? d.mainJob : "";
+  main.addEventListener("change", () => {
+    d.mainJob = main.value;
+    d.subJobs = d.subJobs.filter((n) => n !== d.mainJob); // メインにしたジョブは、サブから外す
+    changed();
+    renderJobPicks();
+  });
+  const mainField = document.createElement("label");
+  mainField.className = "field";
+  mainField.append(Object.assign(document.createElement("span"), { textContent: "メインジョブ" }), main);
+  box.append(mainField);
+  checkGroup(box, "サブジョブ", names.filter((n) => n !== d.mainJob).map((n) => checkTag(n, d.subJobs.includes(n), (on) => {
+    d.subJobs = on ? [...d.subJobs, n] : d.subJobs.filter((x) => x !== n);
+    changed();
+  })));
+}
+
+// 時間帯:エオ住/不定期(どちらか1つ。もう一度押すと外れる)と、朝〜深夜(いくつでも)
+function renderPlayTimes() {
+  const box = $("playTimeForm");
+  box.replaceChildren();
+  const d = project.data;
+  d.playTimes ??= [];
+  checkGroup(box, "いる頻度", PLAY_STYLES.map((t) => checkTag(t, d.playStyle === t, (on) => {
+    d.playStyle = on ? t : "";
+    changed();
+    renderPlayTimes();
+  })));
+  checkGroup(box, "いる時間帯", PLAY_TIMES.map((t) => checkTag(t, d.playTimes.includes(t), (on) => {
+    d.playTimes = on ? [...d.playTimes, t] : d.playTimes.filter((x) => x !== t);
+    changed();
+  })));
+}
+
 function renderCard() {
   const box = $("cardForm");
   box.replaceChildren();
@@ -1830,11 +2237,13 @@ function renderCard() {
 
 function renderAll() {
   renderData();
+  renderJobPicks();
+  renderPlayTimes();
+  renderActivities();
   renderLayers();
   renderProps();
   renderCard();
   renderSwatches();
-  renderFrames();
   renderAddTiles();
   renderPaletteForm();
   requestDraw();
@@ -1871,7 +2280,7 @@ async function loadTemplates() {
 
 // テンプレートに、今のキャラ情報・配色・スクショ・背景画像を入れたものを作る
 function fromTemplate(t) {
-  const p = normalize({ ...structuredClone(t.data), data: project.data, palette: project.palette, paletteId: project.paletteId, frame: project.frame });
+  const p = normalize({ ...structuredClone(t.data), data: project.data, palette: project.palette, paletteId: project.paletteId });
   const newIds = new Map(p.layers.map((l) => [l.id, uid()]));
   p.layers.forEach((l) => {
     l.id = newIds.get(l.id);
@@ -1967,59 +2376,18 @@ function setPalette(pal) {
 function paletteChanged() {
   changed();
   renderSwatches();
-  renderFrames(); // オリジナル枠の見本は配色の色で描いている
+  renderProps(); // 詳細の「枠の形」の見本は、配色の色で描いている
   renderAddTiles(); // シンボルの見本も
   renderProps();
   renderCard();
 }
 
 // 枠の形の一覧。最初からある枠は SVG の見本、オリジナル枠は canvas に描いた見本
-function renderFrames() {
-  const box = $("frames");
-  box.replaceChildren();
-  const current = project.frame ?? "round";
-  const pick = (id) => {
-    project.frame = id;
-    changed();
-    renderFrames();
-  };
-  const frameButton = (id, name, preview) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "frame-btn";
-    b.setAttribute("aria-pressed", String(current === id));
-    b.append(preview, Object.assign(document.createElement("span"), { textContent: name }));
-    b.addEventListener("click", () => pick(id));
-    box.append(b);
-  };
-  for (const [id, name] of FRAMES) {
-    const svg = document.createElement("span");
-    svg.innerHTML = `<svg viewBox="0 0 60 40" aria-hidden="true">${FRAME_PREVIEW[id]}</svg>`;
-    frameButton(id, name, svg.firstChild);
-  }
-  for (const def of loadCustomFrames()) {
-    const c = document.createElement("canvas");
-    c.width = 120;
-    c.height = 80;
-    c.className = "frame-canvas";
-    drawFramePreview(c, def, col, { pad: 8, radius: 10, alpha: 0.85, borderWidth: 2 });
-    frameButton(CUSTOM_PREFIX + def.id, def.name || "オリジナル枠", c);
-  }
-
-  // 作る・直す・消す
-  const row = $("frameActions");
-  row.replaceChildren(button("＋ オリジナル枠を作成する", () => openFrameEditor(), "btn btn--small btn--primary"));
-  const def = findCustomFrame(current);
-  if (def) {
-    row.append(
-      button("この枠を編集", () => openFrameEditor(def.id)),
-      button("この枠を削除", () => {
-        if (!confirm(`「${def.name || "オリジナル枠"}」を削除します。よろしいですか?`)) return;
-        saveCustomFrames(loadCustomFrames().filter((f) => f.id !== def.id));
-        pick("round");
-      }, "btn btn--small btn--danger"),
-    );
-  }
+// このカードで使っているオリジナル枠(書き出しに入れる)
+function usedCustomFrames() {
+  const ids = new Set(project.layers.flatMap((l) => [l.frame, l.panelFrame, l.chipFrame, l.boardFrame]));
+  const list = [...ids].map(findCustomFrame).filter(Boolean);
+  return list.length ? list : undefined;
 }
 
 // 要素を追加の一覧。「枠の形」と同じように、見本付きのボタンを並べる(押すとカードの真ん中に追加)
@@ -2027,6 +2395,8 @@ const ADD_PREVIEW = {
   text: '<path d="M16 9H44M30 9V33" fill="none"/>',
   image: '<rect x="7" y="6" width="46" height="28" rx="4"/><path d="M11 31L24 18L32 26L38 20L49 31" fill="none"/><circle cx="41" cy="13" r="3"/>',
   rect: '<rect x="7" y="8" width="46" height="24" rx="7"/>',
+  playtime: '<circle cx="15" cy="20" r="10" fill="none"/><path d="M15 14V20L19 23" fill="none"/><rect x="30" y="15" width="22" height="10" rx="5"/>',
+  activities: '<rect x="6" y="9" width="20" height="9" rx="4.5"/><rect x="30" y="9" width="24" height="9" rx="4.5"/><rect x="6" y="23" width="26" height="9" rx="4.5"/><rect x="36" y="23" width="14" height="9" rx="4.5"/>',
   jobs: '<rect x="8" y="9" width="10" height="10" rx="2"/><rect x="25" y="9" width="10" height="10" rx="2"/><rect x="42" y="9" width="10" height="10" rx="2"/><rect x="8" y="23" width="10" height="10" rx="2"/><rect x="25" y="23" width="10" height="10" rx="2"/><rect x="42" y="23" width="10" height="10" rx="2"/>',
 };
 function renderAddTiles() {
@@ -2040,7 +2410,7 @@ function renderAddTiles() {
     b.addEventListener("click", onClick);
     box.append(b);
   };
-  for (const type of ["text", "image", "rect", "jobs"]) {
+  for (const type of ["text", "image", "rect", "jobs", "playtime", "activities"]) {
     const svg = document.createElement("span");
     svg.innerHTML = `<svg viewBox="0 0 60 40" aria-hidden="true">${ADD_PREVIEW[type]}</svg>`;
     tile(type === "jobs" ? "ジョブ一覧" : TYPE_LABEL[type], svg.firstChild, () => addLayer(type));
@@ -2075,7 +2445,13 @@ function deleteSymbol(sym) {
 }
 
 // 枠エディタへ移る。今のカードはすぐ保存しておく(戻ってきたら、そのまま続けられる)
-function openFrameEditor(id) {
+// 枠エディタを開く。target は、作った・直した枠を入れる欄({ id: 要素の id, key: "frame" など })
+const FRAME_TARGET_KEY = "characa:frameTarget";
+function openFrameEditor(id, target) {
+  try {
+    if (target) sessionStorage.setItem(FRAME_TARGET_KEY, JSON.stringify(target));
+    else sessionStorage.removeItem(FRAME_TARGET_KEY);
+  } catch {}
   saveNow();
   location.href = "frame-editor.html" + (id ? "?id=" + encodeURIComponent(id) : "");
 }
@@ -2156,7 +2532,8 @@ $("fetchForm").addEventListener("submit", async (e) => {
       throw new Error(res.status === 404 ? "キャラクターが見つかりませんでした" : `取得に失敗しました(${body.error ?? res.status})`);
     }
     const { face, image, ...info } = body; // Lodestone の画像は使わない
-    project.data = { ...emptyData(), ...info };
+    const { activities, playTimes, playStyle, mainJob, subJobs } = project.data; // 自分で選んだものは、取得しても消さない
+    project.data = { ...emptyData(), ...info, activities, playTimes, playStyle, mainJob, subJobs };
     setStatus(`${body.name} を取得しました`, "ok");
     renderAll();
     saveSoon();
@@ -2211,7 +2588,7 @@ function usedSymbols() {
 }
 
 $("exportJson").addEventListener("click", () => {
-  const json = JSON.stringify({ version: 2, card: project.card, palette: project.palette, paletteId: project.paletteId, frame: project.frame, customFrames: findCustomFrame(project.frame) ? [findCustomFrame(project.frame)] : undefined, customSymbols: usedSymbols(), layers: project.layers }, null, 1);
+  const json = JSON.stringify({ version: 2, card: project.card, palette: project.palette, paletteId: project.paletteId, customFrames: usedCustomFrames(), customSymbols: usedSymbols(), layers: project.layers }, null, 1);
   download(new Blob([json], { type: "application/json" }), "characa_template.json");
 });
 
@@ -2232,7 +2609,7 @@ $("importJson").addEventListener("change", async (e) => {
       const ids = new Set(t.customSymbols.map((s) => s.id));
       saveSymbols([...loadSymbols().filter((s) => !ids.has(s.id)), ...t.customSymbols]);
     }
-    project = normalize({ palette: project.palette, paletteId: project.paletteId, frame: project.frame, ...t, data: project.data });
+    project = normalize({ palette: project.palette, paletteId: project.paletteId, ...t, data: project.data });
     selectedId = null;
     renderAll();
     saveSoon();
@@ -2254,7 +2631,7 @@ $("resetAll").addEventListener("click", () => {
 
 $("reset").addEventListener("click", () => {
   if (!confirm("レイアウトを初期状態に戻します(キャラ情報はそのまま)。よろしいですか?")) return;
-  project = { ...defaultProject(), data: project.data, palette: project.palette, paletteId: project.paletteId, frame: project.frame };
+  project = { ...defaultProject(), data: project.data, palette: project.palette, paletteId: project.paletteId };
   selectedId = null;
   renderAll();
   saveSoon();
@@ -2546,9 +2923,18 @@ openTab(document.querySelector(`.sheet-tab[data-tab="${savedTab}"]`) ? savedTab 
   const params = new URLSearchParams(location.search);
   const back = params.get("frame");
   if (back && findCustomFrame(back)) {
-    project.frame = back;
-    saveNow();
-    openTab("design");
+    let target = null;
+    try {
+      target = JSON.parse(sessionStorage.getItem(FRAME_TARGET_KEY));
+      sessionStorage.removeItem(FRAME_TARGET_KEY);
+    } catch {}
+    const l = target && project.layers.find((x) => x.id === target.id);
+    if (l) {
+      l[target.key] = back;
+      saveNow();
+      select(l.id);
+      openTab("layers");
+    }
   }
   // シンボルエディタで保存して戻ってきたとき:新しく作ったシンボルはカードに置く
   const sym = params.get("symbol");

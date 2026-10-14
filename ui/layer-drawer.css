@@ -71,9 +71,8 @@
 @media (prefers-reduced-motion: reduce) { .layer-drawer, .layer-drawer > .box { transition: none; } }
 /* 広い画面(PC):引き出しにせず、左にいつも出ている列にする(UEのヒエラルキーのような配置)。
    上に「追加」、下に「階層(レイヤー)」。つまみはいらない。狭い画面では、これまでどおり前面に出る引き出し */
-.layer-drawer > .box.box--fit { flex: none; }
-.layer-drawer > .box + .box { margin-top: 10px; }
-.layer-drawer > .box.box--fit + .box > h2 { margin-top: 0; }
+/* 「追加」と「階層」は1つの箱(<h2>追加</h2> … <h2 class="next">階層</h2> …)。箱ごとスクロールする */
+.layer-drawer > .box > h2.next { margin: 16px 0 10px; padding-top: 12px; border-top: 2px dashed var(--line); }
 @media (min-width: 1000px) {
   .layer-drawer {
     position: sticky;

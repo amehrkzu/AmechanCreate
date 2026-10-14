@@ -69,7 +69,7 @@ button, label.btn { touch-action: manipulation; }
 .layer-list li.on { border-color: var(--accent); background: #fff4ea; }
 .layer-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .layer-list .tag { font-size: 11px; color: #fff; background: var(--ink); border-radius: 6px; padding: 0 5px; }
-.layer-drawer .layer-list { overflow-y: auto; }
+
 .stage { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .board {
@@ -173,7 +173,7 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
 <main class="app">
   <!-- 左の列:上に「追加」、下に「階層(線の一覧)」。広い画面ではいつも出ていて、狭い画面では前面に出る引き出し -->
   <aside class="layer-drawer" id="layerDrawer" aria-label="追加と階層">
-    <section class="box box--fit">
+    <section class="box">
       <h2>追加</h2>
       <div class="tool-list" role="group" aria-label="ツール">
         <button type="button" class="btn tool" data-mode="draw" title="描く(D)">✏️ 描く</button>
@@ -184,9 +184,7 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
         <label class="btn btn--small btn--primary">下書きを読み込む<input id="draftFile" type="file" accept="image/*,.svg" hidden></label>
         <label class="btn btn--small">SVG を開く<input id="openFile" type="file" accept=".svg,image/svg+xml" hidden></label>
       </div>
-    </section>
-    <section class="box">
-      <h2>階層</h2>
+      <h2 class="next">階層</h2>
       <ul id="layerPanel" class="layer-list"></ul>
     </section>
     <button type="button" class="layer-handle" id="layerHandle" aria-controls="layerDrawer" aria-expanded="false">☂ レイヤー</button>

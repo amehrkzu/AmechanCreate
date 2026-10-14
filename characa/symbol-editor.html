@@ -209,7 +209,7 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
 <main class="app">
   <!-- 左の列:上に「追加」、下に「階層(レイヤー)」。広い画面ではいつも出ていて、狭い画面では前面に出る引き出し(ui/layer-drawer.css・.js) -->
   <aside class="layer-drawer" id="layerDrawer" aria-label="追加と階層">
-    <section class="box box--fit">
+    <section class="box">
       <h2>追加</h2>
       <div id="addPanel">
         <select id="shapeSelect" aria-label="図形を追加">
@@ -221,9 +221,7 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
           <option value="star">★ 星</option>
         </select>
       </div>
-    </section>
-    <section class="box">
-      <h2>階層</h2>
+      <h2 class="next">階層</h2>
       <div id="layerPanel"></div>
     </section>
     <button type="button" class="layer-handle" id="layerHandle" aria-controls="layerDrawer" aria-expanded="false">☂ レイヤー</button>

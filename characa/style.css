@@ -286,7 +286,6 @@ button, label.btn, .tab, .sheet-tab { touch-action: manipulation; } /* ダブル
 }
 .tab-panel { display: flex; flex-direction: column; gap: 12px; }
 .tab-panel[hidden] { display: none; }
-.hint { margin: 0; color: var(--muted); font-size: 12px; }
 
 .box {
   background: var(--box);
@@ -422,8 +421,6 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
 .color-row input[type="color"] { width: 42px; flex-shrink: 0; }
 
 /* エフェクト欄 */
-.fields .fields-head { grid-column: 1 / -1; margin: 6px 0 0; padding-top: 12px; border-top: 2px dashed var(--line); color: var(--accent); }
-.fields .fields-head::before { content: "✧ "; }
 .hue-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
 .hue-row .btn { margin-left: auto; }
 .hue-chip { width: 24px; height: 24px; border-radius: 50%; border: var(--border) solid var(--ink); flex-shrink: 0; }
@@ -632,7 +629,10 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   transition: opacity .3s ease;
 }
 .layer-drawer.open > .box { opacity: 1; }
-.layer-drawer .layers { flex: 1; min-height: 0; max-height: none; }
+/* 「追加」と「階層」は1つの箱。箱ごとスクロールする(一覧だけのスクロールはしない) */
+.layer-drawer > .box { overflow-y: auto; }
+.layer-drawer .layers { max-height: none; overflow: visible; }
+.layer-drawer .box > h2.next { margin: 16px 0 10px; padding-top: 12px; border-top: 2px dashed var(--line); }
 /* 付箋のつまみ:引き出しの右はしから、いつも出ている */
 .layer-handle {
   position: absolute;
@@ -654,8 +654,6 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
 }
 @media (prefers-reduced-motion: reduce) { .layer-drawer, .layer-drawer > .box { transition: none; } }
 /* 広い画面(PC):引き出しにせず、左の列にいつも出す。上に「追加」、下に「階層」。つまみはいらない */
-.layer-drawer > .box.box--fit { flex: none; }
-.layer-drawer > .box + .box { margin-top: 10px; }
 @media (min-width: 1000px) {
   .layer-drawer {
     position: relative;
@@ -694,3 +692,25 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
 .stage-tools { display: flex; align-items: center; gap: 6px; }
 .grid-toggle--danger { color: var(--danger); }
 .grid-toggle--danger:hover { background: var(--danger-bg); }
+
+/* やっているコンテンツのチェック(キャラタブ) */
+.act-group + .act-group { margin-top: 10px; }
+.act-group h3 { margin: 0 0 6px; font-size: 12px; color: var(--muted); }
+.act-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.act-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px 2px 8px; border: 2px solid var(--line); border-radius: 999px; background: #fff; font-size: 13px; cursor: pointer; }
+.act-tag:has(input:checked) { border-color: var(--accent); background: var(--tint); font-weight: 700; }
+.act-tag input { accent-color: var(--accent); margin: 0; }
+#activityForm form { margin-top: 10px; }
+#activityForm form input { flex: 1; min-width: 0; }
+
+/* 「詳細」の見出しの右はしの、ごみ箱(選んでいるものを削除) */
+.box h2.head-row { display: flex; align-items: center; gap: 8px; }
+.trash-btn { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; background: #fff; border: 2px solid var(--line); border-radius: 10px; color: var(--danger); cursor: pointer; }
+.trash-btn:hover { border-color: var(--danger); background: var(--danger-bg); }
+.trash-btn[hidden] { display: none; }
+.trash-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 詳細の「枠の形」:見本のアイコンを横に並べて、スクロールして選ぶ */
+.frame-pick { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; scroll-snap-type: x proximity; }
+.frame-pick .frame-btn { flex: 0 0 76px; scroll-snap-align: start; }
+.frame-pick .frame-btn span { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }

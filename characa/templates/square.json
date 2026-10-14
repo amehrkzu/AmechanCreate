@@ -8,8 +8,11 @@
   { "folder": "status", "type": "text", "text": "{title}", "x": 100, "y": 725, "size": 24, "color": "@accent" },
   { "folder": "status", "type": "text", "text": "{name}", "x": 98, "y": 758, "size": 60, "font": "Cinzel", "bold": true },
   { "folder": "status", "type": "text", "text": "{server} [{dataCenter}]", "x": 100, "y": 840, "size": 26, "color": "@sub" },
-  { "folder": "status", "type": "text", "text": "ここに好きなテキストを書けます", "x": 100, "y": 900, "size": 22, "width": 410, "lineHeight": 1.5 },
-  { "folder": "status", "type": "jobs", "x": 560, "y": 728, "cols": 4, "cellW": 110, "size": 21 },
+  { "folder": "status", "type": "text", "text": "ここに好きなテキストを書けます", "x": 100, "y": 925, "size": 22, "width": 410, "lineHeight": 1.5 },
+  { "folder": "status", "type": "mainjob", "x": 100, "y": 878, "size": 22 },
+  { "folder": "status", "type": "jobs", "x": 560, "y": 728, "w": 440, "cellW": 90, "size": 18 },
+  { "folder": "status", "type": "playtime", "x": 560, "y": 905, "w": 440, "size": 16 },
+  { "folder": "status", "type": "activities", "x": 560, "y": 944, "w": 440, "size": 16 },
   { "folder": "status", "type": "text", "text": "(C) SQUARE ENIX", "x": 1040, "y": 1050, "size": 15, "align": "right", "color": "@sub", "opacity": 0.7 },
   { "type": "folder", "id": "status", "name": "ステータス" }
  ]

@@ -92,6 +92,7 @@ function laceOutline(x, y, w, h, r) {
 function framePath(g, frame, x, y, w, h, r) {
   const { base, def } = resolveFrame(frame);
   if (def) r = (def.baseRadius ?? 0.08) * Math.min(w, h); // オリジナル枠は角の大きさを枠ごとに決める
+  else if (!(r > 0) && base !== "square") r = Math.min(w, h) * 0.06; // 角丸が 0 でも、丸い角・角を切るなどは形が分かるように
   if (base === "custom") {
     const pts = customBaseOutline(def, x, y, w, h);
     if (pts) {
@@ -176,8 +177,8 @@ function strokeFrameBorder(g, frame, l, col) {
   const { def } = resolveFrame(frame);
   let width = l.borderWidth, color = l.borderColor;
   if (def?.border) {
-    // オリジナル枠は、枠エディタの「枠線」で決めた色・太さ
-    width = (def.border.w ?? 2) * (Math.min(l.w, l.h) / BORDER_UNIT);
+    // オリジナル枠の線の色は、枠エディタの「枠線」で決めた色。太さは、要素の「枠線の太さ」(0 なら枠エディタで決めた太さ)
+    if (!(width > 0)) width = (def.border.w ?? 2) * (Math.min(l.w, l.h) / BORDER_UNIT);
     color = def.border.color ?? "@accent";
   }
   if (!(width > 0)) return;
