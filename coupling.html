@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>カップリング辞典</title>
+<title>関係辞典</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
@@ -148,7 +148,7 @@
 </head>
 <body>
 
-<h1>カップリング辞典</h1>
+<h1>関係辞典</h1>
 
 <div class="picker">
   <select id="charA" aria-label="キャラクター1"></select>
@@ -181,8 +181,8 @@ const SAMPLE_DATA = {
   // a × b の順で登録。逆順（b × a）が未登録なら、逆順の組み合わせも探す。
   couplings: [
     { a: "キャラA", b: "キャラB", name: "ABコンビ", note: "ここに補足文が入ります。\n改行もできます。" },
-    { a: "キャラB", b: "キャラA", name: "BA", note: "順番が逆だと別カプとして登録できます。" },
-    { a: "キャラA", b: "キャラC", name: "ACカプ", note: "補足文のサンプルです。" },
+    { a: "キャラB", b: "キャラA", name: "BA", note: "順番が逆だと別の関係として登録できます。" },
+    { a: "キャラA", b: "キャラC", name: "ACコンビ", note: "補足文のサンプルです。" },
     { a: "キャラC", b: "キャラD", name: "CD", note: "補足文のサンプルです。" },
   ],
 };
@@ -244,7 +244,7 @@ function render() {
   let html;
 
   if (!a || !b) {
-    html = `<p class="placeholder">左右どちらもえらぶと<br>カップリングが表示されます</p>`;
+    html = `<p class="placeholder">左右どちらもえらぶと<br>2人の関係が表示されます</p>`;
   } else {
     const cp = findCoupling(a, b);
     const [first, second] = cp ? [cp.a, cp.b] : [a, b];
