@@ -1572,7 +1572,17 @@ function dropLayer(layer, belowId) {
   if (layer.id === selectedId) renderProps(); // 「フォルダー」の欄を新しくする
 }
 
+// 「エフェクト」タブ:選んでいる画像のエフェクトを調整する(画像以外を選んでいるときは案内だけ)
+function renderFx() {
+  const box = $("fxProps");
+  box.replaceChildren();
+  const l = selected();
+  if (l?.type === "image") return renderFxFields(box, l);
+  box.append(Object.assign(document.createElement("p"), { className: "note", textContent: "スクショ(画像)を選ぶと、ここでエフェクトを調整できます。カード上で画像を押すか、「レイヤー」から選んでください。" }));
+}
+
 function renderProps() {
+  renderFx();
   const box = $("props");
   box.replaceChildren();
   const l = selected();
@@ -1624,7 +1634,7 @@ function renderProps() {
     note.className = "note";
     note.textContent = "画像の上でホイール → ズーム / Alt+ドラッグ → 枠の中で位置調整";
     box.append(note);
-    renderFxFields(box, l);
+    box.append(button("エフェクトを調整する →", () => openTab("fx"), "btn btn--small btn--primary"));
   }
   if (l.type === "symbol") {
     const sym = findSymbol(l.symbol);
@@ -1651,11 +1661,6 @@ let pickHueFor = null; // パートカラーの色をカードから拾うモー
 
 // 画像の「エフェクト」欄
 function renderFxFields(box, l) {
-  const head = document.createElement("h3");
-  head.className = "sub fields-head";
-  head.textContent = "エフェクト";
-  box.append(head);
-
   // プリセット。中身を手で変えたら「カスタム」になる
   const presetOptions = FX_PRESETS.map(([id, name]) => [id, name]);
   if (l.fxPreset === "custom") presetOptions.push(["custom", "カスタム"]);
@@ -2121,6 +2126,12 @@ function setStatus(text, kind = "") {
   el.className = "status" + (kind ? ` status--${kind}` : "");
 }
 
+// ロードストーン ID だけは、タブを閉じても覚えておく(ほかの作りかけのものは、開きなおすと最初に戻る)
+const LODESTONE_ID_KEY = "characa:lodestoneId";
+try {
+  $("lodestoneId").value = localStorage.getItem(LODESTONE_ID_KEY) ?? "";
+} catch {}
+
 $("fetchForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const raw = $("lodestoneId").value.trim();
@@ -2130,6 +2141,9 @@ $("fetchForm").addEventListener("submit", async (e) => {
     return;
   }
 
+  try {
+    localStorage.setItem(LODESTONE_ID_KEY, id); // このブラウザに覚えておくのは、ロードストーン ID だけ
+  } catch {}
   const btn = $("fetchBtn");
   btn.disabled = true;
   setStatus("取得中…");
@@ -2223,6 +2237,17 @@ $("importJson").addEventListener("change", async (e) => {
   } catch (err) {
     alert("テンプレートを読み込めませんでした: " + err.message);
   }
+});
+
+// 制作エリアの下の「リセット」:レイアウト・配色・枠・画像などをまるごと最初の状態に戻す。キャラ情報(取得した名前など)とロードストーン ID は残す
+$("resetAll").addEventListener("click", () => {
+  if (!confirm("カードを最初の状態に戻します。よろしいですか?")) return;
+  project = { ...defaultProject(), data: project.data };
+  selectedId = null;
+  beforeApply = null;
+  setStatus("");
+  renderAll();
+  saveSoon();
 });
 
 $("reset").addEventListener("click", () => {
@@ -2418,7 +2443,7 @@ function setGrid(on) {
   $("artboard").classList.toggle("no-grid", !on);
   $("gridToggle").setAttribute("aria-pressed", String(on));
   try {
-    localStorage.setItem(GRID_KEY, on ? "1" : "0");
+    sessionStorage.setItem(GRID_KEY, on ? "1" : "0");
   } catch {}
 }
 $("gridToggle").addEventListener("click", () => setGrid($("artboard").classList.contains("no-grid")));
@@ -2441,7 +2466,7 @@ const endViewDrag = () => {
 $("artboard").addEventListener("pointerup", endViewDrag);
 $("artboard").addEventListener("pointercancel", endViewDrag);
 try {
-  setGrid(localStorage.getItem(GRID_KEY) !== "0");
+  setGrid(sessionStorage.getItem(GRID_KEY) !== "0");
 } catch {
   setGrid(true);
 }
@@ -2463,7 +2488,7 @@ function openTab(name) {
   body.style.setProperty("--tab-c", color);
   body.scrollTop = 0;
   try {
-    localStorage.setItem(TAB_KEY, name);
+    sessionStorage.setItem(TAB_KEY, name);
   } catch {}
 }
 document.querySelectorAll(".sheet-tab").forEach((t) => t.addEventListener("click", () => openTab(t.dataset.tab)));
@@ -2475,20 +2500,20 @@ function setLayerDrawer(open) {
   $("layerHandle").setAttribute("aria-expanded", String(open));
   $("layerHandle").title = open ? "レイヤーをしまう" : "レイヤーを出す";
   try {
-    localStorage.setItem(DRAWER_KEY, open ? "1" : "0");
+    sessionStorage.setItem(DRAWER_KEY, open ? "1" : "0");
   } catch {}
 }
 $("layerHandle").addEventListener("click", () => setLayerDrawer(!$("layerDrawer").classList.contains("open")));
 {
   let open = false;
   try {
-    open = localStorage.getItem(DRAWER_KEY) === "1";
+    open = sessionStorage.getItem(DRAWER_KEY) === "1";
   } catch {}
   setLayerDrawer(open);
 }
 let savedTab = null;
 try {
-  savedTab = localStorage.getItem(TAB_KEY);
+  savedTab = sessionStorage.getItem(TAB_KEY);
 } catch {}
 if (savedTab === "edit") savedTab = "layers"; // 「編集」タブは「要素」タブにまとめた
 openTab(document.querySelector(`.sheet-tab[data-tab="${savedTab}"]`) ? savedTab : "design");

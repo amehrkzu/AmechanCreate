@@ -37,7 +37,10 @@
         <button type="button" id="zoomFit" title="全体表示に戻す">100%</button>
         <button type="button" id="zoomIn" title="拡大" aria-label="拡大">＋</button>
       </div>
-      <button type="button" class="grid-toggle" id="gridToggle" aria-pressed="true" title="グリッドの表示/非表示">グリッド</button>
+      <div class="stage-tools">
+        <button type="button" class="grid-toggle grid-toggle--danger" id="resetAll" title="カードを最初の状態に戻す(キャラ情報は残る)">リセット</button>
+        <button type="button" class="grid-toggle" id="gridToggle" aria-pressed="true" title="グリッドの表示/非表示">グリッド</button>
+      </div>
     </div>
   </section>
 
@@ -46,6 +49,7 @@
       <button type="button" class="sheet-tab" role="tab" data-tab="design" style="--c:#ffcf9f">デザイン</button>
       <button type="button" class="sheet-tab" role="tab" data-tab="chara" style="--c:#ffe7a3">キャラ</button>
       <button type="button" class="sheet-tab" role="tab" data-tab="layers" style="--c:#bdeccd">要素</button>
+      <button type="button" class="sheet-tab" role="tab" data-tab="fx" style="--c:#ffd1e8">エフェクト</button>
       <button type="button" class="sheet-tab" role="tab" data-tab="card" style="--c:#dccbff">カード</button>
     </nav>
 
@@ -111,6 +115,13 @@
         <section class="box">
           <h2>選択中の要素</h2>
           <div id="props" class="fields"></div>
+        </section>
+      </div>
+
+      <div class="tab-panel" role="tabpanel" data-panel="fx">
+        <section class="box">
+          <h2>エフェクト</h2>
+          <div id="fxProps" class="fields"></div>
         </section>
       </div>
 

@@ -1,9 +1,9 @@
 // FF14 キャラカ用 Lodestone 取得 Worker(Cloudflare Workers)
 //   GET /?id={LodestoneID}   → キャラ情報 JSON(文字情報のみ。キャラ画像は使う人のスクショを使う)
 
-// カードを置くサイトのオリジン。GitHub Pages の URL が決まったら書き換える
+// カードを置くサイトのオリジン(ページの URL から、/AmechanCreate/… のパスを除いたもの)
 const ALLOWED_ORIGINS = [
-  "https://<user>.github.io",
+  "https://amehrkzu.github.io", // GitHub Pages(https://amehrkzu.github.io/AmechanCreate/characa/index.html)
   "http://localhost:8000",
   "http://127.0.0.1:8000",
 ];

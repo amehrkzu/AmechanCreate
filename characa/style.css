@@ -524,3 +524,7 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   .top h1 { font-size: 14px; letter-spacing: 0; }
   .top .btn { padding: 4px 10px; font-size: 13px; }
 }
+/* 制作エリアの下のバー右側:リセット(左)とグリッド(右) */
+.stage-tools { display: flex; align-items: center; gap: 6px; }
+.grid-toggle--danger { color: var(--danger); }
+.grid-toggle--danger:hover { background: var(--danger-bg); }
