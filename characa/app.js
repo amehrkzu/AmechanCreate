@@ -971,12 +971,12 @@ canvas.addEventListener("pointerdown", (e) => {
     drag = { mode: "resize", edge: grab.edge, start: p, layer: grab.layer, orig: { ...grab.layer }, b: { ...boundsById.get(grab.layer.id) } };
   } else {
     const hit = hitTest(p);
-    select(hit?.id ?? null);
+    if (hit) select(hit.id); // 何もない所は、押した時点では選択を外さない(startViewDrag。クリックで離したときだけ外す)
     if (hit) openTab("layers");
     // Alt+ドラッグで画像を枠の中で動かす
     const mode = hit?.type === "image" && e.altKey ? "pan" : "move";
     if (hit) drag = { mode, start: p, layer: hit, orig: { ...hit }, b: { ...boundsById.get(hit.id) } };
-    else startViewDrag(e);
+    else startViewDrag(e, true);
   }
   if (drag || viewDrag) canvas.setPointerCapture(e.pointerId);
 });
@@ -2355,8 +2355,9 @@ function zoomTo(zoom, sx = stage.w / 2, sy = stage.h / 2) {
 }
 
 let viewDrag = null;
-function startViewDrag(e) {
-  viewDrag = { x: e.clientX, y: e.clientY, panX: view.panX, panY: view.panY };
+// clickToDeselect:何もない所を押したとき。動かさずに離した(クリック)ときだけ、選択を外す。ドラッグで表示を動かしたときは、選択を残す
+function startViewDrag(e, clickToDeselect = false) {
+  viewDrag = { x: e.clientX, y: e.clientY, panX: view.panX, panY: view.panY, clickToDeselect, moved: false };
   $("artboard").classList.add("panning");
   return true;
 }
@@ -2450,18 +2451,21 @@ $("gridToggle").addEventListener("click", () => setGrid($("artboard").classList.
 // カードの外側(制作エリアの余白)を押したら選択を外す。拡大中ならそのままドラッグでスクロール
 $("artboard").addEventListener("pointerdown", (e) => {
   if (e.target !== e.currentTarget) return;
-  select(null);
-  if (startViewDrag(e)) e.currentTarget.setPointerCapture(e.pointerId);
+  if (startViewDrag(e, true)) e.currentTarget.setPointerCapture(e.pointerId); // 選択を外すのは、クリックで離したときだけ
 });
 $("artboard").addEventListener("pointermove", (e) => {
   if (!viewDrag || pinch) return;
+  if (Math.hypot(e.clientX - viewDrag.x, e.clientY - viewDrag.y) > 6) viewDrag.moved = true; // 6px 以上動かしたら、クリックではなくドラッグ
   view.panX = viewDrag.panX + e.clientX - viewDrag.x;
   view.panY = viewDrag.panY + e.clientY - viewDrag.y;
   applyView();
 });
-const endViewDrag = () => {
+const endViewDrag = (e) => {
+  const v = viewDrag;
   viewDrag = null;
   $("artboard").classList.remove("panning");
+  // 何もない所を、動かさずに離した(クリック)ときだけ、選択を外す。2本指の操作・中断(pointercancel)・ドラッグでは外さない
+  if (v?.clickToDeselect && !v.moved && e?.type === "pointerup") select(null);
 };
 $("artboard").addEventListener("pointerup", endViewDrag);
 $("artboard").addEventListener("pointercancel", endViewDrag);
