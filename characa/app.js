@@ -2484,6 +2484,7 @@ function openTab(name) {
     if (on) color = t.style.getPropertyValue("--c");
   });
   document.querySelectorAll(".tab-panel").forEach((p) => (p.hidden = p.dataset.panel !== name));
+  $("sheet").dataset.tab = name; // タブごとのテーマの色(style.css)
   const body = $("sheetBody");
   body.style.setProperty("--tab-c", color);
   body.scrollTop = 0;

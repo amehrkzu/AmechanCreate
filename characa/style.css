@@ -12,6 +12,13 @@
   --accent: #ff8a3d; /* 見出し・強調(みかん) */
   --primary: #ffbf8a;
   --primary-hover: #ffcfa3;
+  /* うすい色(のせた・選んだ・光るふち・見本の面)。テーマで入れ替わる */
+  --tint: #fff4ea;
+  --glow: #ffe6cf;
+  --tint2: #ffe8d6;
+  --tint3: #fff8f1;
+  --tint4: #fff0e2;
+  --hover: #fff9f3;
   --mint: #bdeccd;
   --sky: #bfdcff;
   --lemon: #ffe7a3;
@@ -92,9 +99,8 @@ button, label.btn, .tab, .sheet-tab { touch-action: manipulation; } /* ダブル
   align-items: center;
   justify-content: center;
   background: #fff0e2;
-  border: var(--border) solid var(--ink);
-  border-radius: 20px;
-  box-shadow: 0 4px 0 var(--ink-soft);
+  border: 1px solid var(--ink); /* 四角い角・細い枠線・影なし(パーツメーカーの「箱」の見た目) */
+  border-radius: 0;
   overflow: hidden;
   touch-action: none;
 }
@@ -156,7 +162,7 @@ button, label.btn, .tab, .sheet-tab { touch-action: manipulation; } /* ダブル
   cursor: pointer;
   touch-action: manipulation;
 }
-.zoom-ctl button:hover { background: #fff4ea; }
+.zoom-ctl button:hover { background: var(--tint); }
 #zoomFit { min-width: 4.2em; font-size: 11px; border-left: 2px solid var(--line); border-right: 2px solid var(--line); }
 .artboard { cursor: grab; } /* 余白をドラッグすると表示が動く */
 .artboard.space-pan #card { cursor: grab !important; }
@@ -168,6 +174,73 @@ button, label.btn, .tab, .sheet-tab { touch-action: manipulation; } /* ダブル
   display: flex;
   flex-direction: column;
   padding: 0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
+}
+/* シートのテーマ:タブごとに色が変わる(デザイン=みかん=上の標準の色 / キャラ=レモン / 要素=もり / エフェクト=イチゴ / カード=ぶどう)。
+   開いているタブの名前が #sheet の data-tab に入る(app.js の openTab)。タブも紙も箱も、その色になる */
+.sheet { color: var(--text); }
+.sheet[data-tab="chara"] { /* レモン */
+  --ink: #9a7b1c;
+  --ink-soft: #efdfa3;
+  --line: #f5ebc4;
+  --text: #5a4a1a;
+  --muted: #a8934f;
+  --accent: #cf8f00;
+  --primary: #ffe27a;
+  --primary-hover: #ffeb9e;
+  --tint: #fff8d6;
+  --glow: #fff0b8;
+  --tint2: #ffefb0;
+  --tint3: #fffbea;
+  --tint4: #fff6cf;
+  --hover: #fffbea;
+}
+.sheet[data-tab="layers"] { /* もり */
+  --ink: #5f8f6a;
+  --ink-soft: #bfdcc5;
+  --line: #d9ecdc;
+  --text: #34503b;
+  --muted: #7f9b86;
+  --accent: #3fa36a;
+  --primary: #a9e3b8;
+  --primary-hover: #c0edca;
+  --tint: #e8f6ea;
+  --glow: #d3efd8;
+  --tint2: #d6f0dc;
+  --tint3: #f2faf3;
+  --tint4: #e4f5e8;
+  --hover: #f3faf3;
+}
+.sheet[data-tab="fx"] { /* イチゴ */
+  --ink: #b07a95;
+  --ink-soft: #f0cfdc;
+  --line: #f5dde7;
+  --text: #4a3340;
+  --muted: #9a7a8a;
+  --accent: #ff6f9c;
+  --primary: #ffb3cf;
+  --primary-hover: #ffc8dc;
+  --tint: #fff0f5;
+  --glow: #ffe1ec;
+  --tint2: #ffe0ea;
+  --tint3: #fff7fa;
+  --tint4: #ffe8f0;
+  --hover: #fff7fa;
+}
+.sheet[data-tab="card"] { /* ぶどう */
+  --ink: #8a72b0;
+  --ink-soft: #d8cbee;
+  --line: #e6dcf5;
+  --text: #463a5c;
+  --muted: #9484ad;
+  --accent: #9a6be0;
+  --primary: #d4bfff;
+  --primary-hover: #e0d0ff;
+  --tint: #f1eaff;
+  --glow: #e8dcff;
+  --tint2: #e6dbff;
+  --tint3: #f8f4ff;
+  --tint4: #efe6ff;
+  --hover: #f8f4ff;
 }
 /* 付箋みたいなタブ。選んでいるタブだけ色が濃く、少し上に飛び出して、下のシートとつながる */
 .sheet-tabs { display: flex; gap: 4px; padding: 0 10px; position: relative; z-index: 1; margin-bottom: calc(var(--border) * -1); }
@@ -243,7 +316,7 @@ input, select, textarea {
   width: 100%;
   accent-color: var(--accent);
 }
-input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px #ffe6cf; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
 textarea { resize: vertical; }
 input[type="color"] { padding: 2px; height: 34px; cursor: pointer; }
 input[type="checkbox"] { width: auto; }
@@ -266,7 +339,7 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   white-space: nowrap;
   transition: transform .08s, box-shadow .08s, background .15s;
 }
-.btn:hover { background: #fff9f3; }
+.btn:hover { background: var(--hover); }
 .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink-soft); }
 .btn:disabled { opacity: .5; cursor: wait; }
 .btn--primary { background: var(--primary); }
@@ -292,11 +365,11 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   border-radius: 12px;
   cursor: pointer;
 }
-.layers li:hover { background: #fff4ea; }
-.layers li.selected { background: #ffe8d6; border-color: var(--accent); }
+.layers li:hover { background: var(--tint); }
+.layers li.selected { background: var(--tint2); border-color: var(--accent); }
 .layers li.hidden .layer-label { opacity: .4; }
 /* フォルダーの行と、その中身の行(字下げして、左に線) */
-.layers li.folder-row { background: #fff8f1; }
+.layers li.folder-row { background: var(--tint3); }
 .layers li.folder-row .layer-label { font-weight: 700; }
 .layers li.folder-row .layer-type { background: var(--lemon); }
 .layers li.in-folder { margin-left: 22px; padding-left: 4px; gap: 6px; }
@@ -430,9 +503,9 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   cursor: pointer;
 }
 .frame-btn:hover { border-color: var(--accent); }
-.frame-btn[aria-pressed="true"] { border-color: var(--accent); background: #fff4ea; box-shadow: 0 0 0 3px #ffe6cf; }
+.frame-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); box-shadow: 0 0 0 3px var(--glow); }
 .frame-btn .frame-canvas { width: 48px; height: 32px; }
-.frame-btn svg { width: 48px; height: 32px; fill: #fff0e2; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.frame-btn svg { width: 48px; height: 32px; fill: var(--tint4); stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
 
 .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 .swatch {
@@ -450,7 +523,7 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   cursor: pointer;
 }
 .swatch:hover { border-color: var(--accent); }
-.swatch[aria-pressed="true"] { border-color: var(--accent); background: #fff4ea; box-shadow: 0 0 0 3px #ffe6cf; }
+.swatch[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); box-shadow: 0 0 0 3px var(--glow); }
 .swatch-colors { display: flex; height: 18px; border-radius: 999px; overflow: hidden; border: 2px solid var(--ink); }
 .swatch-colors i { flex: 1; }
 .inner { margin-top: 10px; }
@@ -466,7 +539,8 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   .workspace { flex: 1; padding: 14px; justify-content: flex-start; }
   .sheet { flex: none; width: min(400px, 56vw); padding: 10px max(12px, env(safe-area-inset-right)) 0 0; }
 }
-/* レイヤーの引き出し:画面の前面に、左からにょきっと出る(閉じているときは、付箋のつまみだけ見える) */
+/* レイヤーの引き出し:画面の前面に、左からにょきっと出る(閉じているときは、付箋のつまみだけ見える)
+   見た目はパーツメーカーで作った「サイドバー」:四角い角・枠線なし・ぷっくり影・ふわっと(出るとき中身が透けて現れる) */
 .layer-drawer {
   position: fixed;
   z-index: 20;
@@ -482,7 +556,44 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   pointer-events: none; /* 閉じているときは、つまみ以外はカードの操作をじゃましない */
 }
 .layer-drawer.open { transform: none; pointer-events: auto; }
-.layer-drawer > .box { flex: 1; min-height: 0; display: flex; flex-direction: column; box-shadow: 4px 4px 0 var(--ink-soft), 0 8px 24px rgba(168, 113, 74, .25); }
+/* レイヤーの引き出しは、テーマ「そら」(水色)の色。引き出しの中だけ、色の変数と、オレンジ固定だった色を水色に入れ替える */
+.layer-drawer {
+  --ink: #6f8fb3;
+  --ink-soft: #c5d9ef;
+  --line: #dbe8f5;
+  --text: #3b4a5e;
+  --muted: #8396ad;
+  --accent: #4ea4e8;
+  --primary: #a9d4fb;
+  --primary-hover: #c2e1fd;
+  --tint: #eaf4ff;
+  --glow: #dbe8f5;
+  --tint2: #d9ebff;
+  --tint3: #f3f9ff;
+  --tint4: #eaf4ff;
+  --hover: #f3f9ff;
+  color: var(--text); /* 文字の色は、ページ全体の色が引き継がれるので、ここで水色テーマの色に取り直す */
+}
+.layer-drawer .layers li.lifted { box-shadow: 0 4px 10px rgba(111, 143, 179, .35); }
+/* 引き出しのスクロールバーは、つまみと同じ水色 */
+.layer-drawer {
+  --us-thumb: var(--sky);
+  --us-hover: color-mix(in srgb, var(--sky) 65%, var(--ink));
+  --us-track: color-mix(in srgb, var(--sky) 14%, #fff);
+}
+.layer-drawer > .box {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 var(--ink-soft);
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+.layer-drawer.open > .box { opacity: 1; }
 .layer-drawer .layers { flex: 1; min-height: 0; max-height: none; }
 /* 付箋のつまみ:引き出しの右はしから、いつも出ている */
 .layer-handle {
@@ -493,20 +604,17 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   writing-mode: vertical-rl;
   letter-spacing: .15em;
   padding: 12px 5px;
-  background: #bfdcff;
+  background: var(--sky);
   color: var(--text);
-  border: var(--border) solid var(--ink);
-  border-left: none;
+  border: 0;
   border-radius: 0 12px 12px 0;
-  box-shadow: 2px 3px 0 var(--ink-soft);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
 }
-.layer-handle:hover { background: #d3e7ff; }
-.layer-drawer.open .layer-handle { background: #fff; }
+@media (prefers-reduced-motion: reduce) { .layer-drawer, .layer-drawer > .box { transition: none; } }
 /* スマホ横向きなど高さが低い画面: タブの文字を小さく */
 @media (max-height: 500px) {
   .top { padding-top: max(6px, env(safe-area-inset-top)); padding-bottom: 6px; }

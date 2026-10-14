@@ -1,6 +1,6 @@
 /* あめちゃんもの置き 共通UI(見本は ../ui-kit.html)
    合言葉は「かわいく」:パステル・太めの枠線・まるい角・押すと沈むボタン・丸ゴシック
-   使い方:<html data-theme="sora|ichigo|mikan"> と、このファイルを読み込む。部品は見本帳の名前で呼ぶ */
+   使い方:<html data-theme="sora|ichigo|mikan|remon|mori|budo"> と、このファイルを読み込む。部品は見本帳の名前で呼ぶ */
 
 /* ---------- テーマ(色だけが変わる。部品の形は共通) ---------- */
 /* そら:水色。サイトのトップなど */
@@ -47,6 +47,51 @@
   --primary-hover: #ffcfa3;
   --tint: #fff4ea;
   --mark: #ffd9b5;
+}
+/* レモン:黄色。 */
+[data-theme="remon"] {
+  --bg: #fffbea;
+  --dot: #fff0b8;
+  --ink: #9a7b1c;
+  --ink-soft: #efdfa3;
+  --line: #f5ebc4;
+  --text: #5a4a1a;
+  --muted: #a8934f;
+  --accent: #cf8f00;
+  --primary: #ffe27a;
+  --primary-hover: #ffeb9e;
+  --tint: #fff8d6;
+  --mark: #ffeaa0;
+}
+/* もり:緑。 */
+[data-theme="mori"] {
+  --bg: #f3faf3;
+  --dot: #d9f0dc;
+  --ink: #5f8f6a;
+  --ink-soft: #bfdcc5;
+  --line: #d9ecdc;
+  --text: #34503b;
+  --muted: #7f9b86;
+  --accent: #3fa36a;
+  --primary: #a9e3b8;
+  --primary-hover: #c0edca;
+  --tint: #e8f6ea;
+  --mark: #c7ecd0;
+}
+/* ぶどう:むらさき。 */
+[data-theme="budo"] {
+  --bg: #f8f4ff;
+  --dot: #e8dcff;
+  --ink: #8a72b0;
+  --ink-soft: #d8cbee;
+  --line: #e6dcf5;
+  --text: #463a5c;
+  --muted: #9484ad;
+  --accent: #9a6be0;
+  --primary: #d4bfff;
+  --primary-hover: #e0d0ff;
+  --tint: #f1eaff;
+  --mark: #e2d4ff;
 }
 /* どのテーマでも同じもの */
 :root {

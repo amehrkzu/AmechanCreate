@@ -376,8 +376,7 @@ function partForAnywhere(p, kitCss) {
   const UBS = ".ub, .ub-chips, .ub-tabs, .ub-scroll, .ub-drawer";
   const theme = kitCss.slice(kitCss.indexOf("/* ---------- テーマ"), kitCss.indexOf("* { box-sizing"))
     .replace(':root, [data-theme="sora"] {', `${UBS}, [data-theme="sora"] :is(${UBS}) {`)
-    .replace('[data-theme="ichigo"] {', `[data-theme="ichigo"] :is(${UBS}) {`)
-    .replace('[data-theme="mikan"] {', `[data-theme="mikan"] :is(${UBS}) {`)
+    .replace(/^\[data-theme="(\w+)"\] \{/gm, (_, id) => `[data-theme="${id}"] :is(${UBS}) {`) // sora 以外のテーマ(ichigo・mikan・remon・mori・budo…)をぜんぶ
     .replace(":root {", `${UBS} {`)
     .replace(/\n\s*color-scheme: light;/, "")
     .trim();
@@ -410,7 +409,7 @@ function partForAnywhere(p, kitCss) {
     `種類:${ubType(p).name}`,
     p.shape === "custom" && p.custom?.name ? `形:${p.custom.name}(自分で描いた形)` : null,
     p.desc ? `使いどころ:${p.desc}` : null,
-    "色の組み合わせ(テーマ)は3つ。部品を囲む要素に data-theme=\"sora\"(水色)/\"ichigo\"(ピンク)/\"mikan\"(オレンジ)を付けて選ぶ。付けないときは sora。",
+    "色の組み合わせ(テーマ)は6つ。部品を囲む要素に data-theme=\"sora\"(水色)/\"ichigo\"(ピンク)/\"mikan\"(オレンジ)/\"remon\"(黄色)/\"mori\"(緑)/\"budo\"(むらさき)を付けて選ぶ。付けないときは sora。",
     "フォントは M PLUS Rounded 1c(Google Fonts)を使うとそろう。",
     "",
     "CSS:",

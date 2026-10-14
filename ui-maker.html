@@ -12,9 +12,10 @@
 /* ---- このページの並べ方(部品の見た目は ui/kit.css) ---- */
 .maker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 16px; max-width: 1100px; margin: 0 auto; padding: 14px max(14px, env(safe-area-inset-right)) 40px max(14px, env(safe-area-inset-left)); align-items: start; }
 .preview { position: sticky; top: 10px; display: flex; flex-direction: column; gap: 10px; }
-.stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 190px; padding: 26px 10px 18px; border: var(--border) solid var(--ink); border-radius: var(--radius); background-color: var(--bg); position: relative; overflow: hidden; }
-.stage-name { position: absolute; top: 6px; left: 10px; font-size: 11px; font-weight: 700; color: var(--muted); }
+.theme-pick { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.theme-pick select { width: auto; flex: 1; max-width: 220px; padding: 4px 8px; font-size: 14px; }
+.stages { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 190px; padding: 26px 10px 26px; border: var(--border) solid var(--ink); border-radius: var(--radius); background-color: var(--bg); position: relative; overflow: hidden; }
 .stage .ub--block { width: 100%; }
 .stage-row { width: 100%; display: flex; justify-content: center; align-items: center; }
 .stage-row > .ub--box, .stage-row > .ub-tabs, .stage-row > .ub-chips, .stage-row > .ub-scroll { width: 100%; }
@@ -68,15 +69,8 @@
   .preview { top: 0; z-index: 3; background: var(--bg); padding-top: 6px; margin: 0 -4px; padding-left: 4px; padding-right: 4px; }
   .stage { min-height: 120px; padding: 22px 6px 12px; }
 }
-/* 幅の狭い画面で箱・チップ・タブを作るときは、見本を縦に並べる(3つ横だと狭すぎるため)。貼りつけもやめる */
-@media (max-width: 600px) {
-  .preview.wide { position: static; }
-  .preview.wide .stages { grid-template-columns: minmax(0, 1fr); }
-  .preview.wide .stage { min-height: 0; }
-}
 @media (max-width: 420px) {
   .stages { gap: 4px; }
-  .stage-name { font-size: 10px; left: 6px; }
 }
 </style>
 <script src="ui/site-header.js" defer></script>
@@ -88,12 +82,20 @@
 </header>
 
 <main class="maker">
-  <!-- 見本:3つのテーマで並べる -->
+  <!-- 見本:1つだけ。テーマ(色)は上のプルダウンで切り替える -->
   <div class="preview" id="preview">
+    <label class="theme-pick">見本のテーマ
+      <select id="previewTheme" aria-label="見本のテーマ">
+        <option value="sora">そら(水色)</option>
+        <option value="ichigo">いちご(ピンク)</option>
+        <option value="mikan">みかん(オレンジ)</option>
+        <option value="remon">レモン(黄色)</option>
+        <option value="mori">もり(緑)</option>
+        <option value="budo">ぶどう(むらさき)</option>
+      </select>
+    </label>
     <div class="stages" id="stages">
-      <div class="stage" data-theme="sora"><span class="stage-name">そら 💧</span><div class="stage-row"></div></div>
-      <div class="stage" data-theme="ichigo"><span class="stage-name">いちご 🍓</span><div class="stage-row"></div></div>
-      <div class="stage" data-theme="mikan"><span class="stage-name">みかん 🍊</span><div class="stage-row"></div></div>
+      <div class="stage" data-theme="sora"><div class="stage-row"></div></div>
     </div>
     <p class="hint" style="text-align:center">見本を押したり、マウスをのせたりして動きを試せます</p>
   </div>
@@ -317,6 +319,20 @@ $("bw").addEventListener("input", (e) => set("bw", +e.target.value, true));
 $("gap").addEventListener("input", (e) => set("gap", +e.target.value, true));
 $("desc").addEventListener("input", (e) => (part.desc = e.target.value));
 for (const stage of document.querySelectorAll(".stage-row")) bindPartDemo(stage);
+// 見本のテーマ(色)。選んだものは、このブラウザに覚えておく
+const PREVIEW_THEMES = ["sora", "ichigo", "mikan", "remon", "mori", "budo"];
+function setPreviewTheme(id) {
+  if (!PREVIEW_THEMES.includes(id)) id = "sora";
+  document.querySelector(".stage").dataset.theme = id;
+  $("previewTheme").value = id;
+  try { localStorage.setItem("uimaker:previewTheme", id); } catch {}
+}
+$("previewTheme").addEventListener("change", (e) => setPreviewTheme(e.target.value));
+{
+  let saved = "sora";
+  try { saved = localStorage.getItem("uimaker:previewTheme") || "sora"; } catch {}
+  setPreviewTheme(saved);
+}
 
 function set(key, value, merge = false) {
   remember(merge ? key : null);

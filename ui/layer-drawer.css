@@ -1,0 +1,71 @@
+/* ツールのレイヤーのサイドバー(左から前面に出てくる引き出し)
+   このサイトのツールは、レイヤーの一覧を必ずこの形で置く(キャラカ・枠エディタ・シンボルエディタ…)。
+   使い方は ui/layer-drawer.js を見る。見た目はテーマ「そら」(水色)。ツールの色の変数が無くても動くよう、色は直接書いてある */
+.layer-drawer {
+  position: fixed;
+  z-index: 20;
+  left: 0;
+  top: var(--top-h, 49px);
+  bottom: 0;
+  width: min(320px, 82vw);
+  padding: 10px 0 max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform .25s cubic-bezier(.3, 1.2, .5, 1);
+  pointer-events: none; /* 閉じているときは、つまみ以外は下の操作をじゃましない */
+  /* テーマ「そら」 */
+  --ink: #6f8fb3;
+  --ink-soft: #c5d9ef;
+  --line: #dbe8f5;
+  --text: #3b4a5e;
+  --muted: #8396ad;
+  --accent: #4ea4e8;
+  --primary: #a9d4fb;
+  --us-thumb: #bfdcff;
+  --us-hover: #8fb4de;
+  --us-track: #f5faff;
+  color: var(--text);
+}
+.layer-drawer.open { transform: none; pointer-events: auto; }
+.layer-drawer > .box {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+  background: #fff;
+  border: 0;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 var(--ink-soft);
+  opacity: 0;
+  transition: opacity .3s ease; /* ふわっと */
+}
+.layer-drawer.open > .box { opacity: 1; }
+.layer-drawer > .box > h2 { margin: 0 0 10px; font-size: 14px; color: var(--accent); }
+.layer-drawer > .box > h2::before { content: "✿ "; }
+/* 一覧の行(枠エディタの .layer-list など):水色に */
+.layer-drawer .layer-list li { border-color: var(--line); }
+.layer-drawer .layer-list li.on { border-color: var(--accent); background: #d9ebff; }
+.layer-drawer .layer-list li:hover { background: #eaf4ff; }
+.layer-drawer .layer-list li.lifted { box-shadow: 0 4px 10px rgba(111, 143, 179, .35); }
+.layer-drawer .layer-list .tag { background: var(--ink); }
+/* つまみ(付箋):いつも見えている。開いても閉じても同じ水色 */
+.layer-handle {
+  position: absolute;
+  top: 18%;
+  left: 100%;
+  pointer-events: auto;
+  writing-mode: vertical-rl;
+  letter-spacing: .15em;
+  padding: 12px 5px;
+  background: #bfdcff;
+  color: #3b4a5e;
+  border: 0;
+  border-radius: 0 12px 12px 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+@media (prefers-reduced-motion: reduce) { .layer-drawer, .layer-drawer > .box { transition: none; } }
