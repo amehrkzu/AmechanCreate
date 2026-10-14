@@ -295,6 +295,13 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
 .layers li:hover { background: #fff4ea; }
 .layers li.selected { background: #ffe8d6; border-color: var(--accent); }
 .layers li.hidden .layer-label { opacity: .4; }
+/* フォルダーの行と、その中身の行(字下げして、左に線) */
+.layers li.folder-row { background: #fff8f1; }
+.layers li.folder-row .layer-label { font-weight: 700; }
+.layers li.folder-row .layer-type { background: var(--lemon); }
+.layers li.in-folder { margin-left: 22px; padding-left: 4px; gap: 6px; }
+.layer-tree { flex-shrink: 0; width: 1.1em; color: var(--ink); font-weight: 700; font-size: 15px; line-height: 1; text-align: center; }
+.folder-toggle { background: none; border: none; padding: 0 2px; margin-right: -4px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; flex-shrink: 0; }
 /* ドラッグで並べ替え:動かしている行はうすく、差し込む位置にオレンジの線 */
 /*   指でなぞるとスクロール、長押しで並べ替えモード(.lifted)になる */
 .layers li { touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -459,6 +466,47 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   .workspace { flex: 1; padding: 14px; justify-content: flex-start; }
   .sheet { flex: none; width: min(400px, 56vw); padding: 10px max(12px, env(safe-area-inset-right)) 0 0; }
 }
+/* レイヤーの引き出し:画面の前面に、左からにょきっと出る(閉じているときは、付箋のつまみだけ見える) */
+.layer-drawer {
+  position: fixed;
+  z-index: 20;
+  left: 0;
+  top: var(--top-h, 49px);
+  bottom: 0;
+  width: min(320px, 82vw);
+  padding: 10px 0 max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform .25s cubic-bezier(.3, 1.2, .5, 1);
+  pointer-events: none; /* 閉じているときは、つまみ以外はカードの操作をじゃましない */
+}
+.layer-drawer.open { transform: none; pointer-events: auto; }
+.layer-drawer > .box { flex: 1; min-height: 0; display: flex; flex-direction: column; box-shadow: 4px 4px 0 var(--ink-soft), 0 8px 24px rgba(168, 113, 74, .25); }
+.layer-drawer .layers { flex: 1; min-height: 0; max-height: none; }
+/* 付箋のつまみ:引き出しの右はしから、いつも出ている */
+.layer-handle {
+  position: absolute;
+  top: 18%;
+  left: 100%;
+  pointer-events: auto;
+  writing-mode: vertical-rl;
+  letter-spacing: .15em;
+  padding: 12px 5px;
+  background: #bfdcff;
+  color: var(--text);
+  border: var(--border) solid var(--ink);
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  box-shadow: 2px 3px 0 var(--ink-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.layer-handle:hover { background: #d3e7ff; }
+.layer-drawer.open .layer-handle { background: #fff; }
 /* スマホ横向きなど高さが低い画面: タブの文字を小さく */
 @media (max-height: 500px) {
   .top { padding-top: max(6px, env(safe-area-inset-top)); padding-bottom: 6px; }

@@ -17,7 +17,9 @@
 .stage-name { position: absolute; top: 6px; left: 10px; font-size: 11px; font-weight: 700; color: var(--muted); }
 .stage .ub--block { width: 100%; }
 .stage-row { width: 100%; display: flex; justify-content: center; align-items: center; }
-.stage-row > .ub--box, .stage-row > .ub-tabs, .stage-row > .ub-chips { width: 100%; }
+.stage-row > .ub--box, .stage-row > .ub-tabs, .stage-row > .ub-chips, .stage-row > .ub-scroll { width: 100%; }
+/* サイドバーの見本:小さな画面。この中で出し入れする */
+.drawer-stage { position: relative; width: 100%; height: 170px; overflow: hidden; border: 2px dashed var(--line); border-radius: 10px; background: color-mix(in srgb, var(--box) 50%, transparent); }
 .stage-row > .ub-chips { justify-content: center; }
 .controls { display: flex; flex-direction: column; gap: 12px; }
 .controls > section + section { margin-top: 0; }
@@ -27,7 +29,8 @@
 .ctl > span { font-size: 12px; font-weight: 700; color: var(--muted); }
 .ctl .tabs { flex-wrap: wrap; }
 .ctl .tab { flex: 1 1 auto; padding: 2px 8px; }
-.types { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.types { grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); }
+.types .tile { font-size: 11px; line-height: 1.3; text-align: center; word-break: keep-all; }
 .range-row { display: flex; align-items: center; gap: 8px; }
 .range-row output { min-width: 3.2em; text-align: right; font-size: 12px; font-weight: 700; color: var(--text); }
 .color-ctl { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 40px; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
@@ -102,12 +105,12 @@
       <p class="note" id="typeNote"></p>
     </section>
 
-    <section class="box">
+    <section class="box" data-for="button box chip tab drawer">
       <h2>文字</h2>
-      <div class="ctl" data-for="button"><input type="text" id="label" maxlength="30" aria-label="ボタンの文字"></div>
+      <div class="ctl" data-for="button drawer"><span id="labelName">ボタンの文字</span><input type="text" id="label" maxlength="30"></div>
       <div class="ctl" data-for="chip tab"><span>文字(「、」で区切ると増える)</span><input type="text" id="labels" maxlength="80"></div>
-      <div class="ctl" data-for="box"><span>見出し(空にすると、なし)</span><input type="text" id="title" maxlength="30"></div>
-      <div class="ctl" data-for="box"><span>文章</span><textarea id="body" rows="2" maxlength="200"></textarea></div>
+      <div class="ctl" data-for="box drawer"><span>見出し(空にすると、なし)</span><input type="text" id="title" maxlength="30"></div>
+      <div class="ctl" data-for="box drawer"><span>文章</span><textarea id="body" rows="2" maxlength="200"></textarea></div>
       <div class="ctl"><span id="decoLabel">飾り</span>
         <div class="chips deco-chips" id="deco"></div>
       </div>
@@ -147,6 +150,8 @@
       </div>
       <div class="ctl" id="radiusCtl"><span>角の丸み</span><div class="range-row"><input type="range" id="radius" min="0" max="30" step="1"><output id="radiusOut"></output></div></div>
       <div class="ctl"><span id="sizeLabel">大きさ</span><div class="tabs" data-key="size"></div></div>
+      <div class="ctl" data-for="drawer"><span>出てくる向き</span><div class="tabs" data-key="side"></div></div>
+      <div class="ctl" data-for="scroll"><span>つまみと溝のすき間</span><div class="range-row"><input type="range" id="gap" min="0" max="5" step="0.5"><output id="gapOut"></output></div></div>
       <div class="ctl" data-for="button"><span>幅</span><div class="tabs" data-key="block"></div></div>
       <div class="ctl" data-for="tab"><span>並べ方</span><div class="tabs" data-key="block" data-opts="fill"></div></div>
     </section>
@@ -162,16 +167,17 @@
     </section>
 
     <section class="box">
-      <h2>枠線と影</h2>
-      <div class="ctl"><span>枠線の種類</span><div class="tabs" data-key="bs"></div></div>
-      <div class="ctl"><span>枠線の太さ</span><div class="range-row"><input type="range" id="bw" min="1" max="6" step="0.5"><output id="bwOut"></output></div></div>
-      <div class="ctl"><span>影</span><div class="tabs" data-key="shadow"></div></div>
+      <h2 id="borderHead">枠線と影</h2>
+      <div class="ctl"><span id="bsLabel">枠線の種類</span><div class="tabs" data-key="bs"></div></div>
+      <div class="ctl"><span id="bwLabel">枠線の太さ</span><div class="range-row"><input type="range" id="bw" min="1" max="6" step="0.5"><output id="bwOut"></output></div></div>
+      <div class="ctl" data-for="button box chip tab drawer"><span>影</span><div class="tabs" data-key="shadow"></div></div>
       <div class="ctl" id="patternCtl"><span>模様</span><div class="tabs" data-key="pattern"></div></div>
     </section>
 
-    <section class="box">
+    <section class="box" data-for="button box chip tab drawer">
       <h2>動き</h2>
-      <div class="ctl"><span>のせたとき</span><div class="tabs" data-key="hover"></div></div>
+      <div class="ctl" data-for="drawer"><span>出かた</span><div class="tabs" data-key="anim"></div></div>
+      <div class="ctl" data-for="button box chip tab"><span>のせたとき</span><div class="tabs" data-key="hover"></div></div>
       <div class="ctl" data-for="button chip tab"><span>押したとき</span><div class="tabs" data-key="press"></div></div>
     </section>
 
@@ -201,6 +207,8 @@ const $ = (id) => document.getElementById(id);
 // 選択肢(tabs)の中身。[値, 表示名]
 const OPTIONS = {
   decoPos: [["before", "前"], ["after", "うしろ"], ["both", "両方"]],
+  side: [["left", "左から"], ["right", "右から"]],
+  anim: [["slide", "すっと"], ["bounce", "ぽよん"], ["fade", "ふわっ"]],
   size: [["s", "小"], ["m", "中"], ["l", "大"]],
   block: [[false, "文字に合わせる"], [true, "横いっぱい"]],
   fill: [[true, "均等"], [false, "文字に合わせる"]],
@@ -211,7 +219,13 @@ const OPTIONS = {
   press: [["sink", "沈む"], ["bounce", "ぽよん"], ["squish", "むにっ"], ["none", "なし"]],
 };
 const DECOS = ["", "✿", "★", "♡", "♪", "✧", "☁", "☂", "🍓", "🍊", "💧"];
-const COLOR_ROLES = [["bg", "中の色"], ["fg", "文字の色"], ["bd", "枠線の色"], ["sh", "影の色"], ["pat", "模様の色"], ["tc", "見出しの色"]];
+const COLOR_ROLES = [["bg", "中の色"], ["fg", "文字の色"], ["bd", "枠線の色"], ["sh", "影の色"], ["pat", "模様の色"], ["tc", "見出しの色"],
+  ["track", "溝の色"], ["trackBd", "溝のふちの色"], ["thumbHover", "のせたときの色"],
+  ["handleBg", "つまみの色"], ["handleOn", "開いているときのつまみの色"]];
+// その種類でだけ出す色の欄(ここにない種類は、ふつうの欄)
+const ONLY_COLORS = { scroll: ["bg", "bd", "thumbHover", "track", "trackBd"], drawer: ["bg", "fg", "bd", "sh", "handleBg", "handleOn"] };
+const EXTRA_COLORS = ["track", "trackBd", "thumbHover", "handleBg", "handleOn"];
+const SCROLL_COLOR_NAMES = { bg: "つまみの色", bd: "つまみのふちの色" };
 const ON_COLOR_ROLES = [["onBg", "中の色"], ["onFg", "文字の色"], ["onBd", "枠線の色"]];
 // 種類ごとの説明と、名前の例
 const TYPE_TEXT = {
@@ -219,9 +233,11 @@ const TYPE_TEXT = {
   box: ["見出しと文章を囲む入れ物", "例:雲のおしらせ箱", "例:ページの上のお知らせ"],
   chip: ["小さな札を並べる。押すとオン・オフ", "例:ハッシュタグ", "例:絞り込みの条件"],
   tab: ["並んだ中から1つを選ぶ。押したものだけオン", "例:付箋の切り替えタブ", "例:表示の切り替え"],
+  drawer: ["画面のはしから前面に出てくる引き出し。いつも見えている付箋のつまみを押すと、出し入れできる", "", "例:レイヤーの一覧"],
+  scroll: ["スクロールする入れ物のスクロールバー。パソコンの Chrome・Edge・Safari で形まで変わる(Firefox は色と太さだけ。スマホはほぼ変わらない)", "", "例:長い説明文の箱"],
 };
 // 種類を変えても引き継ぐ値
-const KEEP_ON_TYPE_CHANGE = ["bg", "fg", "bd", "sh", "pat", "bw", "bs", "shadow", "pattern", "hover", "deco", "decoPos", "custom"];
+const KEEP_ON_TYPE_CHANGE = ["bg", "fg", "bd", "sh", "pat", "bw", "bs", "shadow", "pattern", "hover", "deco", "decoPos", "custom", "track", "trackBd", "thumbHover", "gap", "handleBg", "handleOn", "side", "anim"];
 
 let part = newPart();
 
@@ -242,7 +258,8 @@ for (const el of document.querySelectorAll(".tabs[data-key]")) {
     if (b) set(key, opts.find(([v]) => String(v) === b.dataset.v)[0]);
   });
 }
-$("types").innerHTML = UB_TYPES.map((t) => `<button type="button" class="tile" data-v="${t.id}"><svg viewBox="0 0 60 40">${t.icon}</svg>${t.name}</button>`).join("");
+// 長い名前は「スクロール」のあとで折り返せるように
+$("types").innerHTML = UB_TYPES.map((t) => `<button type="button" class="tile" data-v="${t.id}"><svg viewBox="0 0 60 40">${t.icon}</svg><span>${t.name.replace("スクロール", "スクロール<wbr>")}</span></button>`).join("");
 $("types").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b || b.dataset.v === part.type) return;
@@ -282,7 +299,7 @@ $("deco").addEventListener("click", (e) => {
   if (b) set("deco", b.dataset.v);
 });
 const colorRow = ([key, name]) => `
-  <label class="color-ctl" data-key="${key}">${name}
+  <label class="color-ctl" data-key="${key}"><span class="cl-name" data-name="${name}">${name}</span>
     <select>${UB_COLORS.map(([v, n]) => `<option value="${v}">${n}</option>`).join("")}<option value="#">自由に選ぶ</option></select>
     <input type="color" aria-label="${name}(自由な色)">
   </label>`;
@@ -297,6 +314,7 @@ for (const row of document.querySelectorAll(".color-ctl")) {
 for (const id of ["label", "labels", "title", "body"]) $(id).addEventListener("input", (e) => set(id, e.target.value, true));
 $("radius").addEventListener("input", (e) => set("radius", +e.target.value, true));
 $("bw").addEventListener("input", (e) => set("bw", +e.target.value, true));
+$("gap").addEventListener("input", (e) => set("gap", +e.target.value, true));
 $("desc").addEventListener("input", (e) => (part.desc = e.target.value));
 for (const stage of document.querySelectorAll(".stage-row")) bindPartDemo(stage);
 
@@ -353,7 +371,7 @@ function render() {
   const type = ubType(part);
   if (part.shape === "custom" && !part.custom) part.custom = newCustomShape();
   injectPartsCSS([part]);
-  const html = partHTML(part);
+  const html = part.type === "drawer" ? `<div class="drawer-stage">${partHTML(part, { inside: true })}</div>` : partHTML(part);
   for (const row of document.querySelectorAll(".stage-row")) row.innerHTML = html;
   $("preview").classList.toggle("wide", part.type !== "button");
 
@@ -363,8 +381,9 @@ function render() {
   const [note, , descPh] = TYPE_TEXT[part.type];
   $("typeNote").textContent = note;
   $("desc").placeholder = descPh;
-  $("decoLabel").textContent = part.type === "box" ? "飾り(見出しに付く)" : "飾り";
-  $("sizeLabel").textContent = part.type === "box" ? "余白と文字の大きさ" : "大きさ";
+  $("decoLabel").textContent = part.type === "box" ? "飾り(見出しに付く)" : part.type === "drawer" ? "飾り(つまみに付く)" : "飾り";
+  $("sizeLabel").textContent = part.type === "box" ? "余白と文字の大きさ" : part.type === "scroll" ? "太さ" : part.type === "drawer" ? "幅" : "大きさ";
+  $("labelName").textContent = part.type === "drawer" ? "つまみの文字" : "ボタンの文字";
 
   const sid = part.shape === "custom" ? part.custom?.sid : null;
   const saved = loadShapes();
@@ -385,10 +404,24 @@ function render() {
     pick.disabled = !free;
     pick.value = themeColor(v);
   }
-  // 模様の色は模様があるときだけ、見出しの色は箱だけ。SVG の形(タグ・ハート・雲)には模様を付けない
-  document.querySelector('.color-ctl[data-key="pat"]').hidden = part.pattern === "none" || ubIsSvg(part);
-  document.querySelector('.color-ctl[data-key="tc"]').hidden = part.type !== "box";
-  $("patternCtl").hidden = ubIsSvg(part);
+  // 出す色の欄。模様の色は模様があるときだけ、見出しの色は箱だけ。SVG の形(タグ・ハート・雲)には模様を付けない
+  const scroll = part.type === "scroll";
+  const only = ONLY_COLORS[part.type];
+  for (const row of document.querySelectorAll("#colors .color-ctl")) {
+    const k = row.dataset.key;
+    row.hidden = only ? !only.includes(k)
+      : EXTRA_COLORS.includes(k) || (k === "pat" && (part.pattern === "none" || ubIsSvg(part))) || (k === "tc" && part.type !== "box");
+    const nm = row.querySelector(".cl-name");
+    nm.textContent = (scroll && SCROLL_COLOR_NAMES[k]) || nm.dataset.name;
+  }
+  $("patternCtl").hidden = ubIsSvg(part) || scroll || part.type === "drawer";
+  // 枠線:スクロールバーでは「つまみのふち」。実線かなしだけ
+  $("borderHead").textContent = scroll ? "つまみのふち" : "枠線と影";
+  $("bsLabel").textContent = scroll ? "ふち" : "枠線の種類";
+  $("bwLabel").textContent = scroll ? "ふちの太さ" : "枠線の太さ";
+  for (const b of document.querySelectorAll('.tabs[data-key="bs"] > button')) b.hidden = scroll && !["solid", "none"].includes(b.dataset.v);
+  $("gap").value = part.gap;
+  $("gapOut").textContent = part.gap + "px";
   $("radiusCtl").hidden = !UB_RADIUS_SHAPES.includes(part.shape);
   $("drawCtl").hidden = part.shape !== "custom";
   if (part.shape === "custom") renderPad();

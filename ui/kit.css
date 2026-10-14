@@ -319,3 +319,104 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
 .ub--press-squish { transition: transform .35s cubic-bezier(.3, 1.6, .5, 1), box-shadow .12s, filter .12s; }
 .ub--press-squish:active { transform: scale(1.08, .86); transition-duration: .08s; }
 @media (prefers-reduced-motion: reduce) { .ub { transition: none !important; animation: none !important; } }
+
+/* ---------- 自由スクロールバー(パーツメーカーの種類「スクロールバー」) ----------
+   スクロールする入れ物に .ub-scroll と .ub-〇〇 を付ける。色・太さ・形は変数で決める
+   Chrome・Edge・Safari は ::-webkit-scrollbar で形まで、Firefox は色と太さだけ(scrollbar-color)。スマホはほぼ端末の見た目のまま */
+.ub-scroll {
+  --us-w: 12px;            /* 太さ */
+  --us-r: 999px;           /* つまみの角の丸み */
+  --us-thumb: var(--primary);
+  --us-hover: var(--accent);
+  --us-ring: var(--ink);   /* つまみのふち */
+  --us-ringw: 2px;
+  --us-gap: 2px;           /* つまみと溝のすき間 */
+  --us-track: var(--tint);
+  --us-tring: var(--line); /* 溝のふち */
+  overflow: auto;
+}
+.ub-scroll::-webkit-scrollbar { width: var(--us-w); height: var(--us-w); }
+.ub-scroll::-webkit-scrollbar-track { background: var(--us-track); border-radius: var(--us-r); box-shadow: inset 0 0 0 1.5px var(--us-tring); }
+.ub-scroll::-webkit-scrollbar-thumb {
+  background: var(--us-thumb) padding-box;
+  border: var(--us-gap) solid transparent;          /* すき間 */
+  border-radius: var(--us-r);
+  box-shadow: inset 0 0 0 var(--us-ringw) var(--us-ring); /* ふち */
+}
+.ub-scroll::-webkit-scrollbar-thumb:hover { background-color: var(--us-hover); }
+.ub-scroll::-webkit-scrollbar-corner { background: transparent; }
+/* ::-webkit-scrollbar が使えないブラウザ(Firefox)だけ。ほかで書くと Chrome が上の形を使わなくなるため */
+@supports not selector(::-webkit-scrollbar) {
+  .ub-scroll { scrollbar-color: var(--us-thumb) var(--us-track); }
+  .ub-scroll--thin { scrollbar-width: thin; }
+}
+
+/* ---------- 自由サイドバー(パーツメーカーの種類「サイドバー」) ----------
+   画面のはしから前面に出てくる引き出し。.ub-drawer に .open を付けると出る。つまみ(.ub-drawer-handle)はいつも見えている
+   <aside class="ub-drawer ub-〇〇"><div class="ub-drawer-panel">中身</div><button class="ub-drawer-handle">つまみ</button></aside> */
+.ub-drawer {
+  --ud-w: 320px;
+  --ud-bg: var(--box);
+  --ud-fg: var(--text);
+  --ud-bd: var(--ink);
+  --ud-bw: 2.5px;
+  --ud-bs: solid;
+  --ud-r: 16px;
+  --ud-sh: var(--ink-soft);
+  --ud-hbg: var(--sky);
+  --ud-hon: var(--box);
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(var(--ud-w), 82vw);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform .25s cubic-bezier(.3, 1.2, .5, 1);
+  pointer-events: none; /* 閉じているときは、つまみ以外は下のページの操作をじゃましない */
+}
+.ub-drawer--right { left: auto; right: 0; transform: translateX(100%); }
+.ub-drawer.open { transform: none; pointer-events: auto; } /* 右からの指定より後ろに書く(開いているときは位置を戻す) */
+.ub-drawer--bounce { transition: transform .45s cubic-bezier(.3, 1.7, .5, 1); }
+.ub-drawer-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  background: var(--ud-bg);
+  color: var(--ud-fg);
+  border: var(--ud-bw) var(--ud-bs) var(--ud-bd);
+  border-radius: var(--ud-r);
+}
+.ub-drawer--fade .ub-drawer-panel { opacity: 0; transition: opacity .3s ease; }
+.ub-drawer--fade.open .ub-drawer-panel { opacity: 1; }
+.ub-drawer--sh-puffy .ub-drawer-panel { box-shadow: 4px 4px 0 var(--ud-sh); }
+.ub-drawer--sh-soft .ub-drawer-panel { box-shadow: 0 8px 24px color-mix(in srgb, var(--ud-sh) 80%, transparent); }
+.ub-drawer-handle {
+  position: absolute;
+  top: 18%;
+  left: 100%;
+  pointer-events: auto;
+  writing-mode: vertical-rl;
+  letter-spacing: .15em;
+  padding: 12px 5px;
+  background: var(--ud-hbg);
+  color: var(--ud-fg);
+  border: var(--ud-bw) var(--ud-bs) var(--ud-bd);
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ub-drawer--right .ub-drawer-handle { left: auto; right: 100%; border-left: var(--ud-bw) var(--ud-bs) var(--ud-bd); border-right: none; border-radius: 12px 0 0 12px; }
+.ub-drawer.open .ub-drawer-handle { background: var(--ud-hon); }
+/* 見本用:画面全体ではなく、囲んだ箱の中で出し入れする */
+.ub-drawer--inside { position: absolute; width: min(var(--ud-w), 72%); }
+.ub-drawer--inside.ub-drawer--right { left: auto; }
+@media (prefers-reduced-motion: reduce) { .ub-drawer, .ub-drawer-panel { transition: none !important; } }

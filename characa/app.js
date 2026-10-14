@@ -51,7 +51,7 @@ const SIZES = [
   [1080, 1920, "縦 9:16(1080×1920)"],
 ];
 
-const TYPE_LABEL = { text: "テキスト", image: "画像", rect: "図形", jobs: "ジョブ", symbol: "シンボル" };
+const TYPE_LABEL = { text: "テキスト", image: "画像", rect: "図形", jobs: "ジョブ", symbol: "シンボル", folder: "フォルダー" };
 
 // 配色の役割。要素の色に "@accent" のように書くと、選んでいる配色のその色になる
 const ROLES = [
@@ -75,6 +75,7 @@ const DEFAULTS = {
   rect: { w: 400, h: 240, color: "@panel", radius: 16, borderColor: "@accent", borderWidth: 0, opacity: 0.4 },
   symbol: { symbol: "", w: 240, h: 240, color: "@accent", opacity: 1 }, // シンボルエディタで作った形(symbol は id)
   jobs: { display: "icon", filter: "battle", hideUnlearned: false, cols: 6, cellW: 155, font: "Noto Sans JP", size: 28, bold: false, iconColor: "@text", color: "@text", levelColor: "@accent", dimColor: "@muted", shadow: true, opacity: 1 },
+  folder: { name: "フォルダー", open: true, opacity: 1 }, // レイヤーをまとめる入れ物(それ自体は描かない)
 };
 
 const FIELDS = {
@@ -176,6 +177,9 @@ function defaultPalette() {
 
 // templates/classic.json と同じ内容
 function defaultProject() {
+  // スクショ以外の素材は、最初から「ステータス」フォルダーに入れておく
+  const status = makeLayer("folder", { name: "ステータス" });
+  const inStatus = (type, props) => makeLayer(type, { ...props, folder: status.id });
   return {
     card: { w: 1920, h: 1080, bg: { type: "gradient", color1: "@bg1", color2: "@bg2", angle: 135, image: "", dim: 0.3 } },
     palette: defaultPalette(),
@@ -185,14 +189,15 @@ function defaultProject() {
     layers: [
       // スクショがカード全体の土台。その上に文字やパネルを載せる
       makeLayer("image", { x: 0, y: 0, w: 1920, h: 1080 }),
-      makeLayer("rect", { x: 1000, y: 60, w: 860, h: 960, opacity: 0.55, radius: 28, borderWidth: 2 }),
-      makeLayer("text", { text: "{title}", x: 1060, y: 110, size: 36, color: "@accent" }),
-      makeLayer("text", { text: "{name}", x: 1056, y: 160, size: 96, font: "Cinzel", bold: true }),
-      makeLayer("text", { text: "{server} [{dataCenter}]", x: 1060, y: 290, size: 40, color: "@sub" }),
-      makeLayer("text", { text: "{race} / {tribe} / {gender}\nFC: {freeCompany}", x: 1060, y: 355, size: 34, lineHeight: 1.5, color: "@sub" }),
-      makeLayer("jobs", { x: 1060, y: 500, cols: 5 }),
-      makeLayer("text", { text: "ここに好きなテキストを書けます\nクリックで選択して、右のパネルで編集", x: 1060, y: 820, size: 30, width: 760 }),
-      makeLayer("text", { text: "(C) SQUARE ENIX", x: 1890, y: 1040, size: 20, align: "right", color: "@sub", opacity: 0.7 }),
+      inStatus("rect", { name: "プロフィール枠", x: 1000, y: 60, w: 860, h: 960, opacity: 0.55, radius: 28, borderWidth: 2 }),
+      inStatus("text", { text: "{title}", x: 1060, y: 110, size: 36, color: "@accent" }),
+      inStatus("text", { text: "{name}", x: 1056, y: 160, size: 96, font: "Cinzel", bold: true }),
+      inStatus("text", { text: "{server} [{dataCenter}]", x: 1060, y: 290, size: 40, color: "@sub" }),
+      inStatus("text", { text: "{race} / {tribe} / {gender}\nFC: {freeCompany}", x: 1060, y: 355, size: 34, lineHeight: 1.5, color: "@sub" }),
+      inStatus("jobs", { x: 1060, y: 500, cols: 5 }),
+      inStatus("text", { text: "ここに好きなテキストを書けます\nクリックで選択して、右のパネルで編集", x: 1060, y: 820, size: 30, width: 760 }),
+      inStatus("text", { text: "(C) SQUARE ENIX", x: 1890, y: 1040, size: 20, align: "right", color: "@sub", opacity: 0.7 }),
+      status,
     ],
   };
 }
@@ -207,6 +212,11 @@ function load() {
   }
 }
 
+function numbered(layers) {
+  assignShapeNumbers(layers);
+  return layers;
+}
+
 // 古い保存データや読み込んだテンプレートに足りない項目を補う
 function normalize(p) {
   const base = defaultProject();
@@ -216,7 +226,7 @@ function normalize(p) {
     paletteId: p.palette ? p.paletteId ?? "" : base.paletteId,
     frame: FRAMES.some(([id]) => id === p.frame) || findCustomFrame(p.frame) ? p.frame : base.frame,
     data: (({ face, image, ...d }) => d)({ ...emptyData(), ...p.data }), // 以前保存した Lodestone の画像URLは捨てる
-    layers: p.layers.filter((l) => DEFAULTS[l.type]).map(({ bind, ...l }) => ({ ...makeLayer(l.type), ...l })), // bind は以前の「Lodestone の画像を表示」設定(廃止)
+    layers: numbered(tidyFolders(p.layers.filter((l) => DEFAULTS[l.type]).map(({ bind, ...l }) => ({ ...makeLayer(l.type), ...l })))), // bind は以前の「Lodestone の画像を表示」設定(廃止)
   };
 }
 
@@ -242,6 +252,100 @@ function saveSoon() {
 
 function selected() {
   return project.layers.find((l) => l.id === selectedId) ?? null;
+}
+
+// ---------- フォルダー ----------
+// フォルダーもレイヤーの1つ(type: "folder"。それ自体は何も描かない)。中のレイヤーは folder にフォルダーの id を持つ
+//   並びの決まり:中のレイヤーは、フォルダーのすぐ後ろにまとめて置く(配列ではフォルダーの直前。一覧ではフォルダーの行のすぐ下)
+//   フォルダーの中にフォルダーは入れない
+//   (保存データを読むときにも使うので、const ではなく function で書く)
+function isFolder(l) {
+  return l?.type === "folder";
+}
+function folderOf(l) {
+  return l?.folder ? project.layers.find((x) => x.id === l.folder) ?? null : null;
+}
+function childrenOf(f, layers = project.layers) {
+  return layers.filter((l) => l.folder === f.id);
+}
+// 自分が隠れているか、入っているフォルダーが隠れているか
+function isHidden(l) {
+  return l.hidden || !!folderOf(l)?.hidden;
+}
+
+// 並びの決まりに合わせて並べ直す(なくなったフォルダーの印も消す)
+function tidyFolders(layers) {
+  const ids = new Set(layers.filter(isFolder).map((f) => f.id));
+  for (const l of layers) if (l.folder && (isFolder(l) || !ids.has(l.folder))) delete l.folder;
+  const out = [];
+  for (const l of layers) {
+    if (l.folder) continue;
+    if (isFolder(l)) out.push(...childrenOf(l, layers));
+    out.push(l);
+  }
+  return out;
+}
+
+// 前面・背面の入れ替えに使う、ひとまとまり(フォルダーは中身ごと)の並び
+function layerBlocks(layers) {
+  return layers.filter((l) => !l.folder).map((l) => (isFolder(l) ? [...childrenOf(l, layers), l] : [l]));
+}
+
+// フォルダーを作る。フォルダーに入っていない要素を選んでいたら、それを入れる
+function createFolder() {
+  const n = project.layers.filter(isFolder).length + 1;
+  const f = makeLayer("folder", { name: `フォルダー ${n}` });
+  const sel = selected();
+  if (sel && !isFolder(sel) && !sel.folder) {
+    sel.folder = f.id;
+    project.layers.splice(project.layers.indexOf(sel) + 1, 0, f);
+  } else {
+    project.layers.push(f);
+  }
+  project.layers = tidyFolders(project.layers);
+  changed();
+  select(f.id);
+}
+
+$("addFolder").addEventListener("click", createFolder);
+
+// 要素を入れるフォルダーを変える(id が空ならフォルダーから出す)
+function setLayerFolder(l, id) {
+  const old = folderOf(l);
+  const rest = project.layers.filter((x) => x !== l);
+  if (id) {
+    // そのフォルダーのいちばん前に入れる
+    l.folder = id;
+    rest.splice(rest.findIndex((x) => x.id === id), 0, l);
+  } else {
+    // 入っていたフォルダーのすぐ前に出す
+    delete l.folder;
+    rest.splice(old ? rest.indexOf(old) + 1 : rest.length, 0, l);
+  }
+  project.layers = tidyFolders(rest);
+  changed();
+  renderProps();
+}
+
+// フォルダーをなくす。withChildren なら中身も消す。そうでなければ中身はその場に残す(フォルダーから出すだけ)
+function removeFolder(f, withChildren) {
+  const kids = childrenOf(f);
+  if (withChildren) project.layers = project.layers.filter((l) => l !== f && !kids.includes(l));
+  else {
+    for (const k of kids) delete k.folder;
+    project.layers = project.layers.filter((l) => l !== f);
+  }
+  if (selectedId === f.id || (withChildren && kids.some((k) => k.id === selectedId))) selectedId = null;
+  changed();
+  renderProps();
+}
+
+// フォルダーの中身をまとめて動かす
+function moveFolderBy(f, dx, dy) {
+  for (const k of childrenOf(f)) {
+    k.x = Math.round(k.x + dx);
+    k.y = Math.round(k.y + dy);
+  }
 }
 
 // ---------- 描画 ----------
@@ -280,11 +384,18 @@ function drawScene(target, p, bounds, scale = 1) {
     ctx.clearRect(0, 0, p.card.w, p.card.h);
     drawBackground();
     for (const l of p.layers) {
-      if (l.hidden) continue;
+      if (isFolder(l) || isHidden(l)) continue;
       ctx.save();
-      ctx.globalAlpha = l.opacity ?? 1;
+      ctx.globalAlpha = (l.opacity ?? 1) * (folderOf(l)?.opacity ?? 1);
       bounds.set(l.id, DRAW[l.type](l));
       ctx.restore();
+    }
+    // フォルダーの枠 = 中の見えている要素の枠をぜんぶ囲む枠
+    for (const f of p.layers.filter(isFolder)) {
+      const bs = childrenOf(f).map((c) => bounds.get(c.id)).filter(Boolean);
+      if (!bs.length) continue;
+      const x = Math.min(...bs.map((b) => b.x)), y = Math.min(...bs.map((b) => b.y));
+      bounds.set(f.id, { x, y, w: Math.max(...bs.map((b) => b.x + b.w)) - x, h: Math.max(...bs.map((b) => b.y + b.h)) - y });
     }
   } finally {
     [ctx, project] = saved;
@@ -727,6 +838,10 @@ function drawSelection() {
   ctx.lineWidth = 2.5 / s;
   ctx.setLineDash([7 / s, 5 / s]);
   ctx.strokeRect(b.x, b.y, b.w, b.h);
+  if (isFolder(selected())) {
+    ctx.restore();
+    return;
+  }
   const hs = HANDLE / s;
   ctx.setLineDash([]);
   const knob = (x, y, r) => {
@@ -780,10 +895,10 @@ function edgeAt(p, b) {
 // つかめる辺:まず選んでいる要素。無ければ、その場所でいちばん前にある要素(土台のスクショは除く。カードの端と重なるため)
 function edgeTarget(p) {
   const sel = selected();
-  const se = sel && !sel.hidden && edgeAt(p, boundsById.get(sel.id));
+  const se = sel && !isFolder(sel) && !isHidden(sel) && edgeAt(p, boundsById.get(sel.id));
   if (se) return { layer: sel, edge: se };
   for (const l of [...project.layers].reverse()) {
-    if (l.hidden) continue;
+    if (isFolder(l) || isHidden(l)) continue;
     const b = boundsById.get(l.id);
     const e = !coversCard(l) && edgeAt(p, b);
     if (e) return { layer: l, edge: e };
@@ -810,7 +925,7 @@ function fitBaseImages() {
 }
 
 function hitTest(p) {
-  return [...project.layers].reverse().find((l) => !l.hidden && inside(p, boundsById.get(l.id))) ?? null;
+  return [...project.layers].reverse().find((l) => !isFolder(l) && !isHidden(l) && inside(p, boundsById.get(l.id))) ?? null;
 }
 
 // スペースキーを押している間は「表示を動かす」モード(入力欄で文字を打っているときは除く)
@@ -841,6 +956,14 @@ canvas.addEventListener("pointerdown", (e) => {
     pickHue(p); // 色を拾うモードの間は、選択や移動をしない
     return;
   }
+  const sel = selected();
+  if (isFolder(sel) && inside(p, boundsById.get(sel.id))) {
+    drag = { mode: "folder", start: p, layer: sel, kids: childrenOf(sel).map((k) => ({ l: k, x: k.x, y: k.y })) };
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch {}
+    return;
+  }
   const grab = edgeTarget(p);
   if (grab) {
     select(grab.layer.id);
@@ -862,11 +985,18 @@ canvas.addEventListener("pointermove", (e) => {
   const p = toCard(e);
   if (!drag) {
     const grab = !viewDrag && edgeTarget(p);
-    canvas.style.cursor = viewDrag ? "grabbing" : grab ? EDGE_CURSOR[grab.edge] : hitTest(p) ? "move" : "grab";
+    const sel = selected();
+    const onFolder = isFolder(sel) && inside(p, boundsById.get(sel.id));
+    canvas.style.cursor = viewDrag ? "grabbing" : onFolder ? "move" : grab ? EDGE_CURSOR[grab.edge] : hitTest(p) ? "move" : "grab";
     return;
   }
   const dx = p.x - drag.start.x, dy = p.y - drag.start.y;
-  if (drag.mode === "move") {
+  if (drag.mode === "folder") {
+    for (const k of drag.kids) {
+      k.l.x = Math.round(k.x + dx);
+      k.l.y = Math.round(k.y + dy);
+    }
+  } else if (drag.mode === "move") {
     drag.layer.x = Math.round(drag.orig.x + dx);
     drag.layer.y = Math.round(drag.orig.y + dy);
   } else if (drag.mode === "pan") {
@@ -948,8 +1078,13 @@ canvas.addEventListener("drop", async (e) => {
   const p = toCard(e);
   const hit = hitTest(p);
   const src = await readImage(file);
+  // 中身が空の仮画像(土台のスクショ枠)がまだあるときは、どこにドロップしても、その仮画像に入れる(初回だけ)。
+  // 画像がすでに設定されているときは、今までどおり(画像の上なら置き換え、それ以外は新しい画像として追加)
+  const placeholder = project.layers.find((x) => x.type === "image" && !x.src);
   if (hit?.type === "image") {
     setImage(hit, src);
+  } else if (placeholder) {
+    setImage(placeholder, src);
   } else {
     const { width, height } = await imageSize(src);
     const w = Math.min(800, project.card.w / 2);
@@ -988,15 +1123,19 @@ document.addEventListener("keydown", (e) => {
   if (!l) return;
   if (e.key === "Delete" || e.key === "Backspace") {
     e.preventDefault();
-    removeLayer(l.id);
+    if (!isFolder(l)) removeLayer(l.id);
+    else if (confirm(`「${l.name}」を中身ごと削除しますか?`)) removeFolder(l, true);
     return;
   }
   const step = e.shiftKey ? 10 : 1;
   const move = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
   if (!move) return;
   e.preventDefault();
-  l.x += move[0];
-  l.y += move[1];
+  if (isFolder(l)) moveFolderBy(l, move[0], move[1]);
+  else {
+    l.x += move[0];
+    l.y += move[1];
+  }
   requestDraw();
   renderProps();
   saveSoon();
@@ -1036,6 +1175,8 @@ function addLayer(type, symbolId) {
 }
 
 function removeLayer(id) {
+  const f = project.layers.find((l) => l.id === id);
+  if (isFolder(f)) return removeFolder(f, true);
   project.layers = project.layers.filter((l) => l.id !== id);
   if (selectedId === id) selectedId = null;
   changed();
@@ -1043,22 +1184,44 @@ function removeLayer(id) {
 }
 
 function duplicateLayer(id) {
+  const f = project.layers.find((l) => l.id === id);
+  if (isFolder(f)) {
+    // フォルダーは中身ごと複製して、元のフォルダーのすぐ前に置く
+    const copy = { ...structuredClone(f), id: uid(), name: f.name + " のコピー" };
+    const kids = childrenOf(f).map((k) => ({ ...structuredClone(k), id: uid(), no: undefined, folder: copy.id, x: k.x + 30, y: k.y + 30 }));
+    project.layers.splice(project.layers.indexOf(f) + 1, 0, ...kids, copy);
+    changed();
+    select(copy.id);
+    return;
+  }
   const i = project.layers.findIndex((l) => l.id === id);
-  const copy = { ...structuredClone(project.layers[i]), id: uid(), x: project.layers[i].x + 30, y: project.layers[i].y + 30 };
+  const copy = { ...structuredClone(project.layers[i]), id: uid(), no: undefined, x: project.layers[i].x + 30, y: project.layers[i].y + 30 };
   project.layers.splice(i + 1, 0, copy);
   changed();
   select(copy.id);
 }
 
+// 前面へ(dir = 1)・背面へ(dir = -1)。フォルダーの中の要素は、そのフォルダーの中で入れ替える。フォルダーは中身ごと動く
 function moveLayer(id, dir) {
-  const i = project.layers.findIndex((l) => l.id === id);
-  const j = i + dir;
-  if (j < 0 || j >= project.layers.length) return;
-  [project.layers[i], project.layers[j]] = [project.layers[j], project.layers[i]];
+  const l = project.layers.find((x) => x.id === id);
+  const f = folderOf(l);
+  if (f) {
+    const sib = childrenOf(f), i = sib.indexOf(l), j = i + dir;
+    if (j < 0 || j >= sib.length) return;
+    const a = project.layers.indexOf(sib[i]), b = project.layers.indexOf(sib[j]);
+    [project.layers[a], project.layers[b]] = [project.layers[b], project.layers[a]];
+  } else {
+    const blocks = layerBlocks(project.layers);
+    const i = blocks.findIndex((bl) => bl.includes(l)), j = i + dir;
+    if (j < 0 || j >= blocks.length) return;
+    [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+    project.layers = blocks.flat();
+  }
   changed();
 }
 
 function changed() {
+  assignShapeNumbers(project.layers);
   requestDraw();
   renderLayers();
   saveSoon();
@@ -1194,10 +1357,18 @@ function readImage(file, max = 2400) {
   });
 }
 
+// 名前のない図形に番号(no)を振る。追加された順に 1, 2, 3…。一度付いた番号は、並べ替えても消しても変わらない
+function assignShapeNumbers(layers) {
+  let max = Math.max(0, ...layers.map((l) => l.no ?? 0));
+  for (const l of layers) if (l.type === "rect" && !l.name && l.no == null) l.no = ++max;
+}
+
 function layerLabel(l) {
+  if (!isFolder(l) && l.name) return l.name; // 名前が付いているものは、その名前(デザインの初めの素材など)
+  if (isFolder(l)) return `${l.name}(${childrenOf(l).length})`;
   if (l.type === "text") return resolveText(l.text).replace(/\n/g, " ").slice(0, 30) || "(空)";
   if (l.type === "image") return l.src ? "スクショ" : "(未設定)";
-  if (l.type === "rect") return `${l.w}×${l.h}`;
+  if (l.type === "rect") return `図形 ${l.no ?? ""}`.trim();
   if (l.type === "symbol") return findSymbol(l.symbol)?.name || "(消されたシンボル)";
   return { battle: "戦闘職", craft: "クラフター・ギャザラー", all: "すべて" }[l.filter];
 }
@@ -1205,10 +1376,33 @@ function layerLabel(l) {
 function renderLayers() {
   const ul = $("layers");
   ul.replaceChildren();
-  // 上にあるほど前面
+  // 上にあるほど前面。フォルダーの中身は、フォルダーの行のすぐ下に字下げして並ぶ(閉じていれば出さない)
   for (const l of [...project.layers].reverse()) {
+    const f = folderOf(l);
+    if (f && !f.open) continue;
     const li = document.createElement("li");
-    li.className = (l.id === selectedId ? "selected " : "") + (l.hidden ? "hidden" : "");
+    li.dataset.id = l.id;
+    li.className = [l.id === selectedId && "selected", isHidden(l) && "hidden", f && "in-folder", isFolder(l) && "folder-row"].filter(Boolean).join(" ");
+    if (isFolder(l)) {
+      const toggle = document.createElement("button");
+      toggle.className = "folder-toggle";
+      toggle.textContent = l.open ? "▾" : "▸";
+      toggle.title = l.open ? "閉じる" : "開く";
+      toggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        l.open = !l.open;
+        renderLayers();
+        saveSoon();
+      });
+      li.append(toggle);
+    }
+    if (f) {
+      // フォルダーの中身:├ と └ の線で、フォルダーにぶら下がっているように見せる(一覧のいちばん下の中身が └)
+      const tree = document.createElement("span");
+      tree.className = "layer-tree";
+      tree.textContent = childrenOf(f)[0] === l ? "└" : "├";
+      li.append(tree);
+    }
     const type = document.createElement("span");
     type.className = "layer-type";
     type.textContent = TYPE_LABEL[l.type];
@@ -1247,7 +1441,7 @@ function startLayerDrag(e, li, ul, layer) {
   const touch = e.pointerType === "touch";
   const sx = e.clientX, sy = e.clientY;
   let armed = !touch; // 並べ替えできる状態か(マウスは最初から、指は長押しのあと)
-  let target = null; // 見た目の並び(上から)で、何番目の位置に差し込むか
+  let target = null; // 差し込む位置:{ below: この行の要素のすぐ下(なければいちばん上) }
   const others = () => [...ul.children].filter((x) => x !== li);
   const clearMarks = () => ul.querySelectorAll(".drop-above, .drop-below").forEach((x) => x.classList.remove("drop-above", "drop-below"));
   // 並べ替えモードの間は、指で動かしても一覧やページをスクロールさせない
@@ -1280,7 +1474,7 @@ function startLayerDrag(e, li, ul, layer) {
     let k = -1; // 指している行(上端より下にある、いちばん下の行)
     rows.forEach((r, n) => { if (ev.clientY >= r.getBoundingClientRect().top) k = n; });
     clearMarks();
-    target = k + 1;
+    target = { below: k >= 0 ? rows[k].dataset.id : null };
     if (k >= 0) rows[k].classList.add("drop-below");
     else if (rows[0]) rows[0].classList.add("drop-above");
   };
@@ -1292,13 +1486,7 @@ function startLayerDrag(e, li, ul, layer) {
     document.removeEventListener("touchmove", block);
     clearMarks();
     li.classList.remove("dragging", "lifted");
-    if (layerDragged && target !== null) {
-      // 見た目は配列の逆順(上ほど前面)。抜いたあとの配列で、見た目の target 番目 = 配列の (長さ - target) 番目
-      const rest = project.layers.filter((x) => x !== layer);
-      rest.splice(rest.length - target, 0, layer);
-      project.layers = rest;
-      changed();
-    }
+    if (layerDragged && target !== null) dropLayer(layer, target.below);
     setTimeout(() => (layerDragged = false), 0); // 直後のクリックでは選ばない
   }
   if (!touch) {
@@ -1312,6 +1500,78 @@ function startLayerDrag(e, li, ul, layer) {
   document.addEventListener("touchmove", block, { passive: false });
 }
 
+// フォルダーを選んでいるときの調整欄
+function renderFolderProps(box, f) {
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  actions.append(
+    button("前面へ", () => moveLayer(f.id, 1)),
+    button("背面へ", () => moveLayer(f.id, -1)),
+    button("複製", () => duplicateLayer(f.id)),
+    button("フォルダーを解除", () => removeFolder(f, false)),
+    button("中身ごと削除", () => {
+      if (confirm(`「${f.name}」を中身ごと削除しますか?`)) removeFolder(f, true);
+    }, "btn btn--small btn--danger"),
+  );
+  box.append(actions);
+  box.append(field(f, "name", "フォルダーの名前", "text", { wide: true }));
+
+  // 位置(中身をぜんぶ囲む枠の左上)。数字を変えると、中身がまとめて動く
+  const b = boundsById.get(f.id);
+  if (b) {
+    const pos = { x: Math.round(b.x), y: Math.round(b.y) };
+    const onPos = () => {
+      moveFolderBy(f, pos.x - Math.round(b.x), pos.y - Math.round(b.y));
+      b.x = pos.x;
+      b.y = pos.y;
+      changed();
+    };
+    box.append(field(pos, "x", "X", "number", {}, onPos), field(pos, "y", "Y", "number", {}, onPos));
+  }
+  box.append(field(f, "opacity", "不透明度(中身ぜんぶ)", "range", { min: 0, max: 1, step: 0.05 }));
+
+  const note = document.createElement("p");
+  note.className = "note";
+  note.textContent = childrenOf(f).length
+    ? "フォルダーを選んでいる間は、カード上の点線の枠の中をドラッグすると、中身がまとめて動きます(矢印キーでも動きます)。中に入れる・出すは、「レイヤー」タブで行をドラッグするか、要素の「フォルダー」の欄で選びます。"
+    : "まだ空っぽです。「レイヤー」タブで、要素の行をこのフォルダーの行の下へドラッグすると入ります(要素の「フォルダー」の欄で選んでも入ります)。";
+  box.append(note);
+}
+
+// 一覧でドラッグして離したときの並べ替え。belowId の行のすぐ下(= その要素のすぐ後ろ)に入れる。belowId がなければいちばん上(前面)
+//   ・開いているフォルダーの行の下 → そのフォルダーのいちばん前に入る
+//   ・閉じているフォルダーの行の下 → フォルダーには入らず、フォルダーのまるごと後ろに置く
+//   ・フォルダーの中の行の下 → そのフォルダーに入る
+//   ・フォルダーに入っていない行の下 → フォルダーから出る
+//   フォルダーを動かすときは中身ごと。フォルダーの中には入らない(行のフォルダーのまるごと後ろに置く)
+function dropLayer(layer, belowId) {
+  const moving = isFolder(layer) ? [...childrenOf(layer), layer] : [layer];
+  if (belowId && moving.some((m) => m.id === belowId)) return; // 自分のフォルダーの中身の上で離したときは、そのまま
+  const rest = project.layers.filter((x) => !moving.includes(x));
+  const below = belowId ? rest.find((x) => x.id === belowId) : null;
+  const behindFolder = (g) => rest.indexOf(rest.find((x) => x.folder === g.id) ?? g); // フォルダーのまるごと後ろの位置
+  let index, parent = null;
+  if (!below) index = rest.length;
+  else if (isFolder(layer)) {
+    const g = isFolder(below) ? below : below.folder ? rest.find((x) => x.id === below.folder) : null;
+    index = g ? behindFolder(g) : rest.indexOf(below);
+  } else if (isFolder(below)) {
+    if (below.open) parent = below.id;
+    index = below.open ? rest.indexOf(below) : behindFolder(below);
+  } else {
+    parent = below.folder ?? null;
+    index = rest.indexOf(below);
+  }
+  if (!isFolder(layer)) {
+    if (parent) layer.folder = parent;
+    else delete layer.folder;
+  }
+  rest.splice(index, 0, ...moving);
+  project.layers = tidyFolders(rest);
+  changed();
+  if (layer.id === selectedId) renderProps(); // 「フォルダー」の欄を新しくする
+}
+
 function renderProps() {
   const box = $("props");
   box.replaceChildren();
@@ -1323,6 +1583,7 @@ function renderProps() {
     box.append(p);
     return;
   }
+  if (isFolder(l)) return renderFolderProps(box, l);
 
   const actions = document.createElement("div");
   actions.className = "actions";
@@ -1333,6 +1594,15 @@ function renderProps() {
     button("削除", () => removeLayer(l.id), "btn btn--small btn--danger"),
   );
   box.append(actions);
+
+  // 入れるフォルダー(フォルダーがあるときだけ)
+  const folders = project.layers.filter(isFolder);
+  if (folders.length) {
+    const holder = { folder: l.folder ?? "" };
+    box.append(field(holder, "folder", "フォルダー", "select", { options: [["", "(入れない)"], ...folders.map((f) => [f.id, f.name])] }, () => setLayerFolder(l, holder.folder)));
+    const f = folderOf(l);
+    if (f) box.append(Object.assign(button(`「${f.name}」ごと選ぶ`, () => select(f.id)), { title: "フォルダーを選ぶと、中身をまとめて動かせます" }));
+  }
 
   for (const [key, label, type, opt] of FIELDS[l.type]) {
     // 表示形式を変えたら列の幅もそれに合う幅にする
@@ -1595,7 +1865,11 @@ async function loadTemplates() {
 // テンプレートに、今のキャラ情報・配色・スクショ・背景画像を入れたものを作る
 function fromTemplate(t) {
   const p = normalize({ ...structuredClone(t.data), data: project.data, palette: project.palette, paletteId: project.paletteId, frame: project.frame });
-  p.layers.forEach((l) => (l.id = uid()));
+  const newIds = new Map(p.layers.map((l) => [l.id, uid()]));
+  p.layers.forEach((l) => {
+    l.id = newIds.get(l.id);
+    if (l.folder) l.folder = newIds.get(l.folder);
+  });
   const shot = project.layers.find((l) => l.type === "image" && l.src);
   const target = p.layers.find((l) => l.type === "image");
   if (shot && target && !target.src) {
@@ -2193,16 +2467,31 @@ function openTab(name) {
   } catch {}
 }
 document.querySelectorAll(".sheet-tab").forEach((t) => t.addEventListener("click", () => openTab(t.dataset.tab)));
+
+// レイヤーの引き出し(左から前面に出る)。つまみで出し入れして、開いているかはこのブラウザに覚えておく
+const DRAWER_KEY = "characa:layersOpen";
+function setLayerDrawer(open) {
+  $("layerDrawer").classList.toggle("open", open);
+  $("layerHandle").setAttribute("aria-expanded", String(open));
+  $("layerHandle").title = open ? "レイヤーをしまう" : "レイヤーを出す";
+  try {
+    localStorage.setItem(DRAWER_KEY, open ? "1" : "0");
+  } catch {}
+}
+$("layerHandle").addEventListener("click", () => setLayerDrawer(!$("layerDrawer").classList.contains("open")));
+{
+  let open = false;
+  try {
+    open = localStorage.getItem(DRAWER_KEY) === "1";
+  } catch {}
+  setLayerDrawer(open);
+}
 let savedTab = null;
 try {
   savedTab = localStorage.getItem(TAB_KEY);
 } catch {}
 if (savedTab === "edit") savedTab = "layers"; // 「編集」タブは「要素」タブにまとめた
 openTab(document.querySelector(`.sheet-tab[data-tab="${savedTab}"]`) ? savedTab : "design");
-
-if (matchMedia("(pointer: coarse)").matches) {
-  $("hint").textContent = "タップで選択 / ドラッグで移動 / 辺・角(オレンジの●)をドラッグで大きさを変える / 2本指でつまむと表示を拡大縮小、2本指で動かすとスクロール";
-}
 
 // 枠エディタで保存して戻ってきたときは、その枠を選んだ状態にする
 {

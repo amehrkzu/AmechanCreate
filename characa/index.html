@@ -17,6 +17,15 @@
 </header>
 
 <main class="app" id="app">
+  <!-- レイヤーの引き出し:画面の前面に、左からにょきっと出る。右はしの付箋のつまみで出し入れする -->
+  <aside class="layer-drawer" id="layerDrawer" aria-label="レイヤー">
+    <section class="box">
+      <h2>レイヤー</h2>
+      <div class="actions"><button type="button" class="btn btn--small btn--primary" id="addFolder">＋ フォルダーを作る</button></div>
+      <ul id="layers" class="layers"></ul>
+    </section>
+    <button type="button" class="layer-handle" id="layerHandle" aria-controls="layerDrawer" aria-expanded="false">レイヤー</button>
+  </aside>
   <section class="workspace" id="workspace">
     <div class="artboard" id="artboard">
       <canvas id="card"></canvas>
@@ -37,7 +46,6 @@
       <button type="button" class="sheet-tab" role="tab" data-tab="design" style="--c:#ffcf9f">デザイン</button>
       <button type="button" class="sheet-tab" role="tab" data-tab="chara" style="--c:#ffe7a3">キャラ</button>
       <button type="button" class="sheet-tab" role="tab" data-tab="layers" style="--c:#bdeccd">要素</button>
-      <button type="button" class="sheet-tab" role="tab" data-tab="list" style="--c:#bfdcff">レイヤー</button>
       <button type="button" class="sheet-tab" role="tab" data-tab="card" style="--c:#dccbff">カード</button>
     </nav>
 
@@ -104,15 +112,6 @@
           <h2>選択中の要素</h2>
           <div id="props" class="fields"></div>
         </section>
-        <p class="hint" id="hint">クリックで選択 / ドラッグで移動 / 辺・角(オレンジの●)をドラッグで大きさを変える(角は Shift で縦横比を保つ) / 画像はホイールでズーム・Alt+ドラッグで位置調整 / 矢印キーで微調整(Shiftで10px) / Deleteで削除 / 表示の拡大縮小は下の＋－・素材の無い所でホイール・Ctrl+ホイール / 表示を動かすのは余白のドラッグ・スペース+ドラッグ</p>
-      </div>
-
-      <div class="tab-panel" role="tabpanel" data-panel="list">
-        <section class="box">
-          <h2>レイヤー</h2>
-          <p class="note">上にあるものほど前面です。押すと選択して、「要素」タブで調整できます。ドラッグで順番を入れ替えられます(行の上で離すと、その行のすぐ下に入ります。スマホは、行を長押ししてから動かします)。</p>
-          <ul id="layers" class="layers"></ul>
-        </section>
       </div>
 
       <div class="tab-panel" role="tabpanel" data-panel="card">
@@ -132,7 +131,6 @@
       </div>
 
       <footer class="foot">
-        <p>ジョブアイコンを自分で描く:<a href="tools/icon-maker.html">アイコンメーカー</a></p>
         <p>記載されている会社名・製品名・システム名などは、各社の商標、または登録商標です。</p>
         <p>(C) SQUARE ENIX / <a href="https://support.jp.square-enix.com/rule.php?id=5382&tag=authc" target="_blank" rel="noopener">FINAL FANTASY XIV 著作物利用条件</a></p>
       </footer>

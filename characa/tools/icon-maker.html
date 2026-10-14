@@ -143,9 +143,6 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
 .preview--dark { background: #1c2333; }
 .preview--light { background: #fff0e2; margin-top: 8px; }
 
-kbd { background: #fff0e2; border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; font: inherit; font-size: 11px; }
-.help { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
-.help li + li { margin-top: 3px; }
 
 @media (max-width: 860px) {
   .app { grid-template-columns: minmax(0, 1fr); }
@@ -160,7 +157,6 @@ kbd { background: #fff0e2; border: 1px solid var(--line); border-radius: 6px; pa
 <header class="top" data-site-bar>
   <h1>アイコンメーカー</h1>
   <p class="note">432×432 の正方形に描いて、SVG で保存できます</p>
-  <a class="btn btn--small" href="../index.html">キャラカへ</a>
 </header>
 
 <main class="app">
@@ -237,20 +233,6 @@ kbd { background: #fff0e2; border: 1px solid var(--line); border-radius: 6px; pa
       <div class="row"><span class="field" style="margin:0">色</span><input id="previewColor" type="color" value="#e6e9f0"></div>
       <div class="preview preview--dark" id="previewDark"></div>
       <div class="preview preview--light" id="previewLight"></div>
-    </section>
-
-    <section class="box">
-      <h2>使い方</h2>
-      <ul class="help">
-        <li><b>描く</b>:クリックで点を置くと、なめらかな線でつながります。最初の点を押すと閉じた形に。<kbd>Enter</kbd>・<kbd>Esc</kbd>・ダブルクリックで描き終わり</li>
-        <li>描くモードで、閉じていない線の端の点を押すと、その続きから描けます</li>
-        <li><b>動かす</b>:点や線をドラッグ。点をダブルクリックで「角 ⇔ なめらか」切り替え。線の上をダブルクリックで点を足す</li>
-        <li><b>ハンドル</b>:点を選ぶと青いハンドル(取っ手)が出ます。ドラッグすると曲がる向きと強さが変わります。ふだんは反対側も一直線に動き、<kbd>Alt</kbd>+ドラッグで片側だけ動かせます(くの字に折れる)。手で動かした点のハンドルは青く塗られ、「この点の曲がり方を自動に戻す」で元に戻せます</li>
-        <li><kbd>Delete</kbd>:選んでいる点を消す(点を選んでいなければ線ごと消す)</li>
-        <li><b>下書きを動かす</b>:ドラッグで移動、ホイールで拡大縮小、<kbd>Shift</kbd>+ホイールで回転</li>
-        <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> 元に戻す / <kbd>Ctrl</kbd>+<kbd>Y</kbd> やり直す / <kbd>D</kbd> 描く / <kbd>V</kbd> 動かす / <kbd>B</kbd> 下書き</li>
-        <li>線はどれも同じ太さ・丸い先端です。閉じた形は「塗る」にすると塗りつぶしになります(重なった所は穴になります)</li>
-      </ul>
     </section>
   </aside>
 </main>

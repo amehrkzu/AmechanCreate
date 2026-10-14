@@ -15,6 +15,10 @@ const UB_TYPES = [
     shapes: ["pill", "round", "square", "leaf", "tag", "custom"] },
   { id: "tab", name: "タブ", icon: '<path d="M4 30V16Q4 10 10 10H22Q28 10 28 16V30"/><path d="M32 30V18Q32 14 36 14H52Q56 14 56 18V30"/><path d="M2 30H58"/>',
     shapes: ["pill", "round", "square", "leaf", "sticky", "tag", "custom"] },
+  { id: "drawer", name: "サイドバー", icon: '<rect x="3" y="5" width="54" height="30" rx="4" stroke-dasharray="3 3"/><rect x="3" y="5" width="24" height="30" rx="4"/><path d="M27 12H32V24H27"/><path d="M8 12H21M8 18H19M8 24H17"/>',
+    shapes: ["round", "square"] },
+  { id: "scroll", name: "スクロールバー", icon: '<rect x="5" y="4" width="50" height="32" rx="5"/><path d="M11 12H37M11 19H40M11 26H33"/><rect x="45" y="9" width="5" height="12" rx="2.5"/>',
+    shapes: ["pill", "round", "square"] },
 ];
 const ubType = (p) => UB_TYPES.find((t) => t.id === p.type) ?? UB_TYPES[0];
 
@@ -176,10 +180,22 @@ function newPart(type = "button") {
     deco: "",
     decoPos: "before",
     custom: null, // 自分で描く形(形が「自分で描く」のとき)
+    // スクロールバーだけで使う:溝の色・溝のふちの色・のせたときのつまみの色・つまみと溝のすき間(px)
+    track: "tint",
+    trackBd: "line",
+    thumbHover: "accent",
+    gap: 2,
+    // サイドバーだけで使う:つまみの色・開いているときのつまみの色・出てくる向き・出かた
+    handleBg: "sky",
+    handleOn: "box",
+    side: "left",
+    anim: "slide",
   };
   if (type === "box") Object.assign(base, { shape: "round", radius: 16, bw: 2.5, press: "none", deco: "✿" });
   if (type === "chip") Object.assign(base, { size: "s", bg: "lemon", onBg: "accent", onFg: "box", labels: "#FF14、#ミラプリ、#スクショ" });
   if (type === "tab") Object.assign(base, { size: "s", block: true, bd: "line", fg: "muted", shadow: "none", press: "none" });
+  if (type === "scroll") Object.assign(base, { bg: "primary", bd: "ink", bw: 2, shadow: "none", press: "none" });
+  if (type === "drawer") Object.assign(base, { shape: "round", radius: 16, bw: 2.5, press: "none", label: "レイヤー", title: "レイヤー", body: "ここに中身が入ります。" });
   return base;
 }
 
@@ -187,8 +203,44 @@ const ubIsSvg = (p) => !!UB_SVG[p.shape] || p.shape === "custom";
 const ubClassName = (p) => "ub-" + p.id;
 const ubLabels = (p) => String(p.labels || "").split(/[、,]/).map((s) => s.trim()).filter(Boolean);
 
+// スクロールバーの太さ(px)
+const UB_SCROLL_SIZES = { s: 8, m: 12, l: 16 };
+
+// サイドバーの幅(px)
+const UB_DRAWER_SIZES = { s: 240, m: 320, l: 400 };
+
 // その部品だけの CSS(変数を決める)
 function partCSS(p) {
+  if (p.type === "drawer") {
+    const vars = [
+      `--ud-w: ${UB_DRAWER_SIZES[p.size] ?? 320}px;`,
+      `--ud-r: ${p.shape === "square" ? 0 : p.radius}px;`,
+      `--ud-bg: ${ubColor(p.bg)};`,
+      `--ud-fg: ${ubColor(p.fg)};`,
+      `--ud-bd: ${ubColor(p.bd)};`,
+      `--ud-bw: ${p.bs === "none" ? 0 : p.bw}px;`,
+      p.bs !== "solid" && p.bs !== "none" ? `--ud-bs: ${p.bs};` : "",
+      `--ud-sh: ${ubColor(p.sh)};`,
+      `--ud-hbg: ${ubColor(p.handleBg)};`,
+      `--ud-hon: ${ubColor(p.handleOn)};`,
+    ].filter(Boolean);
+    return `/* ${p.name || "自分で作った部品"}(サイドバー)${p.desc ? ":" + p.desc : ""} */\n.${ubClassName(p)} {\n  ${vars.join("\n  ")}\n}`;
+  }
+  if (p.type === "scroll") {
+    const r = p.shape === "square" ? "0" : p.shape === "round" ? `${p.radius}px` : "999px";
+    const vars = [
+      `--us-w: ${UB_SCROLL_SIZES[p.size] ?? 12}px;`,
+      `--us-r: ${r};`,
+      `--us-thumb: ${ubColor(p.bg)};`,
+      `--us-hover: ${ubColor(p.thumbHover)};`,
+      `--us-ring: ${ubColor(p.bd)};`,
+      `--us-ringw: ${p.bs === "none" ? 0 : p.bw}px;`,
+      `--us-gap: ${p.gap}px;`,
+      `--us-track: ${ubColor(p.track)};`,
+      `--us-tring: ${ubColor(p.trackBd)};`,
+    ];
+    return `/* ${p.name || "自分で作った部品"}(スクロールバー)${p.desc ? ":" + p.desc : ""} */\n.${ubClassName(p)} {\n  ${vars.join("\n  ")}\n}`;
+  }
   const [fs, px, py] = (p.type === "box" ? UB_BOX_SIZES : UB_SIZES)[p.size] ?? UB_SIZES.m;
   const svg = ubIsSvg(p);
   const vars = [
@@ -251,8 +303,20 @@ function ubShapeSVG(p) {
   return s ? `<svg class="ub-shape" viewBox="${s.box}" preserveAspectRatio="none" aria-hidden="true"><path d="${s.d}"/>${gap}</svg>` : "";
 }
 
-// その部品の HTML
-function partHTML(p) {
+// その部品の HTML(inside:見本用。画面全体ではなく、囲んだ箱の中で出し入れする。最初から開いておく)
+function partHTML(p, { inside = false } = {}) {
+  if (p.type === "drawer") {
+    const cls = ["ub-drawer", p.side === "right" && "ub-drawer--right", p.anim !== "slide" && "ub-drawer--" + p.anim,
+      p.shadow !== "none" && "ub-drawer--sh-" + p.shadow, inside && "ub-drawer--inside open", ubClassName(p)].filter(Boolean).join(" ");
+    const title = p.title ? `<h2 style="margin: 0 0 8px; font-size: 15px;">${escapeHTML(p.title)}</h2>` : "";
+    const body = p.body ? `<p style="margin: 0;">${escapeHTML(p.body).replace(/\n/g, "<br>")}</p>` : "";
+    return `<aside class="${cls}"><div class="ub-drawer-panel">${title}${body}</div><button type="button" class="ub-drawer-handle" aria-expanded="${inside}">${withDeco(p, p.label || "メニュー")}</button></aside>`;
+  }
+  if (p.type === "scroll") {
+    // 見本:スクロールする箱。使うときは、スクロールさせたい入れ物に class を付けるだけ
+    const lines = ["スクロールしてみてね", "つまみをドラッグしても動きます", "マウスをのせると色が変わります", "ここは見本の文章です", "なんでも入れられます", "いちばん下まで来たかな?", "おしまい"];
+    return `<div class="ub-scroll${p.size === "s" ? " ub-scroll--thin" : ""} ${ubClassName(p)}" tabindex="0" style="max-height: 120px; padding: 8px 12px; background: var(--box); border: 2px solid var(--line); border-radius: 12px; color: var(--text);">${lines.map((l) => `<p style="margin: 0 0 10px;">${l}</p>`).join("")}</div>`;
+  }
   const cls = partClasses(p), shape = ubShapeSVG(p);
   if (p.type === "box") {
     const title = p.title ? `<h2>${withDeco(p, p.title)}</h2>` : "";
@@ -272,6 +336,12 @@ function partHTML(p) {
 // 見本を触れるように(チップは押すたびにオン・オフ、タブは押したものだけオン)
 function bindPartDemo(root) {
   root.addEventListener("click", (e) => {
+    const h = e.target.closest(".ub-drawer-handle");
+    if (h) {
+      const open = h.closest(".ub-drawer").classList.toggle("open");
+      h.setAttribute("aria-expanded", String(open));
+      return;
+    }
     const b = e.target.closest(".ub-chips > .ub, .ub-tabs > .ub");
     if (!b) return;
     if (b.parentElement.classList.contains("ub-chips")) b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
@@ -287,6 +357,7 @@ function partForAI(p) {
     p.name ? `名前:${p.name}` : null,
     p.shape === "custom" && p.custom?.name ? `形:${p.custom.name}(自分で描いた形)` : null,
     p.desc ? `使いどころ:${p.desc}` : null,
+    p.type === "drawer" ? "つまみ(.ub-drawer-handle)を押したら、.ub-drawer に open を付け外しして出し入れする(しくみは ui/kit.css の「自由サイドバー」)" : null,
     "",
     "CSS:",
     partCSS(p),
@@ -302,7 +373,7 @@ function partForAI(p) {
 // どこでも使える版の AI に渡す文章。ui/kit.css の中身(kitCss)から、テーマの色と自由ボタンのしくみを取り出して一緒に渡す
 //   テーマの色は .ub などの部品の中だけで決める(貼る先のページの CSS 変数とぶつからないように)
 function partForAnywhere(p, kitCss) {
-  const UBS = ".ub, .ub-chips, .ub-tabs";
+  const UBS = ".ub, .ub-chips, .ub-tabs, .ub-scroll, .ub-drawer";
   const theme = kitCss.slice(kitCss.indexOf("/* ---------- テーマ"), kitCss.indexOf("* { box-sizing"))
     .replace(':root, [data-theme="sora"] {', `${UBS}, [data-theme="sora"] :is(${UBS}) {`)
     .replace('[data-theme="ichigo"] {', `[data-theme="ichigo"] :is(${UBS}) {`)
@@ -311,7 +382,18 @@ function partForAnywhere(p, kitCss) {
     .replace(/\n\s*color-scheme: light;/, "")
     .trim();
   const machine = kitCss.slice(kitCss.indexOf("/* ---------- 自由ボタン")).trim();
-  const js = p.type === "chip" || p.type === "tab"
+  const js = p.type === "drawer"
+    ? [
+        "",
+        "JavaScript(つまみを押すと出し入れ。.ub-drawer に open が付くと出る):",
+        'document.addEventListener("click", (e) => {',
+        '  const h = e.target.closest(".ub-drawer-handle");',
+        "  if (!h) return;",
+        '  const open = h.closest(".ub-drawer").classList.toggle("open");',
+        '  h.setAttribute("aria-expanded", String(open));',
+        "});",
+      ]
+    : p.type === "chip" || p.type === "tab"
     ? [
         "",
         "JavaScript(押したときの切り替え。チップは押すたびにオン・オフ、タブは押したものだけオン):",
