@@ -52,9 +52,12 @@ button, label.btn { touch-action: manipulation; }
 .top .grow { flex: 1; }
 .top input { max-width: 220px; }
 
-.app { display: grid; grid-template-columns: minmax(0, 1fr) 260px 340px; gap: 14px; padding: 14px; max-width: 1500px; margin: 0 auto; }
+.app { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 14px; max-width: 1700px; margin: 0 auto; }
+/* 右の列:上に「詳細」、下にプレビュー */
+.right { display: flex; flex-direction: column; gap: 14px; min-width: 0; position: sticky; top: 14px; align-self: start; max-height: calc(100vh - 28px); overflow-y: auto; }
+@media (min-width: 1000px) { .app { grid-template-columns: 300px minmax(0, 1fr) 340px; } }
 /* 「詳細」はサイドバー:ページを下に送っても、いつも見える位置に止まる */
-.side { position: sticky; top: 14px; align-self: start; max-height: calc(100vh - 28px); min-width: 0; display: flex; flex-direction: column; }
+.side { min-width: 0; display: flex; flex-direction: column; }
 /* キャラカと同じ、付箋みたいなタブ。選んでいるタブだけ色が濃く、少し上に飛び出して、下のシートとつながる */
 .sheet-tabs { display: flex; gap: 4px; padding: 0 10px; position: relative; z-index: 1; margin-bottom: calc(var(--border) * -1); }
 .sheet-tab {
@@ -109,6 +112,7 @@ button, label.btn { touch-action: manipulation; }
 .hint { margin: 0; color: var(--muted); font-size: 12px; text-align: center; }
 
 .panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.layer-drawer #addPanel select { width: 100%; }
 .box { background: #fff; border: var(--border) solid var(--ink); border-radius: 16px; box-shadow: 0 3px 0 var(--ink-soft); padding: 12px 14px; }
 .box h2 { margin: 0 0 10px; font-size: 14px; color: var(--accent); }
 .box h2::before { content: "✿ "; }
@@ -181,13 +185,9 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
 .layer-list .tag { font-size: 11px; color: #fff; background: var(--ink); border-radius: 6px; padding: 0 5px; }
 .layer-list .btn { padding: 0 6px; font-size: 10px; box-shadow: none; }
 
-@media (max-width: 1180px) {
-  .app { grid-template-columns: minmax(0, 1fr) 260px; }
-  .panel { grid-column: 1 / -1; }
-}
 @media (max-width: 900px) {
   .app { grid-template-columns: minmax(0, 1fr); }
-  .side { position: static; max-height: none; }
+  .right { position: static; max-height: none; overflow: visible; }
   .sheet-body { overflow: visible; }
   .board { max-height: none; }
   input, select { font-size: 16px; } /* iPhone でタップしたときに拡大されないように */
@@ -206,16 +206,28 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
   <button type="button" class="btn btn--primary" id="save">保存してキャラカに戻る</button>
 </header>
 
-<!-- レイヤーのサイドバー:左から前面に出る(ui/layer-drawer.css・.js)。ツールのレイヤーはここに置くルール -->
-<aside class="layer-drawer" id="layerDrawer" aria-label="レイヤー">
-  <section class="box">
-    <h2>レイヤー</h2>
-    <div id="layerPanel"></div>
-  </section>
-  <button type="button" class="layer-handle" id="layerHandle" aria-controls="layerDrawer" aria-expanded="false">☂ レイヤー</button>
-</aside>
-
 <main class="app">
+  <!-- 左の列:上に「追加」、下に「階層(レイヤー)」。広い画面ではいつも出ていて、狭い画面では前面に出る引き出し(ui/layer-drawer.css・.js) -->
+  <aside class="layer-drawer" id="layerDrawer" aria-label="追加と階層">
+    <section class="box box--fit">
+      <h2>追加</h2>
+      <div id="addPanel">
+        <select id="shapeSelect" aria-label="図形を追加">
+          <option value="">図形を追加…</option>
+          <option value="circle">● 丸</option>
+          <option value="rect">■ 四角</option>
+          <option value="diamond">◆ ひし形</option>
+          <option value="heart">♥ ハート</option>
+          <option value="star">★ 星</option>
+        </select>
+      </div>
+    </section>
+    <section class="box">
+      <h2>階層</h2>
+      <div id="layerPanel"></div>
+    </section>
+    <button type="button" class="layer-handle" id="layerHandle" aria-controls="layerDrawer" aria-expanded="false">☂ レイヤー</button>
+  </aside>
   <section class="stage">
     <div class="row toolbar">
       <select id="pieceSelect" aria-label="描く部品">
@@ -225,14 +237,6 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
         <option value="border">枠線</option>
       </select>
       <button type="button" class="btn btn--small" id="modeToggle" title="描く ⇔ 動かす(Tab)"></button>
-      <select id="shapeSelect" aria-label="図形を追加">
-        <option value="">図形を追加…</option>
-        <option value="circle">● 丸</option>
-        <option value="rect">■ 四角</option>
-        <option value="diamond">◆ ひし形</option>
-        <option value="heart">♥ ハート</option>
-        <option value="star">★ 星</option>
-      </select>
       <span style="flex:1"></span>
       <button type="button" class="btn btn--small" id="undo" title="元に戻す(Ctrl+Z)" aria-label="元に戻す">↶</button>
       <button type="button" class="btn btn--small" id="redo" title="やり直す(Ctrl+Y)" aria-label="やり直す">↷</button>
@@ -255,6 +259,8 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
     <p class="hint" id="hint"></p>
   </section>
 
+  <aside class="right-drawer" id="rightDrawer" aria-label="詳細">
+  <div class="right">
   <aside class="side">
     <nav class="sheet-tabs" role="tablist" aria-label="線と図形">
       <button type="button" class="sheet-tab" role="tab" data-tab="detail" style="--c:#ffcf9f" aria-selected="true">詳細</button>
@@ -283,6 +289,9 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
       <canvas id="preview" width="720" height="330"></canvas>
       <p class="note">キャラカで選んでいる配色で表示しています。</p>
     </section>
+  </aside>
+  </div>
+  <button type="button" class="right-handle" id="rightHandle" aria-controls="rightDrawer" aria-expanded="false">✿ 詳細</button>
   </aside>
 </main>
 

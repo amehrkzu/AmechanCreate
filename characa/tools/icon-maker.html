@@ -54,12 +54,22 @@ button, label.btn { touch-action: manipulation; }
 
 .app {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   padding: 14px;
-  max-width: 1280px;
+  max-width: 1700px;
   margin: 0 auto;
 }
+@media (min-width: 1000px) { .app { grid-template-columns: 300px minmax(0, 1fr) 360px; } }
+.tool-list { display: flex; flex-direction: column; gap: 6px; }
+.tool-list .tool { justify-content: flex-start; }
+/* 階層(線の一覧)。枠エディタと同じ見た目 */
+.layer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.layer-list li { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border: 2px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 13px; }
+.layer-list li.on { border-color: var(--accent); background: #fff4ea; }
+.layer-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer-list .tag { font-size: 11px; color: #fff; background: var(--ink); border-radius: 6px; padding: 0 5px; }
+.layer-drawer .layer-list { overflow-y: auto; }
 .stage { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .board {
@@ -151,6 +161,7 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
   .top .note { display: none; }
 }
 </style>
+<link rel="stylesheet" href="../../ui/layer-drawer.css">
 <script src="../../ui/site-header.js" defer></script>
 </head>
 <body>
@@ -160,11 +171,28 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
 </header>
 
 <main class="app">
+  <!-- 左の列:上に「追加」、下に「階層(線の一覧)」。広い画面ではいつも出ていて、狭い画面では前面に出る引き出し -->
+  <aside class="layer-drawer" id="layerDrawer" aria-label="追加と階層">
+    <section class="box box--fit">
+      <h2>追加</h2>
+      <div class="tool-list" role="group" aria-label="ツール">
+        <button type="button" class="btn tool" data-mode="draw" title="描く(D)">✏️ 描く</button>
+        <button type="button" class="btn tool" data-mode="move" title="動かす(V)">✋ 動かす</button>
+        <button type="button" class="btn tool" data-mode="draft" title="下書きを動かす(B)">🖼 下書きを動かす</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="btn btn--small btn--primary">下書きを読み込む<input id="draftFile" type="file" accept="image/*,.svg" hidden></label>
+        <label class="btn btn--small">SVG を開く<input id="openFile" type="file" accept=".svg,image/svg+xml" hidden></label>
+      </div>
+    </section>
+    <section class="box">
+      <h2>階層</h2>
+      <ul id="layerPanel" class="layer-list"></ul>
+    </section>
+    <button type="button" class="layer-handle" id="layerHandle" aria-controls="layerDrawer" aria-expanded="false">☂ レイヤー</button>
+  </aside>
   <section class="stage">
     <div class="toolbar" role="group" aria-label="ツール">
-      <button type="button" class="btn tool" data-mode="draw" title="描く(D)">✏️ 描く</button>
-      <button type="button" class="btn tool" data-mode="move" title="動かす(V)">✋ 動かす</button>
-      <button type="button" class="btn tool" data-mode="draft" title="下書きを動かす(B)">🖼 下書きを動かす</button>
       <span style="flex:1"></span>
       <button type="button" class="btn btn--small" id="undo" title="元に戻す(Ctrl+Z)">↶ 戻す</button>
       <button type="button" class="btn btn--small" id="redo" title="やり直す(Ctrl+Y)">↷ やり直す</button>
@@ -186,27 +214,10 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
     <p class="hint" id="hint"></p>
   </section>
 
-  <aside class="panel">
+  <aside class="right-drawer" id="rightDrawer" aria-label="詳細">
+  <div class="panel">
     <section class="box">
-      <h2>ファイル</h2>
-      <div class="row">
-        <label class="btn btn--primary">下書きを読み込む<input id="draftFile" type="file" accept="image/*,.svg" hidden></label>
-        <label class="btn">SVG を開く<input id="openFile" type="file" accept=".svg,image/svg+xml" hidden></label>
-      </div>
-      <div class="field" style="margin-top:10px">
-        <span>名前(保存するファイル名・コピーするときのジョブ名)</span>
-        <input id="iconName" type="text" placeholder="例: 魔獣使い">
-      </div>
-      <div class="row" style="margin-top:10px">
-        <button type="button" class="btn btn--primary" id="saveSvg">SVG で保存</button>
-        <button type="button" class="btn" id="copyCode" title="job-icons.js にそのまま貼れる1行">job-icons.js 用にコピー</button>
-      </div>
-      <p class="status" id="status" role="status"></p>
-      <p class="note">画像はドラッグ&ドロップ・貼り付け(Ctrl+V)でも下書きにできます。保存した SVG はここで開くと、続きから編集できます。</p>
-    </section>
-
-    <section class="box">
-      <h2>選んでいる線</h2>
+      <h2>詳細</h2>
       <div id="pathPanel"></div>
     </section>
 
@@ -234,9 +245,26 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
       <div class="preview preview--dark" id="previewDark"></div>
       <div class="preview preview--light" id="previewLight"></div>
     </section>
+
+    <section class="box">
+      <h2>ファイル</h2>
+      <div class="field">
+        <span>名前(保存するファイル名・コピーするときのジョブ名)</span>
+        <input id="iconName" type="text" placeholder="例: 魔獣使い">
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button type="button" class="btn btn--primary" id="saveSvg">SVG で保存</button>
+        <button type="button" class="btn" id="copyCode" title="job-icons.js にそのまま貼れる1行">job-icons.js 用にコピー</button>
+      </div>
+      <p class="status" id="status" role="status"></p>
+      <p class="note">画像はドラッグ&ドロップ・貼り付け(Ctrl+V)でも下書きにできます。保存した SVG はここで開くと、続きから編集できます。</p>
+    </section>
+  </div>
+  <button type="button" class="right-handle" id="rightHandle" aria-controls="rightDrawer" aria-expanded="false">✿ 詳細</button>
   </aside>
 </main>
 
+<script src="../../ui/layer-drawer.js"></script>
 <script>
 "use strict";
 // ---------- 状態 ----------
@@ -616,8 +644,35 @@ function renderDraftPanel() {
   row.style.marginTop = "10px";
 }
 
+// 階層:線の一覧。押すと、その線を選ぶ(いちばん上が、いちばん前)
+function renderLayerList() {
+  const ul = $("layerPanel");
+  ul.replaceChildren();
+  if (!doc.paths.length) {
+    const li = document.createElement("li");
+    li.className = "note";
+    li.style.cssText = "border:0;cursor:default";
+    li.textContent = "まだ線がありません。";
+    ul.append(li);
+    return;
+  }
+  [...doc.paths].reverse().forEach((p) => {
+    const n = doc.paths.indexOf(p) + 1;
+    const li = document.createElement("li");
+    li.className = p.id === sel.path ? "on" : "";
+    li.innerHTML = `<span class="tag">${p.fill ? "塗り" : p.closed ? "閉じた線" : "線"}</span><span class="name">線 ${n}</span>`;
+    li.addEventListener("click", () => {
+      if (drawing) finishDrawing();
+      sel = { path: p.id, point: -1 };
+      renderAll();
+    });
+    ul.append(li);
+  });
+}
+
 function renderAll() {
   fixSelection();
+  renderLayerList();
   renderDraft();
   renderShapes();
   renderOverlay();

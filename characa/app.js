@@ -1576,9 +1576,11 @@ function dropLayer(layer, belowId) {
 function renderFx() {
   const box = $("fxProps");
   box.replaceChildren();
-  const l = selected();
-  if (l?.type === "image") return renderFxFields(box, l);
-  box.append(Object.assign(document.createElement("p"), { className: "note", textContent: "スクショ(画像)を選ぶと、ここでエフェクトを調整できます。カード上で画像を押すか、「レイヤー」から選んでください。" }));
+  // 画像を選んでいないときは、メインのスクショ(いちばん背面側の画像)を調整する
+  const sel = selected();
+  const l = sel?.type === "image" ? sel : project.layers.find((x) => x.type === "image");
+  if (l) return renderFxFields(box, l);
+  box.append(Object.assign(document.createElement("p"), { className: "note", textContent: "スクショがまだありません。" }));
 }
 
 function renderProps() {
@@ -2276,8 +2278,6 @@ $("mainShot").addEventListener("change", async (e) => {
 // ---------- 画面のレイアウト ----------
 
 // style.css の「横に広い画面」と同じ条件
-const SIDE_BY_SIDE = matchMedia("(min-width: 900px), (orientation: landscape) and (min-width: 560px)");
-const MIN_SHEET = 230; // 縦に並べるとき、下のシートに最低限残す高さ
 const STAGE_REF = 1920; // この長さが制作エリアに収まる倍率で表示する(縦横どちらのカードでも同じ倍率になる)
 const GRID_STEP = 120; // グリッド1マスのカード上の大きさ(px)
 
@@ -2297,11 +2297,11 @@ function layoutStage() {
   const bar = $("stageBar").offsetHeight + (parseFloat(cs.rowGap) || 0); // 下のボタンのバーの分
   const availW = ws.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-  const availH = (SIDE_BY_SIDE.matches ? ws.clientHeight - padY : $("app").clientHeight - padY - MIN_SHEET) - bar;
+  const availH = ws.clientHeight - padY - bar;
   // 横幅はいつも空いている所いっぱい(左右に余白を作らない)。
   // 縦に並べるときの高さは、横幅までにとどめる(下のシートを狭くしないため)。高さが足りなければ横長になる
   const bw = Math.max(120, Math.floor(availW));
-  const bh = Math.max(120, Math.floor(SIDE_BY_SIDE.matches ? availH : Math.min(availW, availH)));
+  const bh = Math.max(120, Math.floor(availH));
 
   const board = $("artboard");
   board.style.width = `${bw}px`;
@@ -2376,7 +2376,7 @@ function boardPoint(e) {
 
 new ResizeObserver(layoutStage).observe($("app"));
 new ResizeObserver(layoutStage).observe(document.querySelector(".top")); // 上の帯の高さが変わったとき(トップへのリンクが入ったときなど)も測り直す
-SIDE_BY_SIDE.addEventListener("change", layoutStage);
+matchMedia("(min-width: 1000px)").addEventListener("change", layoutStage); // 左右の列が出入りするとき
 
 $("zoomIn").addEventListener("click", () => zoomTo(view.zoom * 1.25));
 $("zoomOut").addEventListener("click", () => zoomTo(view.zoom / 1.25));
@@ -2515,6 +2515,24 @@ $("layerHandle").addEventListener("click", () => setLayerDrawer(!$("layerDrawer"
     open = sessionStorage.getItem(DRAWER_KEY) === "1";
   } catch {}
   setLayerDrawer(open);
+}
+// 右のシート(狭い画面では、右から出る引き出し)。開いているかは、そのタブを開いている間だけ覚える
+const SHEET_KEY = "characa:sheetOpen";
+function setSheetDrawer(open) {
+  $("sheet").classList.toggle("open", open);
+  $("sheetHandle").setAttribute("aria-expanded", String(open));
+  $("sheetHandle").title = open ? "設定をしまう" : "設定を出す";
+  try {
+    sessionStorage.setItem(SHEET_KEY, open ? "1" : "0");
+  } catch {}
+}
+$("sheetHandle").addEventListener("click", () => setSheetDrawer(!$("sheet").classList.contains("open")));
+{
+  let open = false;
+  try {
+    open = sessionStorage.getItem(SHEET_KEY) === "1";
+  } catch {}
+  setSheetDrawer(open);
 }
 let savedTab = null;
 try {

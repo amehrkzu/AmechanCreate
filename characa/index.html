@@ -20,8 +20,13 @@
 <main class="app" id="app">
   <!-- レイヤーの引き出し:画面の前面に、左からにょきっと出る。右はしの付箋のつまみで出し入れする -->
   <aside class="layer-drawer" id="layerDrawer" aria-label="レイヤー">
+    <section class="box box--fit">
+      <h2>追加</h2>
+      <div id="addTiles" class="frames"></div>
+      <div id="symbolActions" class="actions" style="margin-top:10px"></div>
+    </section>
     <section class="box">
-      <h2>レイヤー</h2>
+      <h2>階層</h2>
       <div class="actions"><button type="button" class="btn btn--small btn--primary" id="addFolder">＋ フォルダーを作る</button></div>
       <ul id="layers" class="layers"></ul>
     </section>
@@ -46,10 +51,11 @@
   </section>
 
   <section class="sheet" id="sheet">
+    <button type="button" class="sheet-handle" id="sheetHandle" aria-controls="sheet" aria-expanded="false">✿ 設定</button>
     <nav class="sheet-tabs" role="tablist" aria-label="設定">
+      <button type="button" class="sheet-tab" role="tab" data-tab="layers" style="--c:#bdeccd">詳細</button>
       <button type="button" class="sheet-tab" role="tab" data-tab="design" style="--c:#ffcf9f">デザイン</button>
       <button type="button" class="sheet-tab" role="tab" data-tab="chara" style="--c:#ffe7a3">キャラ</button>
-      <button type="button" class="sheet-tab" role="tab" data-tab="layers" style="--c:#bdeccd">要素</button>
       <button type="button" class="sheet-tab" role="tab" data-tab="fx" style="--c:#ffd1e8">エフェクト</button>
       <button type="button" class="sheet-tab" role="tab" data-tab="card" style="--c:#dccbff">カード</button>
     </nav>
@@ -108,13 +114,7 @@
 
       <div class="tab-panel" role="tabpanel" data-panel="layers">
         <section class="box">
-          <h2>要素を追加</h2>
-          <div id="addTiles" class="frames"></div>
-          <div id="symbolActions" class="actions" style="margin-top:10px"></div>
-          <p class="note">押すと、カードの真ん中に追加されます。</p>
-        </section>
-        <section class="box">
-          <h2>選択中の要素</h2>
+          <h2>詳細</h2>
           <div id="props" class="fields"></div>
         </section>
       </div>
