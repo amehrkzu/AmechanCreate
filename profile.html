@@ -135,6 +135,19 @@
   .ub-chara-tag:active .ub-shape { filter: drop-shadow(0 1px 0 var(--ub-sh)); }
   /* 選んでいるキャラ */
   .ub-chara-tag[aria-pressed="true"] { --ub-bg: var(--accent); --ub-fg: #fff; }
+  /* キャラの色が明るい(白っぽい)とき(<html class="light-color">):アクセント色の文字と、選んでいるボタンの文字を、
+     キャラの色を濃く・鮮やかにした色(--accent-deep。色味はそのまま、明るさを 1/4 だけ下げる)にして読みやすくする */
+  :root {
+    --accent-deep: color-mix(in oklab, var(--accent) 75%, #3d2b36); /* 古いブラウザ向け */
+    --accent-deep: oklch(from var(--accent) calc(l * .75) calc(c * 1.8) h);
+  }
+  .light-color .avatar,
+  .light-color .profile-name,
+  .light-color .extra-title,
+  .light-color .extra.full .extra-caption,
+  .light-color .secret.found { color: var(--accent-deep); }
+  .light-color .ub-chara-tag[aria-pressed="true"] { --ub-fg: var(--accent-deep); }
+  .light-color h1 { background-image: linear-gradient(90deg, var(--accent-deep), color-mix(in oklab, var(--accent-deep) 70%, var(--accent2))); }
   @media (prefers-reduced-motion: reduce) { .ub-chara-tag { transition: none; } }
   /* 隠しキャラ:ふだんは文字が透明。ドラッグで選ぶと色が付いて見え、そのあとは押せる */
   .secret-line {
@@ -476,14 +489,27 @@ const SECRET_LABEL = "隠し";
 // 「カラー」という見出しの列に色を書いたキャラは、選んだときにページの色がその色になる(プロフィールの項目としては表示しない)
 const COLOR_LABEL = "カラー";
 const HIDDEN_LABELS = [SECRET_LABEL, COLOR_LABEL];
+// 色の明るさ(0 = 黒 〜 1 = 白。WCAG の相対輝度)。色の名前(skyblue など)も、canvas に通して #rrggbb にしてから計る
+function luminance(color) {
+  const g = document.createElement("canvas").getContext("2d");
+  g.fillStyle = "#000";
+  g.fillStyle = color;
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(g.fillStyle);
+  if (!m) return 0;
+  const lin = (h) => { const c = parseInt(h, 16) / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * lin(m[1]) + 0.7152 * lin(m[2]) + 0.0722 * lin(m[3]);
+}
 function applyCharaColor(ch) {
   const v = String((ch.fields || []).find(f => f.label === COLOR_LABEL)?.value ?? "").trim();
   const root = document.documentElement.style;
   const keys = ["--accent", "--accent2", "--border", "--bg", "--bg2", "--bg3"];
   if (!v || !CSS.supports("color", v)) {
     keys.forEach(k => root.removeProperty(k)); // 決めていない・読めない色のときは、いつものピンク
+    document.documentElement.classList.remove("light-color");
     return;
   }
+  // 明るい色(白い文字が読みにくい色)なら、文字をキャラの色を濃くした色にする
+  document.documentElement.classList.toggle("light-color", luminance(v) > 0.45);
   // 1つの色から、アクセント・見出しのグラデーションの相手・枠・背景のうすい色を作る
   root.setProperty("--accent", v);
   root.setProperty("--accent2", `color-mix(in oklab, ${v} 55%, #b58cff)`);
