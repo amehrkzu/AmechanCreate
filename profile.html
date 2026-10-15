@@ -243,6 +243,19 @@
     line-height: 1.8;
     margin: 40px 0;
   }
+  /* ぐるぐる(読み込み中)。パーツ台帳の「ぐるぐる」(ui/kit.css の .spinner)と同じ */
+  .spinner { position: relative; display: block; width: 36px; height: 36px; margin: 0 auto 10px; animation: spinner 1s steps(8) infinite; }
+  .spinner i { position: absolute; left: 50%; top: 0; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: var(--accent); transform-origin: 3.5px 18px; }
+  .spinner i:nth-child(1) { transform: rotate(0deg); }
+  .spinner i:nth-child(2) { transform: rotate(45deg); opacity: .88; }
+  .spinner i:nth-child(3) { transform: rotate(90deg); opacity: .76; }
+  .spinner i:nth-child(4) { transform: rotate(135deg); opacity: .64; }
+  .spinner i:nth-child(5) { transform: rotate(180deg); opacity: .52; }
+  .spinner i:nth-child(6) { transform: rotate(225deg); opacity: .4; }
+  .spinner i:nth-child(7) { transform: rotate(270deg); opacity: .28; }
+  .spinner i:nth-child(8) { transform: rotate(315deg); opacity: .16; }
+  @keyframes spinner { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
   .error {
     color: #d0507a;
     text-align: center;
@@ -646,7 +659,7 @@ function escapeHtml(s) {
 }
 
 async function init() {
-  profile.innerHTML = `<p class="loading">読み込み中…♡</p>`;
+  profile.innerHTML = `<p class="loading" role="status"><span class="spinner" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>読み込み中…</p>`;
   try {
     const data = await loadData();
     characters = data.characters || [];
