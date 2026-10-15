@@ -33,15 +33,34 @@
     min-height: 100vh;
     font-family: "M PLUS Rounded 1c", sans-serif;
     color: var(--text);
-    background: radial-gradient(circle at 20% 10%, var(--bg2), transparent 50%),
-                radial-gradient(circle at 80% 90%, var(--bg3), transparent 50%),
-                var(--bg);
-    background-attachment: fixed;
+    background: var(--bg);
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 48px 16px;
   }
+  /* 背景のもわもわ:色の雲(.mofu > i)が、画面のうしろでゆっくり漂う。
+     動かすのは transform(位置・大きさ)だけなので、画面の描き直しがほとんど起きず軽い。雲の色はキャラの色に合わせて変わる */
+  .mofu { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+  .mofu i {
+    position: absolute;
+    width: 75vmax;
+    height: 75vmax;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--c) 0%, transparent 65%);
+    will-change: transform;
+    animation: mofu 10s ease-in-out infinite alternate;
+  }
+  .mofu i:nth-child(1) { --c: var(--bg2); left: -30vmax; top: -35vmax; }
+  .mofu i:nth-child(2) { --c: var(--bg3); right: -30vmax; bottom: -35vmax; animation-duration: 13s; animation-delay: -5s; }
+  .mofu i:nth-child(3) { --c: var(--border); left: 20vw; top: 30vh; width: 55vmax; height: 55vmax; opacity: .7; animation-duration: 16s; animation-delay: -9s; }
+  @keyframes mofu {
+    0% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30vw, 20vh) scale(1.25); }
+    66% { transform: translate(-15vw, 35vh) scale(.85); }
+    100% { transform: translate(20vw, -15vh) scale(1.15); }
+  }
+  @media (prefers-reduced-motion: reduce) { .mofu i { animation: none; } }
   h1 {
     margin: 0 0 32px;
     font-size: clamp(1.6rem, 5vw, 2.4rem);
@@ -346,6 +365,7 @@
 <script src="ui/site-header.js" defer></script>
 </head>
 <body>
+<div class="mofu" aria-hidden="true"><i></i><i></i><i></i></div>
 
 <h1>キャラクター紹介</h1>
 
