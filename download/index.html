@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja" data-theme="sora">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ダウンロード - あめちゃんもの置き</title>
+<link rel="icon" type="image/png" href="../Icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
+<link rel="stylesheet" href="../ui/kit.css">
+<style>
+.apps { display: flex; flex-direction: column; gap: 14px; }
+.app-head { display: flex; align-items: center; gap: 12px; }
+.app-head .icon { flex-shrink: 0; }
+.app-head b { display: block; font-size: 16px; }
+.app-head small { display: block; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.app form { margin-top: 12px; }
+.app .status { min-height: 1.4em; }
+.app .spinner { display: inline-block; vertical-align: middle; width: 20px; height: 20px; margin: 0 6px 0 0; }
+.app .spinner i { width: 4px; height: 4px; margin-left: -2px; transform-origin: 2px 10px; }
+</style>
+<script src="../ui/site-header.js" defer></script>
+</head>
+<body class="bg-dots">
+<main class="page">
+  <div class="title-wrap">
+    <h1 class="title">ダウンロード</h1>
+    <p class="lead">あめちゃんが作ったアプリ。パスワードを入れるとダウンロードできます</p>
+  </div>
+
+  <div class="apps" id="apps"></div>
+
+  <p class="note">Android のアプリ(.apk)は、入れるときに「提供元不明のアプリ」を許可するか聞かれます。</p>
+</main>
+
+<script src="ame-crypt.js"></script>
+<script>
+"use strict";
+// 置いてあるアプリ。file は、encrypt.html(ファイルを暗号化する道具)で作ったファイルを files/ に置いたもの
+const APPS = [
+  {
+    name: "PetApp",
+    desc: "Android アプリ",
+    file: "files/petapp.enc",
+    type: "application/vnd.android.package-archive",
+    icon: "var(--mint)",
+  },
+];
+
+const list = document.getElementById("apps");
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const SPINNER = '<span class="spinner" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>';
+
+APPS.forEach((app, i) => {
+  const box = document.createElement("section");
+  box.className = "box app";
+  box.innerHTML = `
+    <div class="app-head">
+      <span class="icon" style="--c:${app.icon}"><svg viewBox="0 0 28 28"><rect x="8" y="3" width="12" height="22" rx="3"/><path d="M12 21h4"/></svg></span>
+      <span><b>${esc(app.name)}</b><small>${esc(app.desc)}</small></span>
+    </div>
+    <form class="row" autocomplete="off">
+      <input type="password" placeholder="パスワード" aria-label="${esc(app.name)} のパスワード" required>
+      <button type="submit" class="btn btn--primary">ダウンロード</button>
+    </form>
+    <p class="status" role="status"></p>`;
+  const form = box.querySelector("form");
+  const input = box.querySelector("input");
+  const button = box.querySelector("button");
+  const status = box.querySelector(".status");
+  const say = (html, kind = "") => {
+    status.className = "status" + (kind ? " status--" + kind : "");
+    status.innerHTML = html;
+  };
+  let cache = null; // 暗号化したファイル(2回目からは取りに行かない)
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    button.disabled = true;
+    try {
+      if (!cache) {
+        say(SPINNER + "ファイルを取ってきています…");
+        const res = await fetch(app.file, { cache: "no-cache" });
+        if (!res.ok) throw new Error(res.status === 404 ? "missing" : "network");
+        cache = await res.arrayBuffer();
+      }
+      say(SPINNER + "パスワードを確かめています…");
+      const { name, data } = await AmeCrypt.decrypt(cache, input.value);
+      AmeCrypt.save(data, name, app.type);
+      say(`${esc(name)} をダウンロードしました`, "ok");
+      input.value = "";
+    } catch (err) {
+      const msg = {
+        password: "パスワードが違います",
+        missing: "まだ準備中です",
+        format: "ファイルが壊れているみたいです",
+      }[err.message] ?? "ダウンロードできませんでした。時間をおいて試してね";
+      say(msg, "error");
+      if (err.message === "password") input.select();
+    } finally {
+      button.disabled = false;
+    }
+  });
+  list.append(box);
+});
+</script>
+</body>
+</html>

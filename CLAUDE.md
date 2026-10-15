@@ -20,3 +20,7 @@
   - 新しいツールは、`ui/layer-drawer.css` と `ui/layer-drawer.js` を読み込み、`<aside class="layer-drawer" id="layerDrawer">` の中に `<section class="box"><h2>レイヤー</h2>…一覧…</section>` と `<button class="layer-handle" id="layerHandle">☂ レイヤー</button>` を置く(書き方は ui/layer-drawer.js の先頭のコメント)。一覧の行は `.layer-list li`(選んでいる行は `.on`)にすると、水色に合う
   - 枠エディタ・シンボルエディタは対応済み。キャラカは自前の同じ見た目(`characa/style.css` の `.layer-drawer`)。SVGメーカー(アイコンメーカー)にはレイヤー一覧がないので、作るときはこのルールで
   - 同じ名前のサイドバーの部品が、パーツメーカーの「サイドバー」(`ui/kit.css` の `.ub-drawer`)にもある
+
+## 引き継ぎメモ
+- アプリダウンロード(パスワードつき・暗号化して置く):[HANDOFF_download.md](HANDOFF_download.md)
+- キャラ紹介・関係辞典(Apps Script のデータ):[HANDOFF_coupling_profile.md](HANDOFF_coupling_profile.md)

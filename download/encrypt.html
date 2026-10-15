@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja" data-theme="mikan">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ファイルの暗号化 - あめちゃんもの置き</title>
+<link rel="icon" type="image/png" href="../Icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
+<link rel="stylesheet" href="../ui/kit.css">
+<style>
+.page { max-width: 560px; }
+.fields { grid-template-columns: 1fr; }
+.drop { display: block; text-align: center; padding: 22px 12px; border: 2px dashed var(--line); border-radius: var(--radius); color: var(--muted); cursor: pointer; }
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--tint); }
+.drop b { color: var(--text); }
+.spinner { display: inline-block; vertical-align: middle; width: 20px; height: 20px; margin: 0 6px 0 0; }
+.spinner i { width: 4px; height: 4px; margin-left: -2px; transform-origin: 2px 10px; }
+</style>
+<script src="../ui/site-header.js" defer></script>
+</head>
+<body class="bg-dots">
+<main class="page">
+  <div class="title-wrap">
+    <h1 class="title">ファイルの暗号化</h1>
+    <p class="lead">ダウンロードページに置くファイルを、パスワードで暗号化します</p>
+  </div>
+
+  <section class="box">
+    <h2>暗号化する</h2>
+    <form id="form" class="fields" autocomplete="off">
+      <label class="drop field--wide" id="drop">
+        <input type="file" id="file" hidden>
+        <span id="dropText"><b>ファイルを選ぶ</b><br>(ここにドラッグ&ドロップでも)</span>
+      </label>
+      <label class="field">ダウンロードしたときのファイル名
+        <input type="text" id="name" placeholder="例:PetApp.apk" required>
+      </label>
+      <label class="field">パスワード(8文字以上がおすすめ)
+        <input type="password" id="pass" required>
+      </label>
+      <label class="field">パスワード(もう一度)
+        <input type="password" id="pass2" required>
+      </label>
+      <label class="field">暗号化したファイルの名前(files/ に置く名前)
+        <input type="text" id="out" placeholder="例:petapp.enc" required>
+      </label>
+      <div class="actions"><button type="submit" class="btn btn--primary btn--block" id="go">暗号化して保存</button></div>
+    </form>
+    <p class="status" id="status" role="status"></p>
+  </section>
+
+  <p class="note">ファイルはこのブラウザの中だけで暗号化します(どこにも送りません)。パスワードを忘れると誰も開けなくなるので、元のファイルは手元に残しておいてください。</p>
+</main>
+
+<script src="ame-crypt.js"></script>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const SPINNER = '<span class="spinner" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>';
+let picked = null;
+
+function pick(file) {
+  if (!file) return;
+  picked = file;
+  $("dropText").innerHTML = "";
+  $("dropText").append(Object.assign(document.createElement("b"), { textContent: file.name }), ` (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+  if (!$("name").value) $("name").value = file.name;
+  if (!$("out").value) $("out").value = file.name.replace(/\.[^.]+$/, "").toLowerCase().replace(/[^a-z0-9_-]+/g, "-") + ".enc";
+}
+$("file").addEventListener("change", () => pick($("file").files[0]));
+const drop = $("drop");
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); pick(e.dataTransfer.files[0]); });
+
+function say(html, kind = "") {
+  $("status").className = "status" + (kind ? " status--" + kind : "");
+  $("status").innerHTML = html;
+}
+
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!picked) return say("ファイルを選んでください", "error");
+  if ($("pass").value !== $("pass2").value) return say("パスワードが2つで違います", "error");
+  $("go").disabled = true;
+  try {
+    say(SPINNER + "暗号化しています…");
+    const sealed = await AmeCrypt.encrypt(picked, $("name").value.trim(), $("pass").value);
+    // 念のため、同じパスワードで元に戻せるかを確かめてから保存する
+    say(SPINNER + "元に戻せるか確かめています…");
+    const back = await AmeCrypt.decrypt(await sealed.arrayBuffer(), $("pass").value);
+    if (back.data.length !== picked.size) throw new Error("check");
+    AmeCrypt.save(sealed, $("out").value.trim());
+    say(`できました。保存した ${$("out").value.trim()} を download/files/ に置いてください`, "ok");
+  } catch {
+    say("暗号化できませんでした", "error");
+  } finally {
+    $("go").disabled = false;
+  }
+});
+</script>
+</body>
+</html>
