@@ -1,20 +1,19 @@
 {
- "version": 2,
+ "version": 3,
  "name": "クラシック",
  "card": { "w": 1920, "h": 1080, "bg": { "type": "gradient", "color1": "@bg1", "color2": "@bg2", "angle": 135 } },
  "layers": [
   { "type": "image", "x": 0, "y": 0, "w": 1920, "h": 1080 },
-  { "folder": "status", "name": "プロフィール枠", "type": "rect", "x": 1000, "y": 60, "w": 860, "h": 960, "opacity": 0.55, "radius": 28, "borderWidth": 2 },
-  { "folder": "status", "type": "text", "text": "{title}", "x": 1060, "y": 110, "size": 36, "color": "@accent" },
-  { "folder": "status", "type": "text", "text": "{name}", "x": 1056, "y": 160, "size": 96, "font": "Cinzel", "bold": true },
-  { "folder": "status", "type": "text", "text": "{server} [{dataCenter}]", "x": 1060, "y": 290, "size": 40, "color": "@sub" },
-  { "folder": "status", "type": "text", "text": "{race} / {tribe} / {gender}\nFC: {freeCompany}", "x": 1060, "y": 355, "size": 34, "lineHeight": 1.5, "color": "@sub" },
-  { "folder": "status", "type": "mainjob", "x": 1060, "y": 478, "size": 30 },
-  { "folder": "status", "type": "jobs", "x": 1060, "y": 540, "w": 780, "cellW": 145, "size": 26 },
-  { "folder": "status", "type": "playtime", "x": 1060, "y": 792, "w": 780, "size": 22 },
-  { "folder": "status", "type": "activities", "x": 1060, "y": 844, "w": 780, "size": 22 },
-  { "folder": "status", "type": "text", "text": "ここに好きなテキストを書けます", "x": 1060, "y": 950, "size": 26, "width": 760 },
-  { "folder": "status", "type": "text", "text": "(C) SQUARE ENIX", "x": 1890, "y": 1040, "size": 20, "align": "right", "color": "@sub", "opacity": 0.7 },
-  { "type": "folder", "id": "status", "name": "ステータス" }
+  { "folder": "name", "name": "プロフィール枠", "type": "rect", "x": 1000, "y": 60, "w": 860, "h": 960, "opacity": 0.55, "radius": 28, "borderWidth": 2 },
+  { "folder": "name", "type": "text", "text": "{title}", "x": 1060, "y": 110, "w": 780, "size": 36, "color": "@accent", "wrap": false },
+  { "folder": "name", "type": "text", "text": "{name}", "x": 1056, "y": 160, "w": 784, "size": 96, "font": "Cinzel", "bold": true, "wrap": false },
+  { "folder": "name", "type": "text", "text": "{server} [{dataCenter}]", "x": 1060, "y": 290, "w": 780, "size": 40, "color": "@sub", "wrap": false },
+  { "type": "folder", "id": "name", "name": "名前" },
+  { "folder": "job", "type": "mainjob", "x": 1060, "y": 380, "size": 30 },
+  { "folder": "job", "type": "jobs", "x": 1060, "y": 450, "w": 780, "cellW": 145, "size": 26 },
+  { "type": "folder", "id": "job", "name": "ジョブ" },
+  { "type": "playtime", "x": 1060, "y": 720, "w": 780, "size": 22 },
+  { "type": "activities", "x": 1060, "y": 790, "w": 780, "size": 22 },
+  { "type": "text", "text": "(C) SQUARE ENIX", "x": 1590, "y": 1040, "w": 300, "size": 20, "align": "right", "color": "@sub", "opacity": 0.7, "wrap": false }
  ]
 }

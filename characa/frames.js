@@ -10,7 +10,96 @@ const FRAMES = [
   ["double", "二重線"],
   ["corner", "角飾り"],
   ["lace", "レース"],
+  // パーツメーカー(ui/parts.js)の形と同じもの
+  ["capsule", "まるいだけ"],
+  ["leaf", "葉っぱ"],
+  ["circle", "まんまる"],
+  ["bubble", "吹き出し"],
+  ["tag", "タグ"],
+  ["heart", "ハート"],
+  ["cloud", "雲"],
+  ["sticky", "付箋"],
 ];
+
+// 伸び縮みする形の道すじ(パーツメーカーの UB_SVG と同じ形)。box はその道すじを描いたマスの大きさ
+const FRAME_SVG = {
+  heart: { box: [100, 90], d: "M50 87C20 67 3 49 3 28C3 13 15 3 28 3C38 3 46 9 50 18C54 9 62 3 72 3C85 3 97 13 97 28C97 49 80 67 50 87Z" },
+  cloud: { box: [200, 100], d: "M44 96C18 96 4 80 10 62C-2 50 10 26 32 30C36 10 60 2 76 14C88 -2 118 -2 128 16C144 4 172 10 172 32C194 30 204 54 190 68C198 84 182 98 160 96Z" },
+};
+
+// SVG の道すじ(大文字の M L H V C Q Z だけ)を、箱(x, y, w, h)いっぱいに伸ばして g に描く
+function svgPathInto(g, { box: [bw, bh], d }, x, y, w, h) {
+  const sx = w / bw, sy = h / bh, X = (v) => x + v * sx, Y = (v) => y + v * sy;
+  const tokens = d.match(/[MLHVCQZ]|-?\d*\.?\d+/g);
+  let cmd = "", cx = 0, cy = 0;
+  const num = () => Number(tokens[i++]);
+  let i = 0;
+  g.beginPath();
+  while (i < tokens.length) {
+    if (/[A-Z]/.test(tokens[i])) cmd = tokens[i++];
+    if (cmd === "Z") {
+      g.closePath();
+      continue;
+    }
+    if (cmd === "M" || cmd === "L") {
+      cx = num();
+      cy = num();
+      cmd === "M" ? g.moveTo(X(cx), Y(cy)) : g.lineTo(X(cx), Y(cy));
+      if (cmd === "M") cmd = "L"; // M のあとに続く数字は L
+    } else if (cmd === "H") {
+      cx = num();
+      g.lineTo(X(cx), Y(cy));
+    } else if (cmd === "V") {
+      cy = num();
+      g.lineTo(X(cx), Y(cy));
+    } else if (cmd === "C") {
+      const a = [num(), num(), num(), num(), num(), num()];
+      g.bezierCurveTo(X(a[0]), Y(a[1]), X(a[2]), Y(a[3]), X(a[4]), Y(a[5]));
+      [cx, cy] = [a[4], a[5]];
+    } else if (cmd === "Q") {
+      const a = [num(), num(), num(), num()];
+      g.quadraticCurveTo(X(a[0]), Y(a[1]), X(a[2]), Y(a[3]));
+      [cx, cy] = [a[2], a[3]];
+    } else i++;
+  }
+}
+
+// パーツメーカーの形の輪郭。描けたら true
+function shapeOutline(g, base, x, y, w, h) {
+  const m = Math.min(w, h);
+  if (FRAME_SVG[base]) {
+    svgPathInto(g, FRAME_SVG[base], x, y, w, h);
+    return true;
+  }
+  g.beginPath();
+  if (base === "capsule") g.roundRect(x, y, w, h, m / 2);
+  else if (base === "leaf") g.roundRect(x, y, w, h, [m / 2, 0, m / 2, 0]);
+  else if (base === "circle") g.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+  else if (base === "sticky") g.roundRect(x, y, w, h, [m * 0.18, m * 0.18, 0, 0]);
+  else if (base === "tag") {
+    const p = Math.min(h * 0.4, w / 3); // とがった所の長さ
+    g.moveTo(x + p, y);
+    g.lineTo(x + w, y);
+    g.lineTo(x + w, y + h);
+    g.lineTo(x + p, y + h);
+    g.lineTo(x, y + h / 2);
+    g.closePath();
+  } else if (base === "bubble") {
+    // しっぽは左下。本体は高さの 8 割
+    const bh = h * 0.8, r = Math.min(m * 0.15, bh / 2), t = Math.min(w * 0.12, bh * 0.5);
+    const tx = x + Math.min(w * 0.22, w - r - t);
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + bh, r);
+    g.arcTo(x + w, y + bh, x, y + bh, r);
+    g.lineTo(tx + t, y + bh);
+    g.lineTo(tx - t * 0.15, y + h);
+    g.lineTo(tx, y + bh);
+    g.arcTo(x, y + bh, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  } else return false;
+  return true;
+}
 
 // 土台の形として選べるもの(オリジナル枠用)
 const FRAME_BASES = [
@@ -104,6 +193,7 @@ function framePath(g, frame, x, y, w, h, r) {
     return frameRoundRect(g, x, y, w, h, r); // まだ描いていなければ丸い角
   }
   if (base === "square") return frameRoundRect(g, x, y, w, h, 0);
+  if (shapeOutline(g, base, x, y, w, h)) return;
   if (base === "lace" && Math.min(w, h) >= 60) {
     g.beginPath();
     for (const [c, ...v] of laceOutline(x, y, w, h, laceSize(w, h))) {
@@ -525,6 +615,15 @@ const FRAME_PREVIEW = {
   double: '<rect x="4" y="4" width="52" height="32" rx="9"/><rect x="10" y="10" width="40" height="20" rx="4"/>',
   corner: '<rect x="4" y="4" width="52" height="32" rx="9"/><path d="M10 17V10H17M43 10H50V17M50 23V30H43M17 30H10V23"/>',
   lace: '<path d="' + laceOutline(3, 3, 54, 34, 4).map(([c, ...v]) => c + v.map((n) => Math.round(n * 10) / 10).join(" ")).join("") + 'Z"/><rect x="13" y="13" width="34" height="14" rx="3" fill="none"/>',
+  // ここからはパーツメーカーの形の見本と同じ
+  capsule: '<rect x="4" y="9" width="52" height="22" rx="11"/>',
+  leaf: '<path d="M16 8H54V20A12 12 0 0 1 42 32H4V20A12 12 0 0 1 16 8Z"/>',
+  circle: '<ellipse cx="30" cy="20" rx="24" ry="15"/>',
+  bubble: '<path d="M10 5H50Q55 5 55 10V24Q55 29 50 29H24L16 37L17 29H10Q5 29 5 24V10Q5 5 10 5Z"/>',
+  tag: '<path d="M16 8H54V32H16L5 20Z"/>',
+  heart: '<path d="M30 36C17 28 9 21 9 13C9 7 14 4 19 4C24 4 28 7 30 11C32 7 36 4 41 4C46 4 51 7 51 13C51 21 43 28 30 36Z"/>',
+  cloud: '<path d="M14 33C7 33 4 28 6 23C2 19 6 12 13 13C15 7 23 5 28 9C32 3 42 3 45 9C51 6 57 10 56 17C60 21 57 33 49 33Z"/>',
+  sticky: '<path d="M4 34V16Q4 8 12 8H48Q56 8 56 16V34Z"/>',
 };
 
 // オリジナル枠の見本を canvas に描く(パネル1枚)

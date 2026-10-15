@@ -501,8 +501,32 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
 }
 .frame-btn:hover { border-color: var(--accent); }
 .frame-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); box-shadow: 0 0 0 3px var(--glow); }
-.frame-btn .frame-canvas { width: 48px; height: 32px; }
+.frame-btn .frame-canvas { width: 48px; height: 32px; object-fit: contain; }
 .frame-btn svg { width: 48px; height: 32px; fill: var(--tint4); stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+/* 1つあれば十分な要素(ジョブ一覧など)は、カードに出ているあいだ押された見た目。隠しているときは少し薄く */
+#addTiles .frame-btn[data-single][aria-pressed="false"] { opacity: 0.6; }
+
+/* テキストの揃え(左寄せ・中央寄せ・右寄せ) */
+.align-pick { display: flex; gap: 6px; }
+.align-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #fff;
+  border: var(--border) solid var(--line);
+  border-radius: 12px;
+  padding: 6px 4px;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.align-btn:hover { border-color: var(--accent); }
+.align-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); box-shadow: 0 0 0 3px var(--glow); }
+.align-btn svg { width: 18px; height: 18px; fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
 
 .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 .swatch {

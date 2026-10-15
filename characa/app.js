@@ -51,7 +51,9 @@ const SIZES = [
   [1080, 1920, "縦 9:16(1080×1920)"],
 ];
 
-const TYPE_LABEL = { text: "テキスト", image: "画像", rect: "枠", jobs: "ジョブ", activities: "コンテンツ", playtime: "時間帯", mainjob: "メインジョブ", symbol: "シンボル", folder: "フォルダー" };
+const TYPE_LABEL = { text: "テキスト", image: "画像", rect: "枠", jobs: "ジョブ", activities: "コンテンツ", playtime: "時間帯", mainjob: "メインジョブ", symbol: "シンボル", jobicon: "ジョブアイコン", folder: "フォルダー" };
+// カードに1つあれば十分な要素。「追加」では、置くかどうか(表示・非表示)だけを切り替える
+const SINGLE_TYPES = ["mainjob", "jobs", "playtime", "activities"];
 
 // 配色の役割。要素の色に "@accent" のように書くと、選んでいる配色のその色になる
 const ROLES = [
@@ -69,20 +71,46 @@ const FALLBACK_PALETTE = { accent: "#e0c27a", text: "#ffffff", sub: "#cfd6e6", m
 const TEMPLATE_LIST = window.CHARACA_TEMPLATES ?? [];
 const PALETTES = window.CHARACA_PALETTES ?? [];
 
+// 「背景の板」(ジョブ一覧・時間帯・コンテンツ・メインジョブのうしろに敷く板)
+const PANEL_DEFAULTS = { panelFrame: "none", panelColor: "@panel", panelOpacity: 0.4, panelBorderWidth: 2, panelBorderColor: "@accent" };
 const DEFAULTS = {
-  text: { text: "テキスト", font: "Noto Sans JP", size: 48, color: "@text", bold: false, italic: false, align: "left", lineHeight: 1.4, spacing: 0, width: 0, strokeColor: "#000000", strokeWidth: 0, shadow: true, opacity: 1 },
-  image: { src: "", w: 640, h: 360, fit: "cover", zoom: 1, posX: 0, posY: 0, radius: 0, flip: false, opacity: 1, ...FX_DEFAULTS },
+  // テキストは箱(x, y, w, h)の中に書く。w が 0 なら文字に合わせた幅(そのときは x が揃えの基準点)、h が 0 なら行に合わせた高さ
+  //   wrap なら箱の幅で折り返す。箱からはみ出した所は描かない
+  text: { text: "テキスト", font: "Noto Sans JP", size: 48, color: "@text", bold: false, italic: false, align: "left", lineHeight: 1.4, spacing: 0, w: 0, h: 0, wrap: true, strokeColor: "#000000", strokeWidth: 0, shadow: true, opacity: 1 },
+  image: { src: "", w: 640, h: 360, fit: "cover", zoom: 1, posX: 0, posY: 0, radius: 0, flip: false, borderColor: "@accent", borderWidth: 0, opacity: 1, ...FX_DEFAULTS },
   rect: { frame: "round", w: 400, h: 240, color: "@panel", radius: 16, borderColor: "@accent", borderWidth: 0, opacity: 0.4 },
   symbol: { symbol: "", w: 240, h: 240, color: "@accent", opacity: 1 }, // シンボルエディタで作った形(symbol は id)
-  jobs: { display: "icon", filter: "battle", hideUnlearned: false, cols: 6, h: 0, cellW: 155, font: "Noto Sans JP", size: 28, bold: false, iconColor: "@text", color: "@text", levelColor: "@accent", dimColor: "@muted", mainColor: "@accent", subColor: "@accent", boardFrame: "pill", panelFrame: "none", panelColor: "@panel", panelOpacity: 0.4, shadow: true, opacity: 1 },
+  jobicon: { job: "ナイト", w: 160, h: 160, color: "@accent", opacity: 1 }, // ジョブアイコンを1つ、シンボルのように置く
+  jobs: { display: "icon", filter: "battle", hideUnlearned: false, cols: 6, h: 0, cellW: 155, font: "Noto Sans JP", size: 28, bold: false, iconColor: "@text", color: "@text", levelColor: "@accent", dimColor: "@muted", mainColor: "@accent", subColor: "@accent", boardShow: true, boardFrame: "pill", mainLine: 2, subLine: 0, ...PANEL_DEFAULTS, shadow: true, opacity: 1 },
   // やっているコンテンツ(タグを並べる)。どれをやっているかは、キャラ情報の data.activities に入る
-  activities: { w: 800, h: 0, font: "Noto Sans JP", size: 24, bold: true, color: "@text", chipColor: "@accent", chipStyle: "soft", chipLine: 0, chipFrame: "pill", panelFrame: "none", panelColor: "@panel", panelOpacity: 0.4, opacity: 1 },
-  // 時間帯(エオ住/不定期 + 朝〜深夜をタグで並べる)。data.playStyle / data.playTimes
-  playtime: { w: 800, h: 0, font: "Noto Sans JP", size: 24, bold: true, color: "@text", chipColor: "@sub", chipStyle: "soft", chipLine: 0, chipFrame: "pill", panelFrame: "none", panelColor: "@panel", panelOpacity: 0.4, opacity: 1 },
+  activities: { w: 800, h: 0, font: "Noto Sans JP", size: 24, bold: true, color: "@text", chipColor: "@accent", chipFill: "soft", chipLine: 2, chipLineColor: "@accent", chipFrame: "pill", ...PANEL_DEFAULTS, opacity: 1 },
+  // 時間帯(エオ住/不定期 + 朝〜深夜をタグで並べる)。data.playStyle / data.playTimes。朝〜深夜はアイコンで出せる
+  playtime: { w: 800, h: 0, font: "Noto Sans JP", size: 24, bold: true, color: "@text", timeDisplay: "icon", chipColor: "@sub", chipFill: "soft", chipLine: 2, chipLineColor: "@sub", chipFrame: "pill", ...PANEL_DEFAULTS, opacity: 1 },
   // メインジョブ(アイコン+ジョブ名+レベル)。data.mainJob
-  mainjob: { font: "Noto Sans JP", size: 34, bold: true, color: "@text", iconColor: "@accent", levelColor: "@accent", showLevel: true, shadow: true, opacity: 1 },
+  mainjob: { font: "Noto Sans JP", size: 34, bold: true, color: "@text", iconColor: "@accent", levelColor: "@accent", showName: true, showLevel: true, ...PANEL_DEFAULTS, shadow: true, opacity: 1 },
   folder: { name: "フォルダー", open: true, opacity: 1 }, // レイヤーをまとめる入れ物(それ自体は描かない)
 };
+
+// 背景の板の調整欄(形・色・不透明度・線)
+const PANEL_FIELDS = [
+  ["panelFrame", "背景の板(形)", "frame", { first: [["none", "なし"]] }],
+  ["panelColor", "背景の板の色", "color"],
+  ["panelOpacity", "背景の板の不透明度", "range", { min: 0, max: 1, step: 0.05 }],
+  ["panelBorderWidth", "背景の板の線の太さ(0 = なし)", "number", { min: 0, step: 0.5 }],
+  ["panelBorderColor", "背景の板の線の色", "color"],
+];
+// タグの調整欄(コンテンツ・時間帯)
+const CHIP_FIELDS = [
+  ["chipFrame", "タグの形", "frame", { first: [["pill", "標準(まるいタグ)"]] }],
+  ["chipFill", "タグの塗り", "select", { options: [["soft", "うす塗り"], ["fill", "しっかり塗り"], ["none", "塗りなし"]] }],
+  ["chipColor", "タグの塗りの色", "color"],
+  ["chipLine", "タグの線の太さ(0 = なし)", "number", { min: 0, step: 0.5 }],
+  ["chipLineColor", "タグの線の色", "color"],
+  ["color", "文字の色", "color"],
+  ["font", "フォント", "font"],
+  ["size", "サイズ", "number", { min: 4 }],
+  ["bold", "太字", "checkbox"],
+];
 
 const FIELDS = {
   text: [
@@ -90,12 +118,14 @@ const FIELDS = {
     ["font", "フォント", "font"],
     ["size", "サイズ", "number", { min: 4 }],
     ["color", "色", "color"],
-    ["align", "揃え(X が基準点)", "select", { options: [["left", "左"], ["center", "中央"], ["right", "右"]] }],
+    ["align", "揃え", "align"],
+    ["wrap", "箱の幅で自動改行する(しないときは、はみ出した所を切る)", "checkbox", { wide: true }],
+    ["w", "箱の幅(0 = 文字に合わせる)", "number", { min: 0 }],
+    ["h", "箱の高さ(0 = 文字に合わせる)", "number", { min: 0 }],
     ["bold", "太字", "checkbox"],
     ["italic", "斜体", "checkbox"],
     ["lineHeight", "行間", "number", { min: 0.5, step: 0.1 }],
     ["spacing", "字間", "number"],
-    ["width", "折り返し幅(0=しない)", "number", { min: 0 }],
     ["shadow", "影", "checkbox"],
     ["strokeColor", "縁取りの色", "color"],
     ["strokeWidth", "縁取りの太さ", "number", { min: 0 }],
@@ -109,6 +139,8 @@ const FIELDS = {
     ["posX", "位置(横)", "range", { min: -100, max: 100, step: 1 }],
     ["posY", "位置(縦)", "range", { min: -100, max: 100, step: 1 }],
     ["flip", "左右反転", "checkbox"],
+    ["borderWidth", "枠線の太さ(0 = なし)", "number", { min: 0, step: 0.5 }],
+    ["borderColor", "枠線の色", "color"],
   ],
   rect: [
     ["frame", "枠の形", "frame"],
@@ -116,10 +148,16 @@ const FIELDS = {
     ["h", "高さ", "number", { min: 4 }],
     ["color", "色", "color"],
     ["radius", "角丸", "number", { min: 0 }],
+    ["borderWidth", "枠線の太さ(0 = なし)", "number", { min: 0, step: 0.5 }],
     ["borderColor", "枠線の色", "color"],
-    ["borderWidth", "枠線の太さ", "number", { min: 0 }],
   ],
   symbol: [
+    ["w", "幅", "number", { min: 4 }],
+    ["h", "高さ", "number", { min: 4 }],
+    ["color", "色", "color"],
+  ],
+  jobicon: [
+    ["job", "ジョブ", "select", { options: BATTLE_JOBS.filter((j) => JOB_ICONS[j]).map((j) => [j, j]) }],
     ["w", "幅", "number", { min: 4 }],
     ["h", "高さ", "number", { min: 4 }],
     ["color", "色", "color"],
@@ -139,42 +177,26 @@ const FIELDS = {
     ["dimColor", "未習得の色", "color"],
     ["mainColor", "メインジョブの強調の色", "color"],
     ["subColor", "サブジョブの色", "color"],
+    ["boardShow", "メイン・サブの板を出す", "checkbox", { wide: true }],
     ["boardFrame", "メイン・サブの板の形", "frame", { first: [["pill", "標準(角丸)"]] }],
-    ["panelFrame", "背景の板(形)", "frame", { first: [["none", "なし"]] }],
-    ["panelColor", "背景の板の色", "color"],
-    ["panelOpacity", "背景の板の不透明度", "range", { min: 0, max: 1, step: 0.05 }],
+    ["mainLine", "メインの板の線の太さ(0 = なし)", "number", { min: 0, step: 0.5 }],
+    ["subLine", "サブの板の線の太さ(0 = なし)", "number", { min: 0, step: 0.5 }],
+    ...PANEL_FIELDS,
     ["bold", "太字", "checkbox"],
     ["shadow", "影", "checkbox"],
   ],
   activities: [
     ["w", "幅", "number", { min: 20 }],
     ["h", "高さ(0 = 中身に合わせる)", "number", { min: 0 }],
-    ["chipFrame", "タグの形", "frame", { first: [["pill", "標準(まるいタグ)"]] }],
-    ["chipStyle", "タグの塗り", "select", { options: [["soft", "うす塗り+線"], ["fill", "しっかり塗り"], ["line", "線だけ"]] }],
-    ["chipLine", "タグの線の太さ(0 = 自動)", "number", { min: 0, step: 0.5 }],
-    ["chipColor", "タグの色", "color"],
-    ["color", "文字の色", "color"],
-    ["font", "フォント", "font"],
-    ["size", "サイズ", "number", { min: 4 }],
-    ["bold", "太字", "checkbox"],
-    ["panelFrame", "背景の板(形)", "frame", { first: [["none", "なし"]] }],
-    ["panelColor", "背景の板の色", "color"],
-    ["panelOpacity", "背景の板の不透明度", "range", { min: 0, max: 1, step: 0.05 }],
+    ...CHIP_FIELDS,
+    ...PANEL_FIELDS,
   ],
   playtime: [
+    ["timeDisplay", "朝〜深夜の出し方", "select", { options: [["icon", "アイコン"], ["iconText", "アイコン+文字"], ["text", "文字"]] }],
     ["w", "幅", "number", { min: 20 }],
     ["h", "高さ(0 = 中身に合わせる)", "number", { min: 0 }],
-    ["chipFrame", "タグの形", "frame", { first: [["pill", "標準(まるいタグ)"]] }],
-    ["chipStyle", "タグの塗り", "select", { options: [["soft", "うす塗り+線"], ["fill", "しっかり塗り"], ["line", "線だけ"]] }],
-    ["chipLine", "タグの線の太さ(0 = 自動)", "number", { min: 0, step: 0.5 }],
-    ["chipColor", "タグの色", "color"],
-    ["color", "文字の色", "color"],
-    ["font", "フォント", "font"],
-    ["size", "サイズ", "number", { min: 4 }],
-    ["bold", "太字", "checkbox"],
-    ["panelFrame", "背景の板(形)", "frame", { first: [["none", "なし"]] }],
-    ["panelColor", "背景の板の色", "color"],
-    ["panelOpacity", "背景の板の不透明度", "range", { min: 0, max: 1, step: 0.05 }],
+    ...CHIP_FIELDS,
+    ...PANEL_FIELDS,
   ],
   mainjob: [
     ["font", "フォント", "font"],
@@ -183,8 +205,10 @@ const FIELDS = {
     ["color", "ジョブ名の色", "color"],
     ["iconColor", "アイコンの色", "color"],
     ["levelColor", "レベルの色", "color"],
+    ["showName", "ジョブ名を出す", "checkbox"],
     ["showLevel", "レベルを出す", "checkbox"],
     ["shadow", "影", "checkbox"],
+    ...PANEL_FIELDS,
   ],
 };
 const COMMON_FIELDS = [
@@ -251,9 +275,11 @@ function defaultPalette() {
 
 // templates/classic.json と同じ内容
 function defaultProject() {
-  // スクショ以外の素材は、最初から「ステータス」フォルダーに入れておく
-  const status = makeLayer("folder", { name: "ステータス" });
-  const inStatus = (type, props) => makeLayer(type, { ...props, folder: status.id });
+  // 最初から入っているフォルダー:「名前」(称号・キャラ名・ワールドと、そのうしろの枠)と「ジョブ」。時間帯・コンテンツ・表記はフォルダーの外
+  const name = makeLayer("folder", { name: "名前" });
+  const job = makeLayer("folder", { name: "ジョブ" });
+  const inName = (type, props) => makeLayer(type, { ...props, folder: name.id });
+  const inJob = (type, props) => makeLayer(type, { ...props, folder: job.id });
   return {
     card: { w: 1920, h: 1080, bg: { type: "gradient", color1: "@bg1", color2: "@bg2", angle: 135, image: "", dim: 0.3 } },
     palette: defaultPalette(),
@@ -262,18 +288,17 @@ function defaultProject() {
     layers: [
       // スクショがカード全体の土台。その上に文字やパネルを載せる
       makeLayer("image", { x: 0, y: 0, w: 1920, h: 1080 }),
-      inStatus("rect", { name: "プロフィール枠", x: 1000, y: 60, w: 860, h: 960, opacity: 0.55, radius: 28, borderWidth: 2 }),
-      inStatus("text", { text: "{title}", x: 1060, y: 110, size: 36, color: "@accent" }),
-      inStatus("text", { text: "{name}", x: 1056, y: 160, size: 96, font: "Cinzel", bold: true }),
-      inStatus("text", { text: "{server} [{dataCenter}]", x: 1060, y: 290, size: 40, color: "@sub" }),
-      inStatus("text", { text: "{race} / {tribe} / {gender}\nFC: {freeCompany}", x: 1060, y: 355, size: 34, lineHeight: 1.5, color: "@sub" }),
-      inStatus("mainjob", { x: 1060, y: 478, size: 30 }),
-      inStatus("jobs", { x: 1060, y: 540, w: 780, cellW: 145, size: 26 }),
-      inStatus("playtime", { x: 1060, y: 792, w: 780, size: 22 }),
-      inStatus("activities", { x: 1060, y: 844, w: 780, size: 22 }),
-      inStatus("text", { text: "ここに好きなテキストを書けます", x: 1060, y: 950, size: 26, width: 760 }),
-      inStatus("text", { text: "(C) SQUARE ENIX", x: 1890, y: 1040, size: 20, align: "right", color: "@sub", opacity: 0.7 }),
-      status,
+      inName("rect", { name: "プロフィール枠", x: 1000, y: 60, w: 860, h: 960, opacity: 0.55, radius: 28, borderWidth: 2 }),
+      inName("text", { text: "{title}", x: 1060, y: 110, w: 780, size: 36, color: "@accent", wrap: false }),
+      inName("text", { text: "{name}", x: 1056, y: 160, w: 784, size: 96, font: "Cinzel", bold: true, wrap: false }),
+      inName("text", { text: "{server} [{dataCenter}]", x: 1060, y: 290, w: 780, size: 40, color: "@sub", wrap: false }),
+      name,
+      inJob("mainjob", { x: 1060, y: 380, size: 30 }),
+      inJob("jobs", { x: 1060, y: 450, w: 780, cellW: 145, size: 26 }),
+      job,
+      makeLayer("playtime", { x: 1060, y: 720, w: 780, size: 22 }),
+      makeLayer("activities", { x: 1060, y: 790, w: 780, size: 22 }),
+      makeLayer("text", { text: "(C) SQUARE ENIX", x: 1590, y: 1040, w: 300, size: 20, align: "right", color: "@sub", opacity: 0.7, wrap: false }),
     ],
   };
 }
@@ -307,8 +332,35 @@ function normalize(p) {
     paletteId: p.palette ? p.paletteId ?? "" : base.paletteId,
     data: (({ face, image, ...d }) => d)({ ...emptyData(), ...p.data }), // 以前保存した Lodestone の画像URLは捨てる
     // bind は以前の「Lodestone の画像を表示」設定(廃止)。p.frame は以前の「カード全体の枠の形」(今は枠ごと)
-    layers: numbered(tidyFolders(p.layers.filter((l) => DEFAULTS[l.type]).map(({ bind, ...l }) => ({ ...makeLayer(l.type), ...l, ...(l.type === "rect" && !l.frame ? { frame: oldFrame(p.frame) } : {}) })))),
+    layers: numbered(tidyFolders(p.layers.filter((l) => DEFAULTS[l.type]).map(({ bind, ...l }) => ({ ...makeLayer(l.type), ...upgradeLayer(l), ...(l.type === "rect" && !l.frame ? { frame: oldFrame(p.frame) } : {}) })))),
   };
+}
+
+// 前の形の保存データ(デザインの JSON も)を、今の形にする。初期値を足す前の、保存されていた中身だけを見る
+function upgradeLayer(raw) {
+  const l = { ...raw };
+  // テキスト:前は x が揃えの基準点で、width(0 = 折り返さない)だった → 箱(x が左端、w、wrap)
+  if (l.type === "text" && l.w === undefined) {
+    const width = l.width ?? 0;
+    if (width > 0) {
+      l.w = width;
+      l.wrap = true;
+      if (l.align === "center") l.x = Math.round(l.x - width / 2);
+      else if (l.align === "right") l.x = Math.round(l.x - width);
+    } else {
+      l.w = 0; // 文字に合わせた幅。x は今までどおり揃えの基準点
+    }
+    delete l.width;
+  }
+  // タグ:前は chipStyle(うす塗り+線 / しっかり塗り / 線だけ)と chipLine(0 = 自動) → 塗り(chipFill)と線(chipLine。0 = なし)を別に
+  if ("chipStyle" in l) {
+    const auto = Math.max(1.5, (l.size ?? DEFAULTS[l.type]?.size ?? 24) * 0.08);
+    l.chipFill = { soft: "soft", fill: "fill", line: "none" }[l.chipStyle] ?? "soft";
+    l.chipLine = l.chipStyle === "fill" ? 0 : l.chipLine > 0 ? l.chipLine : auto;
+    delete l.chipStyle;
+  }
+  if (l.chipColor && !l.chipLineColor) l.chipLineColor = l.chipColor; // 前は、線もタグの色だった
+  return l;
 }
 
 // 今すぐ保存する(別のページへ移る前など)
@@ -401,20 +453,12 @@ function tidyFolders(layers) {
   return out;
 }
 
-// フォルダーを作る。選んでいるもの(要素でもフォルダーでも)があれば、それを入れる。
-//   選んでいるものがフォルダーの中にあれば、新しいフォルダーもその中に作る
+// フォルダーを作る。いつも空のフォルダーを、いちばん外の階層のいちばん上(前面)に作る(選んでいるものは入れない)
+//   中身は、一覧でドラッグして入れる
 function createFolder() {
   const n = project.layers.filter(isFolder).length + 1;
   const f = makeLayer("folder", { name: `フォルダー ${n}` });
-  const sel = selected();
-  if (sel) {
-    if (sel.folder) f.folder = sel.folder;
-    sel.folder = f.id;
-    project.layers.splice(project.layers.indexOf(sel) + 1, 0, f);
-  } else {
-    project.layers.push(f);
-  }
-  project.layers = tidyFolders(project.layers);
+  project.layers.push(f);
   changed();
   select(f.id);
 }
@@ -543,6 +587,8 @@ function drawBackground() {
 }
 
 const DRAW = {
+  // テキストの箱。w があれば箱の中で揃え、wrap なら箱の幅で折り返す。箱からはみ出した所は切る
+  //   w が 0 なら文字に合わせた幅(x が揃えの基準点)、h が 0 なら行に合わせた高さ
   text(l) {
     ctx.font = fontString(l);
     if ("letterSpacing" in ctx) ctx.letterSpacing = `${l.spacing || 0}px`;
@@ -551,26 +597,45 @@ const DRAW = {
     const text = resolveText(l.text);
     ensureFont(ctx.font, text);
 
-    const lines = wrapLines(text, l.width);
+    const boxed = l.w > 0;
+    const lines = wrapLines(text, boxed && l.wrap ? l.w : 0);
     const lh = l.size * l.lineHeight;
-    const bw = l.width || Math.max(1, ...lines.map((s) => ctx.measureText(s).width));
-    const bx = l.align === "center" ? l.x - bw / 2 : l.align === "right" ? l.x - bw : l.x;
+    const contentH = Math.max(lh * (lines.length - 1) + l.size, l.size);
+    const bw = boxed ? l.w : Math.max(1, ...lines.map((s) => ctx.measureText(s).width));
+    const bh = l.h > 0 ? l.h : contentH;
+    const bx = boxed ? l.x : l.align === "center" ? l.x - bw / 2 : l.align === "right" ? l.x - bw : l.x;
+    const tx = l.align === "center" ? bx + bw / 2 : l.align === "right" ? bx + bw : bx; // 揃えの基準点
 
+    if (boxed || l.h > 0) {
+      // 縁取りの太さと、上下は影・文字の下の出っぱりのぶんだけ残す
+      const mx = l.strokeWidth || 0, my = mx + l.size * 0.2;
+      ctx.beginPath();
+      ctx.rect(bx - mx, l.y - my, bw + mx * 2, bh + my * 2);
+      ctx.clip();
+    }
     lines.forEach((s, i) => {
       const y = l.y + i * lh;
+      if (y > l.y + bh) return; // 箱の下に出る行は描かない
       if (l.shadow) setShadow(l.size);
       if (l.strokeWidth > 0) {
         ctx.lineJoin = "round";
         ctx.lineWidth = l.strokeWidth * 2;
         ctx.strokeStyle = col(l.strokeColor);
-        ctx.strokeText(s, l.x, y);
+        ctx.strokeText(s, tx, y);
         clearShadow(); // 影は縁取りにだけ付ける
       }
       ctx.fillStyle = col(l.color);
-      ctx.fillText(s, l.x, y);
+      ctx.fillText(s, tx, y);
       clearShadow();
     });
-    return { x: bx, y: l.y, w: bw, h: Math.max(lh * (lines.length - 1) + l.size, l.size) };
+    return { x: bx, y: l.y, w: bw, h: bh };
+  },
+
+  // ジョブアイコンを1つ、箱いっぱいに(シンボルと同じように)
+  jobicon(l) {
+    const icon = jobIcon(l.job, col(l.color));
+    if (icon) ctx.drawImage(icon, l.x, l.y, l.w, l.h);
+    return { x: l.x, y: l.y, w: l.w, h: l.h };
   },
 
   // 枠(w×h)の中に画像を収める。posX/posY は -100(左・上端)〜100(右・下端)
@@ -579,6 +644,12 @@ const DRAW = {
     const b = { x: l.x, y: l.y, w: l.w, h: l.h, dw: l.w, dh: l.h, dx: l.x, dy: l.y };
     if (img) {
       drawPhoto(l, img, b);
+      if (l.borderWidth > 0) {
+        roundRectPath(l.x, l.y, l.w, l.h, l.radius);
+        ctx.lineWidth = l.borderWidth;
+        ctx.strokeStyle = col(l.borderColor);
+        ctx.stroke();
+      }
       return b;
     }
     ctx.save();
@@ -655,8 +726,8 @@ const DRAW = {
       // サブジョブは、アイコン・名前・レベルをサブジョブの色にする(レベルが未取得でも、未習得の色より優先)
       const tone = isSub ? col(l.subColor ?? "@accent") : null;
       const dim = learned || tone ? null : col(l.dimColor);
-      if (isMain || tone) {
-        // うしろに板を敷く。メインジョブ=濃い板+ふち、サブジョブ=うすい板だけ
+      if ((isMain || tone) && l.boardShow !== false) {
+        // うしろに板を敷く。メインジョブ=濃い板、サブジョブ=うすい板。線の太さはそれぞれ決める(0 = 線なし)
         const pad = l.size * 0.28;
         ctx.save();
         clearShadow();
@@ -664,9 +735,10 @@ const DRAW = {
         const mc = tone ?? col(l.mainColor ?? "@accent");
         ctx.fillStyle = rgba(mc, isMain ? 0.28 : 0.14);
         ctx.fill();
-        if (isMain) {
+        const line = isMain ? l.mainLine ?? 2 : l.subLine ?? 0;
+        if (line > 0) {
           ctx.strokeStyle = mc;
-          ctx.lineWidth = Math.max(1.5, l.size * 0.07);
+          ctx.lineWidth = line;
           ctx.stroke();
         }
         ctx.restore();
@@ -705,45 +777,54 @@ const DRAW = {
 
   playtime(l) {
     const d = project.data;
-    return drawTags(l, [...(d.playStyle ? [d.playStyle] : []), ...PLAY_TIMES.filter((t) => d.playTimes?.includes(t))], "時間帯");
+    const mode = l.timeDisplay ?? "icon";
+    // 朝〜深夜は、出し方に合わせてアイコン・アイコン+文字・文字にする(いる頻度はいつも文字)
+    const times = PLAY_TIMES.filter((t) => d.playTimes?.includes(t)).map((t) => ({ text: mode === "icon" ? "" : t, icon: mode === "text" ? null : t }));
+    return drawTags(l, [...(d.playStyle ? [d.playStyle] : []), ...times], "時間帯");
   },
 
   mainjob(l) {
     const d = project.data;
     if (!d.mainJob) return null; // メインジョブを選んでいないときは出さない(キャラタブで選ぶと出る)
     const size = l.size, iconSize = size * 1.4, gap = size * 0.35;
-    const label = d.mainJob;
+    const label = l.showName === false ? "" : d.mainJob;
     const lv = l.showLevel === false ? "" : d.levels.find((j) => j.name === d.mainJob)?.level ?? "";
     const lvText = /^\d+$/.test(lv) ? "Lv" + lv : "";
     ctx.font = fontString(l);
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
     ensureFont(ctx.font, label + lvText);
+    const icon = jobIcon(d.mainJob, col(l.iconColor));
+    // 先に幅を測って、背景の板を敷く
+    const parts = [icon && iconSize, label && ctx.measureText(label).width, lvText && ctx.measureText(lvText).width].filter(Boolean);
+    const w = Math.max(size, parts.reduce((a, b) => a + b, 0) + gap * (parts.length - 1));
+    drawElementPanel(l, l.x, l.y, w, iconSize);
     if (l.shadow) setShadow(size);
     const cy = l.y + iconSize / 2;
     let x = l.x;
-    const icon = jobIcon(d.mainJob, col(l.iconColor));
     if (icon) {
       ctx.drawImage(icon, x, l.y, iconSize, iconSize);
       x += iconSize + gap;
     }
-    ctx.fillStyle = col(l.color);
-    ctx.fillText(label, x, cy);
-    x += ctx.measureText(label).width;
+    if (label) {
+      ctx.fillStyle = col(l.color);
+      ctx.fillText(label, x, cy);
+      x += ctx.measureText(label).width + gap;
+    }
     if (lvText) {
-      x += gap;
       ctx.fillStyle = col(l.levelColor);
       ctx.fillText(lvText, x, cy);
-      x += ctx.measureText(lvText).width;
     }
-    return { x: l.x, y: l.y, w: Math.max(size, x - l.x), h: iconSize };
+    return { x: l.x, y: l.y, w, h: iconSize };
   },
 };
 
 // タグ(角の丸いラベル)を、枠の幅に入る分だけ並べて、入らなければ折り返す。高さを決めたときは、入らない行は出さない。
 //   tags が空のときは、編集中だけ placeholder を薄く出す(保存する画像には出ない)
+//   タグは文字か、{ text, icon }(icon は TIME_ICONS の名前。text が空ならアイコンだけの丸いタグ)
 function drawTags(l, tags, placeholder) {
   const size = l.size, padX = size * 0.7, chipH = size * 1.8, gap = size * 0.45;
+  const iconS = size * 1.15, iconGap = size * 0.3;
   const w = l.w > 0 ? l.w : 800;
   ctx.font = fontString(l);
   ctx.textBaseline = "middle";
@@ -753,45 +834,81 @@ function drawTags(l, tags, placeholder) {
     tags = exporting ? [] : [placeholder];
     ctx.globalAlpha *= 0.45;
   }
-  ensureFont(ctx.font, tags.join(""));
+  tags = tags.map((t) => (typeof t === "string" ? { text: t, icon: null } : t));
+  ensureFont(ctx.font, tags.map((t) => t.text).join(""));
   const maxRows = l.h > 0 ? Math.max(1, Math.floor((l.h + gap) / (chipH + gap))) : Infinity;
   const chip = col(l.chipColor);
   // 並べ方(どのタグを、どこに)
   const placed = [];
   let x = 0, row = 0;
   for (const tag of tags) {
-    const cw = ctx.measureText(tag).width + padX * 2;
+    const tw = tag.text ? ctx.measureText(tag.text).width : 0;
+    const cw = !tag.icon ? tw + padX * 2 : !tag.text ? chipH : padX * 0.8 + iconS + iconGap + tw + padX;
     if (x > 0 && x + cw > w) {
       x = 0;
       row++;
     }
     if (row >= maxRows) break;
-    placed.push({ tag, cw, cx: l.x + x, cy: l.y + row * (chipH + gap) });
+    placed.push({ tag, tw, cw, cx: l.x + x, cy: l.y + row * (chipH + gap) });
     x += cw + gap;
   }
   const rows = placed.length ? Math.round((placed.at(-1).cy - l.y) / (chipH + gap)) + 1 : 1;
   const h = l.h > 0 ? l.h : rows * chipH + (rows - 1) * gap;
   if (!empty) drawElementPanel(l, l.x, l.y, w, h);
-  for (const { tag, cw, cx, cy } of placed) {
+  const fill = l.chipFill ?? "soft";
+  for (const { tag, tw, cw, cx, cy } of placed) {
     shapePath(l.chipFrame, cx, cy, cw, chipH, chipH / 2);
     let text = col(l.color);
-    if (l.chipStyle === "fill") {
+    if (fill === "fill") {
       ctx.fillStyle = chip;
       ctx.fill();
       text = lightness(chip) > 0.6 ? "#1a1a1a" : "#ffffff"; // 塗りの上で読める色
-    } else {
-      if (l.chipStyle === "soft") {
-        ctx.fillStyle = rgba(chip, 0.22);
-        ctx.fill();
-      }
-      ctx.strokeStyle = chip;
-      ctx.lineWidth = l.chipLine > 0 ? l.chipLine : Math.max(1.5, size * 0.08);
+    } else if (fill === "soft") {
+      ctx.fillStyle = rgba(chip, 0.22);
+      ctx.fill();
+    }
+    if (l.chipLine > 0) {
+      ctx.strokeStyle = col(l.chipLineColor ?? l.chipColor);
+      ctx.lineWidth = l.chipLine;
       ctx.stroke();
     }
-    ctx.fillStyle = text;
-    ctx.fillText(tag, cx + cw / 2, cy + chipH / 2 + size * 0.04);
+    const mid = cy + chipH / 2;
+    if (tag.icon) {
+      const ix = tag.text ? cx + padX * 0.8 : cx + (cw - iconS) / 2;
+      drawTimeIcon(tag.icon, ix, mid - iconS / 2, iconS, text);
+    }
+    if (tag.text) {
+      ctx.fillStyle = text;
+      const tx = tag.icon ? cx + padX * 0.8 + iconS + iconGap + tw / 2 : cx + cw / 2;
+      ctx.fillText(tag.text, tx, mid + size * 0.04);
+    }
   }
   return { x: l.x, y: l.y, w, h };
+}
+
+// 時間帯のアイコン(24×24 のマスに描いた形。fill は塗り、stroke は線)
+const TIME_ICONS = {
+  朝: { stroke: "M2 19H22M6 19A6 6 0 0 1 18 19M12 4V7.5M4.6 9.6L6.9 11.9M19.4 9.6L17.1 11.9M9 22H15" },
+  昼: { fill: "M8 12A4 4 0 1 0 16 12A4 4 0 1 0 8 12Z", stroke: "M12 2V4.5M12 19.5V22M2 12H4.5M19.5 12H22M4.9 4.9L6.7 6.7M17.3 17.3L19.1 19.1M4.9 19.1L6.7 17.3M17.3 6.7L19.1 4.9" },
+  夕方: { stroke: "M2 14H22M7.5 14A4.5 4.5 0 0 1 16.5 14M12 4.5V7M5.5 8L7.2 9.7M18.5 8L16.8 9.7M12 16.5V22M9.2 19.4L12 22L14.8 19.4" },
+  夜: { fill: "M19.5 15A8.5 8.5 0 1 1 9 3.5A6.8 6.8 0 0 0 19.5 15Z" },
+  深夜: { fill: "M15.5 17A7 7 0 1 1 6.5 7.5A5.6 5.6 0 0 0 15.5 17ZM18 2L18.9 4.6L21.5 5.5L18.9 6.4L18 9L17.1 6.4L14.5 5.5L17.1 4.6ZM21 10.5L21.5 11.9L22.9 12.4L21.5 12.9L21 14.3L20.5 12.9L19.1 12.4L20.5 11.9Z" },
+};
+const timeIconPaths = new Map();
+function drawTimeIcon(name, x, y, s, color) {
+  const def = TIME_ICONS[name];
+  if (!def) return;
+  let p = timeIconPaths.get(name);
+  if (!p) timeIconPaths.set(name, (p = { fill: def.fill && new Path2D(def.fill), stroke: def.stroke && new Path2D(def.stroke) }));
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s / 24, s / 24);
+  ctx.fillStyle = ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineCap = ctx.lineJoin = "round";
+  if (p.fill) ctx.fill(p.fill);
+  if (p.stroke) ctx.stroke(p.stroke);
+  ctx.restore();
 }
 
 // ジョブ一覧は、枠の幅に入る分だけ横に並べて、入らなければ折り返す(列の数は決めない)。
@@ -883,13 +1000,13 @@ function shapePath(frame, x, y, w, h, r) {
   if (!frame || frame === "pill") return roundRectPath(x, y, w, h, r);
   framePath(ctx, frame, x, y, w, h, Math.min(r, h / 4));
 }
-// ジョブ一覧・時間帯・コンテンツのうしろに敷く「背景の板」(大きさは中身 + すき間)
+// ジョブ一覧・時間帯・コンテンツ・メインジョブのうしろに敷く「背景の板」(大きさは中身 + すき間)
 function drawElementPanel(l, x, y, w, h) {
   if (!l.panelFrame || l.panelFrame === "none") return;
   const pad = l.size * 0.6;
   ctx.save();
   clearShadow();
-  drawFramePanel(ctx, l.panelFrame, { x: x - pad, y: y - pad, w: w + pad * 2, h: h + pad * 2, radius: l.size * 0.6, borderColor: "@accent", borderWidth: 2 }, col, col(l.panelColor ?? "@panel"), l.panelOpacity ?? 0.4);
+  drawFramePanel(ctx, l.panelFrame, { x: x - pad, y: y - pad, w: w + pad * 2, h: h + pad * 2, radius: l.size * 0.6, borderColor: l.panelBorderColor ?? "@accent", borderWidth: l.panelBorderWidth ?? 2 }, col, col(l.panelColor ?? "@panel"), l.panelOpacity ?? 0.4);
   ctx.restore();
 }
 
@@ -1203,30 +1320,24 @@ const EDGE_GRAB = matchMedia("(pointer: coarse)").matches ? 16 : 8;
 const EDGE_CURSOR = { n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize", ne: "nesw-resize", sw: "nesw-resize", nw: "nwse-resize", se: "nwse-resize" };
 
 // 点 p が枠 b のどの辺・角の上か("n" "se" など。どこでもなければ null)
+//   つかめる帯は、枠の外側に EDGE_GRAB、内側は狭く(枠の大きさの 15% まで)。小さい要素でも、中を押せば動かせるように
 function edgeAt(p, b) {
   if (!b) return null;
   const t = EDGE_GRAB / viewScale();
   if (p.x < b.x - t || p.x > b.x + b.w + t || p.y < b.y - t || p.y > b.y + b.h + t) return null;
-  const near = (a, v) => Math.abs(a - v) <= t;
-  // 小さい要素で上下(左右)の辺が近いときは、近いほうを取る
-  const ns = near(p.y, b.y) && (!near(p.y, b.y + b.h) || p.y - b.y < b.y + b.h - p.y) ? "n" : near(p.y, b.y + b.h) ? "s" : "";
-  const ew = near(p.x, b.x) && (!near(p.x, b.x + b.w) || p.x - b.x < b.x + b.w - p.x) ? "w" : near(p.x, b.x + b.w) ? "e" : "";
+  const ix = Math.min(t, b.w * 0.15), iy = Math.min(t, b.h * 0.15); // 内側の帯
+  const n = p.y <= b.y + iy, s = p.y >= b.y + b.h - iy;
+  const w = p.x <= b.x + ix, e = p.x >= b.x + b.w - ix;
+  const ns = n && s ? (p.y - b.y < b.y + b.h - p.y ? "n" : "s") : n ? "n" : s ? "s" : "";
+  const ew = w && e ? (p.x - b.x < b.x + b.w - p.x ? "w" : "e") : w ? "w" : e ? "e" : "";
   return ns + ew || null;
 }
 
-// つかめる辺:まず選んでいる要素。無ければ、その場所でいちばん前にある要素(土台のスクショは除く。カードの端と重なるため)
+// つかめる辺は、選んでいる要素のものだけ(選んでいない要素は、どこを押しても選んで動かす)
 function edgeTarget(p) {
   const sel = selected();
   const se = sel && !isFolder(sel) && !isHidden(sel) && edgeAt(p, boundsById.get(sel.id));
-  if (se) return { layer: sel, edge: se };
-  for (const l of [...project.layers].reverse()) {
-    if (isFolder(l) || isHidden(l)) continue;
-    const b = boundsById.get(l.id);
-    const e = !coversCard(l) && edgeAt(p, b);
-    if (e) return { layer: l, edge: e };
-    if (inside(p, b)) break; // 前にある要素の中を押しているなら、その後ろの要素の辺はつかまない
-  }
-  return null;
+  return se ? { layer: sel, edge: se } : null;
 }
 
 // カード全体を覆う画像枠か(土台のスクショ)
@@ -1341,11 +1452,21 @@ canvas.addEventListener("pointercancel", endDrag);
 
 // 辺・角のドラッグで大きさを変える。つかんだ辺の反対側は動かさない
 //   図形・画像:枠の幅・高さ(角を Shift+ドラッグで縦横比を保つ)
-//   テキスト・ジョブ一覧:文字の大きさを比率で変える
+//   テキスト:箱の幅・高さ / メインジョブ:文字の大きさを比率で変える
 function resize({ layer: l, orig: o, b, edge }, dx, dy, keepRatio) {
   const W = edge.includes("e") ? b.w + dx : edge.includes("w") ? b.w - dx : b.w;
   const H = edge.includes("s") ? b.h + dy : edge.includes("n") ? b.h - dy : b.h;
-  if (l.type === "rect" || l.type === "image" || l.type === "symbol") {
+  // テキストは箱の大きさを変える(文字の大きさは変えない。自動改行なら折り返す位置が変わる)
+  //   左右の辺だけなら幅だけ、上下の辺なら高さも決める
+  if (l.type === "text") {
+    const w = Math.max(10, Math.round(W)), h = Math.max(10, Math.round(H));
+    l.w = /[ew]/.test(edge) || !(o.w > 0) ? w : o.w;
+    if (/[ns]/.test(edge)) l.h = h;
+    l.x = edge.includes("w") ? Math.round(b.x + b.w - l.w) : Math.round(b.x); // 箱になったので x は左端
+    l.y = edge.includes("n") ? Math.round(b.y + b.h - (l.h || b.h)) : o.y;
+    return;
+  }
+  if (l.type === "rect" || l.type === "image" || l.type === "symbol" || l.type === "jobicon") {
     let w = Math.max(10, o.w + (W - b.w)), h = Math.max(10, o.h + (H - b.h));
     if (keepRatio && edge.length === 2) {
       const f = Math.max(w / o.w, h / o.h);
@@ -1375,14 +1496,10 @@ function resize({ layer: l, orig: o, b, edge }, dx, dy, keepRatio) {
   // 左右の辺(と角)は幅の比率、上下の辺は高さの比率
   const f = Math.max(0.05, /[ew]/.test(edge) ? W / b.w : H / b.h);
   l.size = Math.max(4, Math.round(o.size * f));
-  if (l.type === "text" && o.width) l.width = Math.round(o.width * f);
   const k = l.size / o.size; // 丸めたあとの実際の比率
   const bw = b.w * k, bh = b.h * k;
-  const bx = edge.includes("w") ? b.x + b.w - bw : b.x;
-  const by = edge.includes("n") ? b.y + b.h - bh : b.y;
-  if (l.type === "text") l.x = Math.round(l.align === "center" ? bx + bw / 2 : l.align === "right" ? bx + bw : bx);
-  else l.x = Math.round(bx);
-  l.y = Math.round(by);
+  l.x = Math.round(edge.includes("w") ? b.x + b.w - bw : b.x);
+  l.y = Math.round(edge.includes("n") ? b.y + b.h - bh : b.y);
 }
 
 // 描画位置は (枠 - 画像) / 2 × (1 + pos/100) なので、マウス移動量を pos の変化量に換算する
@@ -1496,28 +1613,43 @@ function addLayer(type, symbolId) {
   const sw = sym ? Math.round(240 * Math.min(1, (sym.w || 100) / (sym.h || 100))) : 240;
   const sh = sym ? Math.round(240 * Math.min(1, (sym.h || 100) / (sym.w || 100))) : 240;
   const props = {
-    text: { x: Math.round(w / 2 - 150), y: Math.round(h / 2 - 30), text: "テキスト" },
+    text: { x: Math.round(w / 2 - 200), y: Math.round(h / 2 - 30), w: 400, text: "テキスト" },
     image: { x: Math.round(w / 2 - 200), y: Math.round(h / 2 - 270) },
     rect: { x: Math.round(w / 2 - 200), y: Math.round(h / 2 - 120) },
     jobs: { x: Math.round(w / 2 - 470), y: Math.round(h / 2 - 120) },
+    mainjob: { x: Math.round(w / 2 - 150), y: Math.round(h / 2 - 25), size: 30 },
     activities: { x: Math.round(w / 2 - 400), y: Math.round(h / 2 - 60) },
     playtime: { x: Math.round(w / 2 - 400), y: Math.round(h / 2 - 60) },
     symbol: { x: Math.round(w / 2 - sw / 2), y: Math.round(h / 2 - sh / 2), w: sw, h: sh, symbol: symbolId },
+    jobicon: { x: Math.round(w / 2 - 80), y: Math.round(h / 2 - 80), job: symbolId ?? "ナイト" },
   }[type];
   const l = makeLayer(type, props);
-  if (type === "jobs") {
-    const f = makeLayer("folder", { name: "ジョブ一覧" });
-    const main = makeLayer("mainjob", { x: l.x, y: l.y - 60, size: 30, folder: f.id });
-    l.folder = f.id;
-    project.layers.push(l, main, f); // フォルダーの中身は、フォルダーのすぐ前(下)に並べる
-    project.layers = tidyFolders(project.layers);
-    changed();
-    select(f.id);
-    return;
-  }
   project.layers.push(l);
   changed();
   select(l.id);
+}
+
+// 「追加」の、1つあれば十分な要素のボタンを、カードに出ているかどうかの見た目にする
+function syncSingleTiles() {
+  for (const b of document.querySelectorAll("#addTiles [data-single]")) {
+    const l = project.layers.find((x) => x.type === b.dataset.single);
+    const on = !!l && !isHidden(l);
+    b.setAttribute("aria-pressed", String(on));
+    b.title = on ? "押すと隠す" : "押すと出す";
+  }
+}
+
+// 1つあれば十分な要素(ジョブ一覧など):カードに無ければ置き、あれば表示・非表示を切り替える
+function toggleSingle(type) {
+  const l = project.layers.find((x) => x.type === type);
+  if (!l) return addLayer(type);
+  // フォルダーごと隠れているときは、フォルダーも出す
+  const shown = !isHidden(l);
+  l.hidden = shown;
+  if (!shown) for (const f of ancestorsOf(l)) f.hidden = false;
+  changed();
+  if (!shown) select(l.id);
+  else if (selectedId === l.id) renderProps();
 }
 
 // 選んでいるものを消す(「詳細」の見出しのごみ箱・Delete キー)。フォルダーは中身ごと(確かめてから)
@@ -1542,6 +1674,7 @@ function changed() {
   assignShapeNumbers(project.layers);
   requestDraw();
   renderLayers();
+  syncSingleTiles();
   saveSoon();
 }
 
@@ -1628,6 +1761,39 @@ function colorField(obj, key, label, onChange) {
   return wrap;
 }
 
+// テキストの揃え:左寄せ・中央寄せ・右寄せのボタン
+//   箱の幅が 0(文字に合わせた幅)のときは x が揃えの基準点なので、文字が動かないように x も合わせる
+function alignField(l) {
+  const wrap = document.createElement("div");
+  wrap.className = "field field--wide";
+  wrap.append(Object.assign(document.createElement("span"), { textContent: "揃え" }));
+  const row = document.createElement("div");
+  row.className = "align-pick";
+  const ICON = {
+    left: "M3 5H21M3 10H14M3 15H21M3 20H14",
+    center: "M3 5H21M7 10H17M3 15H21M7 20H17",
+    right: "M3 5H21M10 10H21M3 15H21M10 20H21",
+  };
+  for (const [value, name] of [["left", "左寄せ"], ["center", "中央寄せ"], ["right", "右寄せ"]]) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "align-btn";
+    b.title = name;
+    b.setAttribute("aria-pressed", String(l.align === value));
+    b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON[value]}"/></svg><span>${name}</span>`;
+    b.addEventListener("click", () => {
+      const bx = boundsById.get(l.id);
+      if (!(l.w > 0) && bx) l.x = Math.round(bx.x + (value === "center" ? bx.w / 2 : value === "right" ? bx.w : 0));
+      l.align = value;
+      changed();
+      renderProps();
+    });
+    row.append(b);
+  }
+  wrap.append(row);
+  return wrap;
+}
+
 function button(text, onClick, cls = "btn btn--small") {
   const b = document.createElement("button");
   b.type = "button";
@@ -1688,6 +1854,7 @@ function layerLabel(l) {
   if (l.type === "image") return l.src ? "スクショ" : "(未設定)";
   if (l.type === "rect") return `枠 ${l.no ?? ""}`.trim();
   if (l.type === "symbol") return findSymbol(l.symbol)?.name || "(消されたシンボル)";
+  if (l.type === "jobicon") return l.job;
   if (l.type === "activities") return "やっているコンテンツ";
   if (l.type === "playtime") return "時間帯";
   if (l.type === "mainjob") return project.data.mainJob ? "メインジョブ" : "メインジョブ(未選択)";
@@ -1907,6 +2074,10 @@ function renderProps() {
   for (const [key, label, type, opt] of FIELDS[l.type]) {
     if (type === "frame") {
       box.append(framePicker(l, key, label, opt?.first));
+      continue;
+    }
+    if (type === "align") {
+      box.append(alignField(l));
       continue;
     }
     if (l.type === "jobs" && !l.w) l.w = jobWidth(l); // 古いデータは、今の幅を入れる
@@ -2398,23 +2569,36 @@ const ADD_PREVIEW = {
   playtime: '<circle cx="15" cy="20" r="10" fill="none"/><path d="M15 14V20L19 23" fill="none"/><rect x="30" y="15" width="22" height="10" rx="5"/>',
   activities: '<rect x="6" y="9" width="20" height="9" rx="4.5"/><rect x="30" y="9" width="24" height="9" rx="4.5"/><rect x="6" y="23" width="26" height="9" rx="4.5"/><rect x="36" y="23" width="14" height="9" rx="4.5"/>',
   jobs: '<rect x="8" y="9" width="10" height="10" rx="2"/><rect x="25" y="9" width="10" height="10" rx="2"/><rect x="42" y="9" width="10" height="10" rx="2"/><rect x="8" y="23" width="10" height="10" rx="2"/><rect x="25" y="23" width="10" height="10" rx="2"/><rect x="42" y="23" width="10" height="10" rx="2"/>',
+  mainjob: '<rect x="6" y="11" width="18" height="18" rx="4"/><path d="M30 17H54M30 24H46" fill="none"/>',
 };
+const ADD_NAME = { jobs: "ジョブ一覧" };
 function renderAddTiles() {
   const box = $("addTiles");
   box.replaceChildren();
-  const tile = (name, preview, onClick) => {
+  const tile = (name, preview, onClick, type) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "frame-btn";
+    if (type) b.dataset.single = type;
     b.append(preview, Object.assign(document.createElement("span"), { textContent: name }));
     b.addEventListener("click", onClick);
     box.append(b);
   };
-  for (const type of ["text", "image", "rect", "jobs", "playtime", "activities"]) {
+  const svgTile = (inner) => {
     const svg = document.createElement("span");
-    svg.innerHTML = `<svg viewBox="0 0 60 40" aria-hidden="true">${ADD_PREVIEW[type]}</svg>`;
-    tile(type === "jobs" ? "ジョブ一覧" : TYPE_LABEL[type], svg.firstChild, () => addLayer(type));
-  }
+    svg.innerHTML = `<svg viewBox="0 0 60 40" aria-hidden="true">${inner}</svg>`;
+    return svg.firstChild;
+  };
+  for (const type of ["text", "image", "rect"]) tile(TYPE_LABEL[type], svgTile(ADD_PREVIEW[type]), () => addLayer(type));
+  // 1つあれば十分なものは、押すたびに出す・隠すが入れかわる(出ているものは押された見た目)
+  for (const type of SINGLE_TYPES) tile(ADD_NAME[type] ?? TYPE_LABEL[type], svgTile(ADD_PREVIEW[type]), () => toggleSingle(type), type);
+  syncSingleTiles();
+  // ジョブアイコン(シンボルのように、好きなだけ置ける。ジョブは詳細で選ぶ)
+  const icon = document.createElement("img");
+  icon.className = "frame-canvas";
+  icon.alt = "";
+  icon.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(JOB_ICONS["ナイト"].replace("<svg ", '<svg color="#4a3f5c" '));
+  tile("ジョブアイコン", icon, () => addLayer("jobicon"));
   // 自分で作ったシンボル(アクセント色で見本を描く)
   for (const sym of loadSymbols()) {
     const c = document.createElement("canvas");
@@ -2562,8 +2746,32 @@ function imagesReady() {
   return Promise.race([Promise.all([...pending, document.fonts.ready]), new Promise((r) => setTimeout(r, 3000))]);
 }
 
+// 著作権表記「(C) SQUARE ENIX」が、カードの上に見えているか(隠していない・透明にしていない・カードの外に出ていない)
+const COPYRIGHT = /(\(C\)|©)\s*SQUARE\s*ENIX/i;
+function copyrightShown() {
+  const { w, h } = project.card;
+  return project.layers.some((l) => {
+    if (l.type !== "text" || isHidden(l) || (l.opacity ?? 1) * folderOpacity(l) < 0.1) return false;
+    if (!COPYRIGHT.test(resolveText(l.text))) return false;
+    const b = boundsById.get(l.id);
+    return b && b.x < w && b.y < h && b.x + b.w > 0 && b.y + b.h > 0;
+  });
+}
+
 $("exportPng").addEventListener("click", async () => {
-  draw(); // 未読み込みの画像・フォントの読み込みを始める
+  draw(); // 未読み込みの画像・フォントの読み込みを始める(表記のチェックにも、描いたあとの位置を使う)
+  if (!copyrightShown()) {
+    const add = confirm("(C) SQUARE ENIX の表記がないため、保存できません。\nカードの右下に表記を追加しますか?(追加したあと、もう一度「PNGで保存」を押してください)");
+    if (add) {
+      const { w, h } = project.card;
+      const size = Math.max(14, Math.round(Math.min(w, h) / 54));
+      const l = makeLayer("text", { text: "(C) SQUARE ENIX", w: size * 10, x: w - 30 - size * 10, y: h - 30 - size, size, align: "right", color: "@sub", opacity: 0.7, wrap: false });
+      project.layers.push(l);
+      changed();
+      select(l.id);
+    }
+    return;
+  }
   await imagesReady();
   flushFx(); // エフェクトは本番の解像度で描く
   exporting = true;
