@@ -7,9 +7,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
+  /* キャラごとの色に、ふわっと切り替わるように(色の変数を「色」として登録すると、変化をアニメーションできる) */
+  @property --accent { syntax: "<color>"; inherits: true; initial-value: #ff6f9c; }
+  @property --accent2 { syntax: "<color>"; inherits: true; initial-value: #b58cff; }
+  @property --border { syntax: "<color>"; inherits: true; initial-value: #f5c6d6; }
+  @property --bg { syntax: "<color>"; inherits: true; initial-value: #fff5f8; }
+  @property --bg2 { syntax: "<color>"; inherits: true; initial-value: #ffe4ee; }
+  @property --bg3 { syntax: "<color>"; inherits: true; initial-value: #efe3ff; }
+  :root { transition: --accent .6s, --accent2 .6s, --border .6s, --bg .6s, --bg2 .6s, --bg3 .6s; }
+  @media (prefers-reduced-motion: reduce) { :root { transition: none; } }
   :root {
     --bg: #fff5f8;
     --bg2: #ffe4ee;
+    --bg3: #efe3ff; /* 右下のぼかし・アバターのグラデーションの相手 */
     --card: #ffffff;
     --text: #4a3340;
     --muted: #9a7a8a;
@@ -24,7 +34,7 @@
     font-family: "M PLUS Rounded 1c", sans-serif;
     color: var(--text);
     background: radial-gradient(circle at 20% 10%, var(--bg2), transparent 50%),
-                radial-gradient(circle at 80% 90%, #efe3ff, transparent 50%),
+                radial-gradient(circle at 80% 90%, var(--bg3), transparent 50%),
                 var(--bg);
     background-attachment: fixed;
     display: flex;
@@ -51,32 +61,61 @@
     gap: 12px;
     width: min(880px, 100%);
   }
-  .char-btn {
+  /* UIパーツメーカーで作った「タグ」のボタン(ui/kit.css の自由ボタン .ub の、タグ・ぷっくり影・のせると浮く・押すとむにっ を、このページ用にまとめたもの)。
+     形と影は中の <svg class="ub-shape">。枠線なし。左のとがった所に、ひもを通す穴 */
+  .ub-chara-tag {
+    --ub-bg: var(--card);
+    --ub-fg: var(--text);
+    --ub-bd: color-mix(in oklab, var(--accent) 45%, #6b4a5c); /* キャラごとの色に合わせる */
+    --ub-sh: var(--border);
+    --ub-bw: 0px;
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 18px 6px 32px;
+    background: none;
+    color: var(--ub-fg);
+    border: 0;
     font: inherit;
     font-weight: 700;
     font-size: 1rem;
-    color: var(--text);
-    background: var(--card);
-    border: 2px solid var(--border);
-    border-radius: 999px;
-    padding: 6px 18px 6px 6px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    line-height: 1.4;
+    white-space: nowrap;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(255, 111, 156, 0.12);
-    transition: transform .15s, border-color .2s, box-shadow .2s, background .2s;
+    transition: transform .35s cubic-bezier(.3, 1.6, .5, 1);
   }
-  .char-btn:hover {
-    transform: translateY(-2px);
-    border-color: var(--accent);
-    box-shadow: 0 6px 16px rgba(255, 111, 156, 0.25);
+  .ub-chara-tag .ub-shape {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: visible;
+    pointer-events: none;
+    filter: drop-shadow(0 3px 0 var(--ub-sh));
+    transition: filter .12s;
   }
-  .char-btn[aria-pressed="true"] {
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    border-color: transparent;
-    color: #fff;
+  .ub-chara-tag .ub-shape path { fill: var(--ub-bg); stroke: var(--ub-bd); stroke-width: var(--ub-bw); stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .ub-chara-tag::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    margin-top: -3px;
+    border-radius: 50%;
+    background: var(--bg);
+    box-shadow: 0 0 0 1.5px var(--ub-bd);
   }
+  .ub-chara-tag:hover { transform: translateY(-3px); }
+  .ub-chara-tag:active { transform: scale(1.08, .86); transition-duration: .08s; }
+  .ub-chara-tag:active .ub-shape { filter: drop-shadow(0 1px 0 var(--ub-sh)); }
+  /* 選んでいるキャラ */
+  .ub-chara-tag[aria-pressed="true"] { --ub-bg: var(--accent); --ub-fg: #fff; }
+  @media (prefers-reduced-motion: reduce) { .ub-chara-tag { transition: none; } }
   /* 隠しキャラ:ふだんは文字が透明。ドラッグで選ぶと色が付いて見え、そのあとは押せる */
   .secret-line {
     width: min(880px, 100%);
@@ -111,7 +150,7 @@
   .avatar {
     border-radius: 50%;
     border: 3px solid var(--border);
-    background: linear-gradient(135deg, var(--bg2), #efe3ff);
+    background: linear-gradient(135deg, var(--bg2), var(--bg3));
     object-fit: cover;
     display: flex;
     align-items: center;
@@ -123,6 +162,7 @@
 
   /* プロフィールカード */
   .profile {
+    scroll-margin-top: 24px; /* キャラを押してここまでスクロールしたとき、上に少し余白 */
     margin-top: 40px;
     width: min(720px, 100%);
     background: var(--card);
@@ -215,7 +255,7 @@
     display: block;
     width: 100%;
     cursor: zoom-in;
-    background: linear-gradient(135deg, var(--bg2), #efe3ff);
+    background: linear-gradient(135deg, var(--bg2), var(--bg3));
   }
   .extra-title {
     margin: 0 0 8px;
@@ -399,18 +439,38 @@ function attachAvatarFallback(root) {
 // 「プロフィール」シートに「隠し」という見出しの列を作り、何か書いたキャラは隠しキャラにする
 //   (「隠し」の列はプロフィールの項目としては表示しない)
 const SECRET_LABEL = "隠し";
+// 「カラー」という見出しの列に色を書いたキャラは、選んだときにページの色がその色になる(プロフィールの項目としては表示しない)
+const COLOR_LABEL = "カラー";
+const HIDDEN_LABELS = [SECRET_LABEL, COLOR_LABEL];
+function applyCharaColor(ch) {
+  const v = String((ch.fields || []).find(f => f.label === COLOR_LABEL)?.value ?? "").trim();
+  const root = document.documentElement.style;
+  const keys = ["--accent", "--accent2", "--border", "--bg", "--bg2", "--bg3"];
+  if (!v || !CSS.supports("color", v)) {
+    keys.forEach(k => root.removeProperty(k)); // 決めていない・読めない色のときは、いつものピンク
+    return;
+  }
+  // 1つの色から、アクセント・見出しのグラデーションの相手・枠・背景のうすい色を作る
+  root.setProperty("--accent", v);
+  root.setProperty("--accent2", `color-mix(in oklab, ${v} 55%, #b58cff)`);
+  root.setProperty("--border", `color-mix(in oklab, ${v} 35%, #fff)`);
+  root.setProperty("--bg", `color-mix(in oklab, ${v} 16%, #fff)`);
+  root.setProperty("--bg2", `color-mix(in oklab, ${v} 42%, #fff)`);
+  root.setProperty("--bg3", `color-mix(in oklab, ${v} 30%, #fff)`);
+}
 const isSecret = ch => (ch.fields || []).some(f => f.label === SECRET_LABEL && String(f.value).trim());
 const secretLine = document.getElementById("secretLine");
 
 function renderButtons() {
   charList.innerHTML = characters.map((ch, i) => isSecret(ch) ? "" :
-    `<button class="char-btn" type="button" data-index="${i}" aria-pressed="false">
+    `<button class="char-btn ub-chara-tag" type="button" data-index="${i}" aria-pressed="false">
+      <svg class="ub-shape" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><path d="M14 1.5H97Q98.5 1.5 98.5 3V37Q98.5 38.5 97 38.5H14L1.5 20Z"/></svg>
       ${avatarHtml(ch)}<span>${escapeHtml(ch.name)}</span>
     </button>`).join("");
   renderSecrets();
   attachAvatarFallback(charList);
   charList.querySelectorAll(".char-btn").forEach(btn => {
-    btn.addEventListener("click", () => select(Number(btn.dataset.index)));
+    btn.addEventListener("click", () => select(Number(btn.dataset.index), true));
   });
 }
 
@@ -421,12 +481,12 @@ function renderSecrets() {
   secretLine.querySelectorAll(".secret").forEach(el => {
     // 見つかったあとだけ押せる(見つける前に、たまたま押して開かないように)
     el.addEventListener("click", () => {
-      if (el.classList.contains("found")) select(Number(el.dataset.index));
+      if (el.classList.contains("found")) select(Number(el.dataset.index), true);
     });
     el.addEventListener("keydown", e => {
       if ((e.key === "Enter" || e.key === " ") && el.classList.contains("found")) {
         e.preventDefault();
-        select(Number(el.dataset.index));
+        select(Number(el.dataset.index), true);
       }
     });
   });
@@ -446,7 +506,8 @@ document.addEventListener("selectionchange", () => {
   });
 });
 
-function select(index) {
+// scroll:押して選んだとき true。プロフィールのところまでスクロールする
+function select(index, scroll = false) {
   const ch = characters[index];
   if (!ch) return;
 
@@ -457,7 +518,8 @@ function select(index) {
   const secretEl = secretLine.querySelector(`.secret[data-index="${index}"]`);
   if (secretEl) markFound(secretEl);
 
-  const fields = (ch.fields || []).filter(f => f.label !== SECRET_LABEL && String(f.value).trim());
+  applyCharaColor(ch);
+  const fields = (ch.fields || []).filter(f => !HIDDEN_LABELS.includes(f.label) && String(f.value).trim());
   const fieldsHtml = fields.length
     ? `<dl class="fields">${fields.map(f =>
         `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.value)}</dd>`).join("")}</dl>`
@@ -478,6 +540,11 @@ function select(index) {
 
   // URLの末尾に #キャラ名 を付けて、そのキャラのページを直接開けるようにする
   history.replaceState(null, "", "#" + encodeURIComponent(ch.name));
+
+  if (scroll) {
+    const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    profile.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
+  }
 }
 
 // ============================================================

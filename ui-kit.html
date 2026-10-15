@@ -37,6 +37,11 @@
 .kit-howto ul { margin: 0; padding-left: 1.2em; font-size: 14px; }
 .kit-howto li { margin: 4px 0; }
 .kit-howto q { background: var(--tint); border-radius: 6px; padding: 0 6px; quotes: none; }
+/* カラーピッカー:色を選ぶと、そのカラーコードを出してコピーできる */
+.kit-picker { margin-bottom: 14px; }
+.kit-picker-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.kit-picker-row input[type="color"] { width: 56px; height: 44px; flex-shrink: 0; }
+.kit-picker-row input[type="text"] { width: 9em; font-family: ui-monospace, Consolas, monospace; text-transform: lowercase; }
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--text); color: #fff; border-radius: 999px; padding: 6px 16px; font-weight: 700; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
 .toast.on { opacity: 1; }
 </style>
@@ -77,6 +82,15 @@
   <section class="kit-sec" id="colors" data-title="色">
     <h2 class="heading">テーマと色</h2>
     <p>テーマは <code>&lt;html data-theme="sora"&gt;</code> で決めます(ichigo / mikan)。上のボタンで切り替えて見比べられます。色を押すと CSS の書き方をコピーします。</p>
+    <section class="box kit-picker">
+      <h2>カラーピッカー</h2>
+      <div class="kit-picker-row">
+        <input type="color" id="pickColor" value="#4ea4e8" aria-label="色を選ぶ">
+        <input type="text" id="pickHex" value="#4ea4e8" maxlength="7" spellcheck="false" autocomplete="off" aria-label="カラーコード">
+        <button type="button" class="btn btn--primary" id="pickCopy">コードをコピー</button>
+        <button type="button" class="btn" id="pickDrop" hidden>画面から拾う</button>
+      </div>
+    </section>
     <div class="kit-colors" id="colorList"></div>
   </section>
 
@@ -298,6 +312,43 @@ $("colorList").addEventListener("click", (e) => {
   const b = e.target.closest(".kit-color");
   if (b) copy(`var(${b.dataset.var})`, `var(${b.dataset.var}) をコピーしました`);
 });
+
+// ---------- カラーピッカー(最後に選んだ色は、このブラウザに覚えておく) ----------
+{
+  const color = $("pickColor"), hex = $("pickHex");
+  const set = (v) => {
+    color.value = v;
+    hex.value = v;
+    try { localStorage.setItem("uikit:pickColor", v); } catch {}
+  };
+  let saved = null;
+  try { saved = localStorage.getItem("uikit:pickColor"); } catch {}
+  if (/^#[0-9a-f]{6}$/i.test(saved ?? "")) set(saved.toLowerCase());
+  color.addEventListener("input", () => set(color.value));
+  // コードを直接打ったときも、色に反映(#が無くても、3けたでもよい)
+  hex.addEventListener("input", () => {
+    let v = hex.value.trim().toLowerCase();
+    if (!v.startsWith("#")) v = "#" + v;
+    if (/^#[0-9a-f]{3}$/.test(v)) v = "#" + [...v.slice(1)].map((c) => c + c).join("");
+    if (/^#[0-9a-f]{6}$/.test(v)) {
+      color.value = v;
+      try { localStorage.setItem("uikit:pickColor", v); } catch {}
+    }
+  });
+  hex.addEventListener("change", () => (hex.value = color.value)); // 打ち終わったら、きちんとした形に直す
+  $("pickCopy").addEventListener("click", () => copy(color.value, `${color.value} をコピーしました`));
+  // 画面のどこからでも色を拾う(Chrome・Edge だけ)
+  if ("EyeDropper" in window) {
+    $("pickDrop").hidden = false;
+    $("pickDrop").addEventListener("click", async () => {
+      try {
+        const { sRGBHex } = await new EyeDropper().open();
+        set(sRGBHex.toLowerCase());
+        copy(color.value, `${color.value} を拾ってコピーしました`);
+      } catch {} // Esc でやめたとき
+    });
+  }
+}
 
 // ---------- テーマの切り替え(このブラウザに覚えておく) ----------
 function setTheme(id) {
