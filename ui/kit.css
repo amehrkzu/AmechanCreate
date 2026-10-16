@@ -376,6 +376,16 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
 .ub--press-bounce:active { transform: scale(.88); transition-duration: .08s; }
 .ub--press-squish { transition: transform .35s cubic-bezier(.3, 1.6, .5, 1), box-shadow .12s, filter .12s; }
 .ub--press-squish:active { transform: scale(1.08, .86); transition-duration: .08s; }
+/* 種類:縦タブ(サイドバーのふちに縦に並ぶタブ)。<div class="ub-vtabs"> の中に <button class="ub ub--vtab …"> を並べる。
+   タブはふちの右に出る(.ub-vtabs--left で左に出る)。ふちにくっつく側は角も枠線もなし。選んでいるタブ(aria-pressed="true")は少し長く出る */
+.ub-vtabs { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.ub-vtabs--left { align-items: flex-end; }
+.ub--vtab { writing-mode: vertical-rl; letter-spacing: .15em; padding: calc(var(--ub-px) * .9 + var(--ub-xp, 0px)) calc(var(--ub-py) + 2px + var(--ub-xp, 0px)); border-left-width: 0; border-radius: 0 var(--ub-r) var(--ub-r) 0; transition: padding .15s, transform .12s, box-shadow .12s, filter .12s; }
+.ub-vtabs--left > .ub--vtab { border-left-width: var(--ub-bw); border-right-width: 0; border-radius: var(--ub-r) 0 0 var(--ub-r); }
+.ub--vtab[aria-pressed="true"] { padding-right: calc(var(--ub-py) + 10px); }
+/* 自分で描いた形は「右に出る」向きで描く。左に出るときは、形を左右反転する */
+.ub-vtabs--left > .ub--vtab .ub-shape { transform: scaleX(-1); }
+.ub-vtabs--left > .ub--vtab[aria-pressed="true"] { padding-right: calc(var(--ub-py) + 2px); padding-left: calc(var(--ub-py) + 10px); }
 @media (prefers-reduced-motion: reduce) { .ub { transition: none !important; animation: none !important; } }
 
 /* ---------- 自由スクロールバー(パーツメーカーの種類「スクロールバー」) ----------

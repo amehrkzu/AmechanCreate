@@ -21,6 +21,11 @@
 .stage-row { width: 100%; display: flex; justify-content: center; align-items: center; }
 .stage-row > .ub--box, .stage-row > .ub-tabs, .stage-row > .ub-chips, .stage-row > .ub-scroll { width: 100%; }
 /* サイドバーの見本:小さな画面。この中で出し入れする */
+/* 縦タブの見本:サイドバーの板(点線)のふちに、タブをくっつけて見せる */
+.vtab-stage { display: flex; align-items: flex-start; justify-content: center; padding: 8px 0; }
+.vtab-stage.is-left { flex-direction: row-reverse; }
+.vtab-panel { width: 150px; height: 150px; flex-shrink: 0; background: var(--box); border: 2px dashed var(--line); border-radius: 10px 0 0 10px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; }
+.vtab-stage.is-left .vtab-panel { border-radius: 0 10px 10px 0; }
 .drawer-stage { position: relative; width: 100%; height: 170px; overflow: hidden; border: 2px dashed var(--line); border-radius: 10px; background: color-mix(in srgb, var(--box) 50%, transparent); }
 .stage-row > .ub-chips { justify-content: center; }
 .controls { display: flex; flex-direction: column; gap: 12px; }
@@ -108,10 +113,10 @@
       <p class="note" id="typeNote"></p>
     </section>
 
-    <section class="box" data-for="button box chip tab drawer">
+    <section class="box" data-for="button box chip tab vtab drawer">
       <h2>文字</h2>
       <div class="ctl" data-for="button drawer"><span id="labelName">ボタンの文字</span><input type="text" id="label" maxlength="30"></div>
-      <div class="ctl" data-for="chip tab"><span>文字(「、」で区切ると増える)</span><input type="text" id="labels" maxlength="80"></div>
+      <div class="ctl" data-for="chip tab vtab"><span>文字(「、」で区切ると増える)</span><input type="text" id="labels" maxlength="80"></div>
       <div class="ctl" data-for="box drawer"><span>見出し(空にすると、なし)</span><input type="text" id="title" maxlength="30"></div>
       <div class="ctl" data-for="box drawer"><span>文章</span><textarea id="body" rows="2" maxlength="200"></textarea></div>
       <div class="ctl"><span id="decoLabel">飾り</span>
@@ -154,6 +159,7 @@
       <div class="ctl" id="radiusCtl"><span>角の丸み</span><div class="range-row"><input type="range" id="radius" min="0" max="30" step="1"><output id="radiusOut"></output></div></div>
       <div class="ctl"><span id="sizeLabel">大きさ</span><div class="tabs" data-key="size"></div></div>
       <div class="ctl" data-for="drawer"><span>出てくる向き</span><div class="tabs" data-key="side"></div></div>
+      <div class="ctl" data-for="vtab"><span>タブが出る向き</span><div class="tabs" data-key="side" data-opts="vside"></div></div>
       <div class="ctl" data-for="scroll"><span>つまみと溝のすき間</span><div class="range-row"><input type="range" id="gap" min="0" max="5" step="0.5"><output id="gapOut"></output></div></div>
       <div class="ctl" data-for="button"><span>幅</span><div class="tabs" data-key="block"></div></div>
       <div class="ctl" data-for="tab"><span>並べ方</span><div class="tabs" data-key="block" data-opts="fill"></div></div>
@@ -163,7 +169,7 @@
       <h2>色</h2>
       <p class="hint" style="margin-bottom:8px">テーマの色を選ぶと、テーマを変えたときに一緒に変わります</p>
       <div id="colors"></div>
-      <div data-for="chip tab">
+      <div data-for="chip tab vtab">
         <p class="color-sub">選んでいるときの色</p>
         <div id="onColors"></div>
       </div>
@@ -173,15 +179,15 @@
       <h2 id="borderHead">枠線と影</h2>
       <div class="ctl"><span id="bsLabel">枠線の種類</span><div class="tabs" data-key="bs"></div></div>
       <div class="ctl"><span id="bwLabel">枠線の太さ</span><div class="range-row"><input type="range" id="bw" min="1" max="6" step="0.5"><output id="bwOut"></output></div></div>
-      <div class="ctl" data-for="button box chip tab drawer"><span>影</span><div class="tabs" data-key="shadow"></div></div>
+      <div class="ctl" data-for="button box chip tab vtab drawer"><span>影</span><div class="tabs" data-key="shadow"></div></div>
       <div class="ctl" id="patternCtl"><span>模様</span><div class="tabs" data-key="pattern"></div></div>
     </section>
 
-    <section class="box" data-for="button box chip tab drawer">
+    <section class="box" data-for="button box chip tab vtab drawer">
       <h2>動き</h2>
       <div class="ctl" data-for="drawer"><span>出かた</span><div class="tabs" data-key="anim"></div></div>
-      <div class="ctl" data-for="button box chip tab"><span>のせたとき</span><div class="tabs" data-key="hover"></div></div>
-      <div class="ctl" data-for="button chip tab"><span>押したとき</span><div class="tabs" data-key="press"></div></div>
+      <div class="ctl" data-for="button box chip tab vtab"><span>のせたとき</span><div class="tabs" data-key="hover"></div></div>
+      <div class="ctl" data-for="button chip tab vtab"><span>押したとき</span><div class="tabs" data-key="press"></div></div>
     </section>
 
     <section class="box">
@@ -211,6 +217,7 @@ const $ = (id) => document.getElementById(id);
 const OPTIONS = {
   decoPos: [["before", "前"], ["after", "うしろ"], ["both", "両方"]],
   side: [["left", "左から"], ["right", "右から"]],
+  vside: [["right", "右に出る(左のサイドバー用)"], ["left", "左に出る(右のサイドバー用)"]],
   anim: [["slide", "すっと"], ["bounce", "ぽよん"], ["fade", "ふわっ"]],
   size: [["s", "小"], ["m", "中"], ["l", "大"]],
   block: [[false, "文字に合わせる"], [true, "横いっぱい"]],
@@ -236,6 +243,7 @@ const TYPE_TEXT = {
   box: ["見出しと文章を囲む入れ物", "例:雲のおしらせ箱", "例:ページの上のお知らせ"],
   chip: ["小さな札を並べる。押すとオン・オフ", "例:ハッシュタグ", "例:絞り込みの条件"],
   tab: ["並んだ中から1つを選ぶ。押したものだけオン", "例:付箋の切り替えタブ", "例:表示の切り替え"],
+  vtab: ["サイドバーのふちに縦に並ぶタブ。押したものだけオン(選んでいるタブは少し長く出る)", "例:レイヤー・色・設定の切り替え", "例:サイドバーの中身の切り替え"],
   drawer: ["画面のはしから前面に出てくる引き出し。いつも見えている付箋のつまみを押すと、出し入れできる", "", "例:レイヤーの一覧"],
   scroll: ["スクロールする入れ物のスクロールバー。パソコンの Chrome・Edge・Safari で形まで変わる(Firefox は色と太さだけ。スマホはほぼ変わらない)", "", "例:長い説明文の箱"],
 };
@@ -293,7 +301,7 @@ $("shapes").addEventListener("click", (e) => {
     return;
   }
   if (part.shape === "custom" && part.custom?.sid) delete part.custom.sid; // 最初からある形に変えたら、保存した形とのつながりは切る
-  if (b.dataset.v === "custom" && !part.custom) part.custom = newCustomShape();
+  if (b.dataset.v === "custom" && !part.custom) part.custom = (part.type === "vtab" ? vtabShape() : newCustomShape("wide")); // 縦タブは、縦タブ用の形から
   set("shape", b.dataset.v);
 });
 $("deco").innerHTML = DECOS.map((d) => `<button type="button" class="chip" data-v="${d}">${d || "なし"}</button>`).join("");
@@ -386,9 +394,11 @@ function setValue(el, v) {
 // ---------- 見本と調整欄を今の設定に合わせる ----------
 function render() {
   const type = ubType(part);
-  if (part.shape === "custom" && !part.custom) part.custom = newCustomShape();
+  if (part.shape === "custom" && !part.custom) part.custom = part.type === "vtab" ? vtabShape() : newCustomShape("wide");
   injectPartsCSS([part]);
-  const html = part.type === "drawer" ? `<div class="drawer-stage">${partHTML(part, { inside: true })}</div>` : partHTML(part);
+  const html = part.type === "drawer" ? `<div class="drawer-stage">${partHTML(part, { inside: true })}</div>`
+    : part.type === "vtab" ? `<div class="vtab-stage${part.side === "left" ? " is-left" : ""}"><div class="vtab-panel">サイドバー</div>${partHTML(part)}</div>`
+    : partHTML(part);
   for (const row of document.querySelectorAll(".stage-row")) row.innerHTML = html;
   $("preview").classList.toggle("wide", part.type !== "button");
 
@@ -456,6 +466,7 @@ const GRID_NAMES = [["wide", "横長"], ["long", "細長"], ["square", "正方�
 // 見本の形(マスに対する割合 0〜1。mirror のものは左半分を上から下へ)
 const STARTS = [
   { name: "豆", make: () => newCustomShape("wide") },
+  { name: "縦タブ", make: () => vtabShape() },
   { name: "しずく", grid: "tall", mirror: true, pts: [[0.5, 0.02, 1], [0.28, 0.42], [0.08, 0.7], [0.5, 0.98]] },
   { name: "星", grid: "square", mirror: true, pts: [[0.5, 0.03, 1], [0.37, 0.37, 1], [0.03, 0.38, 1], [0.29, 0.6, 1], [0.2, 0.96, 1], [0.5, 0.76, 1]] },
   { name: "ひし形", grid: "wide", mirror: true, pts: [[0.5, 0.03, 1], [0.03, 0.5, 1], [0.5, 0.97, 1]] },
@@ -463,6 +474,12 @@ const STARTS = [
   { name: "リボン", grid: "wide", mirror: true, pts: [[0.5, 0.3], [0.25, 0.06], [0.03, 0.2, 1], [0.03, 0.8, 1], [0.25, 0.94], [0.5, 0.7]] },
   { name: "ふきだし雲", grid: "wide", mirror: false, pts: [[0.12, 0.12], [0.5, 0.04], [0.88, 0.12], [0.97, 0.5], [0.85, 0.82], [0.4, 0.84], [0.22, 0.98, 1], [0.24, 0.8], [0.04, 0.6], [0.03, 0.3]] },
 ];
+// 縦タブ用の形:縦長のマスで、左(サイドバーにくっつく側)はまっすぐ、右は丸い
+function vtabShape() {
+  const c = newCustomShape("tall");
+  const pts = [[0.02, 0.02, 1], [0.6, 0.02], [0.97, 0.2], [0.97, 0.8], [0.6, 0.98], [0.02, 0.98, 1]];
+  return { ...c, mirror: false, pts: pts.map(([x, y, corner]) => ({ x: x * c.w, y: y * c.h, ...(corner ? { corner: true } : {}) })) };
+}
 let selPt = -1; // 選んでいる点
 let drag = null;
 let lastTap = null; // ダブルクリック(ダブルタップ)を見分けるための、前に押した点と時刻

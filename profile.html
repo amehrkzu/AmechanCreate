@@ -15,7 +15,20 @@
   @property --bg { syntax: "<color>"; inherits: true; initial-value: #fff5f8; }
   @property --bg2 { syntax: "<color>"; inherits: true; initial-value: #ffe4ee; }
   @property --bg3 { syntax: "<color>"; inherits: true; initial-value: #efe3ff; }
-  :root { transition: --accent .6s, --accent2 .6s, --border .6s, --bg .6s, --bg2 .6s, --bg3 .6s; }
+  @property --btn-bg { syntax: "<color>"; inherits: true; initial-value: #fff; }
+  @property --btn-fg { syntax: "<color>"; inherits: true; initial-value: #4a3340; }
+  :root { transition: --accent .6s, --accent2 .6s, --border .6s, --bg .6s, --bg2 .6s, --bg3 .6s, --btn-bg .6s, --btn-fg .6s; }
+  /* ===== 色の調整(キャラ選びの部分)=====
+     ここを変えると、まとめて変わる。キャラの色(var(--accent) など)を使って書いてもよい。
+     例:選んでいないボタンをキャラの色のうすい色に → --btn-bg: oklch(from var(--accent) .94 calc(c * .4) h);
+     キャラごとに変えたいときは、applyCharaColor() で document.documentElement.style.setProperty("--btn-bg", …) のように入れる */
+  :root {
+    --btn-bg: #fff;                   /* 選んでいないキャラのボタンの色 */
+    --btn-fg: var(--text);            /* 選んでいないキャラの名前の色 */
+    --btn-on-bg: var(--accent);       /* 選んでいるキャラのボタンの色 */
+    --btn-on-fg: #fff;                /* 選んでいるキャラの名前の色(明るいキャラ色のときは、下の .light-color で濃いキャラ色) */
+    --face-bg: linear-gradient(135deg, var(--bg2), var(--bg3)); /* 画像がないキャラの顔アイコンの中の色 */
+  }
   @media (prefers-reduced-motion: reduce) { :root { transition: none; } }
   :root {
     --bg: #fff5f8;
@@ -81,11 +94,18 @@
     gap: 12px;
     width: min(880px, 100%);
   }
-  /* UIパーツメーカーで作った「タグ」のボタン(ui/kit.css の自由ボタン .ub の、タグ・ぷっくり影・のせると浮く・押すとむにっ を、このページ用にまとめたもの)。
-     形と影は中の <svg class="ub-shape">。枠線なし。左のとがった所に、ひもを通す穴 */
-  .ub-chara-tag {
-    --ub-bg: var(--card);
-    --ub-fg: var(--text);
+  /* ためし:スマブラのキャラ選択みたいに、ボタンをすき間なくくっつけて並べる(.char-list--packed。HTML から外せば元に戻る)
+     ボタンの幅をそろえて(--pw)、となりのボタンの斜めの辺どうしが重なるように左へずらす(形の上の辺は幅の 5%〜80%、下の辺は 20%〜95%
+     → 幅の 25% ぶん重ねる)。上下は、形の上下の余白(高さの 10% ずつ = 5px)ぶん重ねる */
+  .char-list--packed { --pw: 270px; /* 名前が、となりのボタンに重なる所まで届かない幅 */ gap: 0; flex-direction: column; align-items: center; }
+  /* 段(layoutRows() が作る)。段の人数は「多い・少ない」の交互なので、真ん中にそろえると半分ずつずれた段々になる */
+  .char-row { display: flex; justify-content: center; padding-left: calc(var(--pw) * .25); margin-bottom: -10px; }
+  .char-list--packed .char-btn { width: var(--pw); margin-left: calc(var(--pw) * -.25); }
+  /* UIパーツメーカーで作った「ひし形」のボタン(右に傾いた平行四辺形。ui/kit.css の自由ボタン .ub の、自分で描いた形・影なし・押すと沈む を、
+     このページ用にまとめたもの)。形はボタンそのものを clip-path で切り抜く。枠線なし。顔アイコンも同じ傾き */
+  .ub-chara-slant {
+    --ub-bg: var(--btn-bg);
+    --ub-fg: var(--btn-fg);
     --ub-bd: color-mix(in oklab, var(--accent) 45%, #6b4a5c); /* キャラごとの色に合わせる */
     --ub-sh: var(--border);
     --ub-bw: 0px;
@@ -94,8 +114,15 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 6px 18px 6px 32px;
-    background: none;
+    /* 上下:ボタンの形はマスの上下 10% ずつ内側に描いてあるので、顔アイコン(高さ 40px)がちょうど形の上下にくっつく余白(40 ÷ 8 = 5px)。
+       右は傾いた分だけ広め。左は、顔アイコンを斜めの辺にくっつける(--edge-x) */
+    padding: 5px 30px 5px 0;
+    /* 高さは 50px に固定(文字の大きさやフォントで高さが変わると、顔アイコンが形の上下からずれるため)。顔アイコン 40px が真ん中 = 上下 5px */
+    box-sizing: border-box;
+    height: 50px;
+    /* 形:ボタンそのものを平行四辺形に切り抜く。中の顔アイコンのはみ出しも、ここで切れる */
+    background: var(--ub-bg);
+    clip-path: polygon(5% 10%, 80% 10%, 95% 90%, 20% 90%);
     color: var(--ub-fg);
     border: 0;
     font: inherit;
@@ -104,37 +131,13 @@
     line-height: 1.4;
     white-space: nowrap;
     cursor: pointer;
-    transition: transform .35s cubic-bezier(.3, 1.6, .5, 1);
+    transition: transform .12s;
   }
-  .ub-chara-tag .ub-shape {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    overflow: visible;
-    pointer-events: none;
-    filter: drop-shadow(0 3px 0 var(--ub-sh));
-    transition: filter .12s;
-  }
-  .ub-chara-tag .ub-shape path { fill: var(--ub-bg); stroke: var(--ub-bd); stroke-width: var(--ub-bw); stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-  .ub-chara-tag::after {
-    content: "";
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    width: 6px;
-    height: 6px;
-    margin-top: -3px;
-    border-radius: 50%;
-    background: var(--bg);
-    box-shadow: 0 0 0 1.5px var(--ub-bd);
-  }
-  .ub-chara-tag:hover { transform: translateY(-3px); }
-  .ub-chara-tag:active { transform: scale(1.08, .86); transition-duration: .08s; }
-  .ub-chara-tag:active .ub-shape { filter: drop-shadow(0 1px 0 var(--ub-sh)); }
+  .ub-chara-slant:focus-visible { filter: brightness(.9); } /* 切り抜くと枠が見えないので、キーボードで選んだときは少し暗く */
+  .ub-chara-slant:hover { transform: translateY(-3px); z-index: 1; } /* のせると浮く(となりと重なっているので、前に出す) */
+  .ub-chara-slant:active { transform: translateY(2px); }
   /* 選んでいるキャラ */
-  .ub-chara-tag[aria-pressed="true"] { --ub-bg: var(--accent); --ub-fg: #fff; }
+  .ub-chara-slant[aria-pressed="true"] { --ub-bg: var(--btn-on-bg); --ub-fg: var(--btn-on-fg); }
   /* キャラの色が明るい(白っぽい)とき(<html class="light-color">):アクセント色の文字と、選んでいるボタンの文字を、
      キャラの色を濃く・鮮やかにした色(--accent-deep。色味はそのまま、明るさを 1/4 だけ下げる)にして読みやすくする */
   :root {
@@ -146,9 +149,9 @@
   .light-color .extra-title,
   .light-color .extra.full .extra-caption,
   .light-color .secret.found { color: var(--accent-deep); }
-  .light-color .ub-chara-tag[aria-pressed="true"] { --ub-fg: var(--accent-deep); }
+  .light-color { --btn-on-fg: var(--accent-deep); }
   .light-color h1 { background-image: linear-gradient(90deg, var(--accent-deep), color-mix(in oklab, var(--accent-deep) 70%, var(--accent2))); }
-  @media (prefers-reduced-motion: reduce) { .ub-chara-tag { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .ub-chara-slant { transition: none; } }
   /* 隠しキャラ:ふだんは文字が透明。ドラッグで選ぶと色が付いて見え、そのあとは押せる */
   .secret-line {
     width: min(880px, 100%);
@@ -174,16 +177,23 @@
   }
   .secret.found:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
   .char-btn .avatar {
-    width: 40px;
+    width: 60px;
     height: 40px;
     font-size: 1rem;
-    border-width: 2px;
   }
-
+  /* 顔アイコン:UIパーツメーカーで作った「ひし形」(右に傾いた平行四辺形。枠線なし・影なし)。
+     形は clip-path で切り抜く */
+  .avatar-wrap { display: inline-flex; flex-shrink: 0; }
+  /* ボタンの中の顔アイコン:ボタンの左の斜めの辺にくっつけて、同じ傾きの平行四辺形にする(--edge-x・--slant は fitSlant() が測って入れる) */
+  /* 顔アイコンは、形の上下より2px・左の辺より4px 大きく置いて、はみ出た分はボタンの切り抜き(clip-path)で消す。
+     こうすると、拡大率や小数点の丸めで、顔と形のあいだに すき間 ができない。右の斜めの辺だけ、顔アイコン自身で切る */
+  .ub-chara-slant .avatar-wrap { margin: -2px 0 -2px calc(var(--edge-x, 12px) - 4px); }
+  .ub-chara-slant .avatar { clip-path: polygon(0 0, calc(100% - var(--slant, 10px)) 0, 100% 100%, 0 100%); }
+  /* 傾きが大きいほど見える幅がせまくなるので、傾いた分だけ幅を足す(見える幅は、いつも 50px くらい) */
+  .char-btn.ub-chara-slant .avatar { width: calc(54px + var(--slant, 10px)); height: 44px; }
   .avatar {
-    border-radius: 50%;
-    border: 3px solid var(--border);
-    background: linear-gradient(135deg, var(--bg2), var(--bg3));
+    clip-path: polygon(0 0, 83.3% 0, 100% 100%, 16.7% 100%);
+    background: var(--face-bg); /* 白いボタンの上でも形が見えるように、うすいキャラ色(「色の調整」の --face-bg) */
     object-fit: cover;
     display: flex;
     align-items: center;
@@ -217,10 +227,9 @@
     margin-bottom: 24px;
   }
   .profile-head .avatar {
-    width: 160px;
-    height: 160px;
+    width: 220px;
+    height: 150px;
     font-size: 3.5rem;
-    border-width: 4px;
   }
   .profile-name {
     margin: 0;
@@ -379,7 +388,7 @@
   @media (max-width: 560px) {
     .profile { padding: 24px 20px; }
     .profile-head { flex-direction: column; text-align: center; gap: 16px; }
-    .profile-head .avatar { width: 140px; height: 140px; }
+    .profile-head .avatar { width: 190px; height: 130px; }
     .fields { grid-template-columns: 1fr; }
     .fields dt { padding-bottom: 0; border-bottom: none; }
     .fields dd { padding-top: 4px; }
@@ -396,7 +405,7 @@
 
 <h1>キャラクター紹介</h1>
 
-<div class="char-list" id="charList"></div>
+<div class="char-list char-list--packed" id="charList"></div>
 
 <!-- 隠しキャラ:見えない文字で名前が書いてある。ドラッグで文字を選ぶ(反転させる)と見つかる -->
 <p class="secret-line" id="secretLine"></p>
@@ -463,12 +472,13 @@ function initial(name) {
   return escapeHtml([...name][0] || "?");
 }
 
+// 顔アイコン。外側の .avatar-wrap は、ボタンの斜めの辺に合わせて位置を決めるための入れ物
 function avatarHtml(ch) {
   if (ch.image) {
-    return `<img class="avatar" src="${escapeHtml(ch.image)}" alt=""
-      data-initial="${initial(ch.name)}" referrerpolicy="no-referrer">`;
+    return `<span class="avatar-wrap"><img class="avatar" src="${escapeHtml(ch.image)}" alt=""
+      data-initial="${initial(ch.name)}" referrerpolicy="no-referrer"></span>`;
   }
-  return `<div class="avatar">${initial(ch.name)}</div>`;
+  return `<span class="avatar-wrap"><div class="avatar">${initial(ch.name)}</div></span>`;
 }
 
 // 画像の読み込みに失敗したらイニシャル表示に差し替える
@@ -521,17 +531,116 @@ function applyCharaColor(ch) {
 const isSecret = ch => (ch.fields || []).some(f => f.label === SECRET_LABEL && String(f.value).trim());
 const secretLine = document.getElementById("secretLine");
 
+// ボタンの形(パーツメーカーで描いた平行四辺形)の左の辺:上の点 (10,10) → 下の点 (40,90)。マスは 200×100
+const SLANT_EDGE = { x0: 10 / 200, y0: 10 / 100, x1: 40 / 200, y1: 90 / 100 };
+// 顔アイコンの左の辺が、ボタンの左の辺にぴったり重なるように、位置(--edge-x)と傾き(--slant)を決める
+function fitSlant(btn) {
+  const wrap = btn.querySelector(".avatar-wrap");
+  if (!wrap) return;
+  for (let i = 0; i < 3; i++) { // 位置を変えるとボタンの幅も変わるので、何度か測り直す
+    const W = btn.offsetWidth, H = btn.offsetHeight, t = wrap.offsetTop, h = wrap.offsetHeight;
+    if (!W || !H) return;
+    const e = SLANT_EDGE;
+    const edge = (y) => W * (e.x0 + (e.x1 - e.x0) * (y / H - e.y0) / (e.y1 - e.y0)); // 高さ y でのボタンの左の辺の x
+    const x = edge(t), slant = edge(t + h) - x;
+    const old = parseFloat(btn.style.getPropertyValue("--edge-x")) || 0;
+    btn.style.setProperty("--edge-x", x.toFixed(1) + "px");
+    btn.style.setProperty("--slant", slant.toFixed(1) + "px");
+    if (Math.abs(old - x) < 0.5) return;
+  }
+}
+// 名前の文字(フォント)が読み込まれたり、画面の幅が変わったりしたら、測り直す
+const slantObserver = window.ResizeObserver ? new ResizeObserver((items) => items.forEach((it) => fitSlant(it.target))) : null;
+
+// 段の人数を決める:1段に入る最大人数 m から、「a 人・a-1 人」の交互(a-1 人から始めることもある)にする。
+//   いちばん下の段は3人以上。人数が多い段(a が大きい)ほど、また、いちばん下の段まで決まった人数ぴったりになるほど優先。
+//   どの並べ方でも下の段が2人以下になるときは、下の段の人を、上の少ない段に1人ずつ移す(そこだけ交互がくずれる)
+function rowSizes(n, m) {
+  if (n <= m) return [n];
+  if (m === 1) return Array(n).fill(1);
+  if (m === 2) {
+    // スマホなど、1段に2人しか入らないとき:2人・1人の交互。3人以上の段は作れないので、いちばん下の段を2人にする
+    const sizes = [];
+    for (let left = n, want = 2; left > 0; want = 3 - want) {
+      sizes.push(Math.min(want, left));
+      left -= want;
+    }
+    if (sizes.at(-1) < 2) {
+      sizes.pop();
+      const i = sizes.lastIndexOf(1);
+      if (i >= 0) sizes[i] = 2;
+      else sizes.push(1);
+    }
+    return sizes;
+  }
+  let best = null;
+  for (let a = m; a >= 3; a--) {
+    for (const first of [a, a - 1]) {
+      const other = first === a ? a - 1 : a;
+      const sizes = [];
+      let left = n, want = first;
+      while (left > 0) {
+        sizes.push(Math.min(want, left));
+        left -= want;
+        want = want === first ? other : first;
+      }
+      const last = sizes.at(-1);
+      if (last < 3) continue;
+      const full = left === 0 ? 0 : 1; // ぴったり(最後の段も決まった人数)なら 0
+      const score = full * 15 + (m - a) * 10 + (first === a ? 0 : 1);
+      if (!best || score < best.score) best = { score, sizes };
+    }
+  }
+  if (best) return best.sizes;
+  // 下の段が2人以下になってしまうとき:a = m の交互で並べてから、下の段の人を、下から順に少ない段へ1人ずつ移す
+  const sizes = [];
+  for (let left = n, want = m; left > 0; want = want === m ? m - 1 : m) {
+    sizes.push(Math.min(want, left));
+    left -= want;
+  }
+  let extra = sizes.pop();
+  for (let i = sizes.length - 1; i >= 0 && extra > 0; i--) {
+    if (sizes[i] < m) {
+      sizes[i]++;
+      extra--;
+    }
+  }
+  return extra > 0 ? [...sizes, extra] : sizes;
+}
+// ボタンを段(.char-row)に分けて並べる。画面の幅が変わって、1段に入る人数が変わったときも並べ直す
+let rowsFor = 0;
+function layoutRows() {
+  if (!charList.classList.contains("char-list--packed")) return;
+  const btns = [...charList.querySelectorAll(".char-btn")];
+  if (!btns.length) return;
+  const pw = btns[0].offsetWidth || 240;
+  const m = Math.max(1, Math.floor((charList.clientWidth - pw * 0.25) / (pw * 0.75))); // 1人ぶんは幅の 75%(25% はとなりと重なる)
+  if (m === rowsFor && charList.querySelector(".char-row")) return;
+  rowsFor = m;
+  const rows = rowSizes(btns.length, m).map((k) => {
+    const row = document.createElement("div");
+    row.className = "char-row";
+    row.append(...btns.splice(0, k));
+    return row;
+  });
+  charList.replaceChildren(...rows);
+}
+if (window.ResizeObserver) new ResizeObserver(() => layoutRows()).observe(charList);
+
 function renderButtons() {
   charList.innerHTML = characters.map((ch, i) => isSecret(ch) ? "" :
-    `<button class="char-btn ub-chara-tag" type="button" data-index="${i}" aria-pressed="false">
-      <svg class="ub-shape" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><path d="M14 1.5H97Q98.5 1.5 98.5 3V37Q98.5 38.5 97 38.5H14L1.5 20Z"/></svg>
+    `<button class="char-btn ub-chara-slant" type="button" data-index="${i}" aria-pressed="false">
       ${avatarHtml(ch)}<span>${escapeHtml(ch.name)}</span>
     </button>`).join("");
   renderSecrets();
   attachAvatarFallback(charList);
   charList.querySelectorAll(".char-btn").forEach(btn => {
     btn.addEventListener("click", () => select(Number(btn.dataset.index), true));
+    fitSlant(btn);
+    slantObserver?.observe(btn);
   });
+  rowsFor = 0;
+  layoutRows();
 }
 
 // 隠しキャラの名前を、見えない文字で並べる
@@ -601,7 +710,10 @@ function select(index, scroll = false) {
   // URLの末尾に #キャラ名 を付けて、そのキャラのページを直接開けるようにする
   history.replaceState(null, "", "#" + encodeURIComponent(ch.name));
 
-  if (scroll) {
+  // プロフィール欄が画面に見えている(上のはしが画面の下 15% より上にあり、下のはしが画面の上より下にある)ときは、動かさない
+  const r = profile.getBoundingClientRect();
+  const seen = r.top < innerHeight * 0.85 && r.bottom > 0;
+  if (scroll && !seen) {
     const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
     profile.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
   }

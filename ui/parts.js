@@ -15,6 +15,8 @@ const UB_TYPES = [
     shapes: ["pill", "round", "square", "leaf", "tag", "custom"] },
   { id: "tab", name: "タブ", icon: '<path d="M4 30V16Q4 10 10 10H22Q28 10 28 16V30"/><path d="M32 30V18Q32 14 36 14H52Q56 14 56 18V30"/><path d="M2 30H58"/>',
     shapes: ["pill", "round", "square", "leaf", "sticky", "tag", "custom"] },
+  { id: "vtab", name: "縦タブ", icon: '<rect x="6" y="3" width="26" height="34" rx="3" stroke-dasharray="3 3"/><path d="M32 6H40Q44 6 44 10V15Q44 19 40 19H32"/><path d="M32 21H37Q41 21 41 25V30Q41 34 37 34H32"/>',
+    shapes: ["pill", "round", "square", "custom"] },
   { id: "drawer", name: "サイドバー", icon: '<rect x="3" y="5" width="54" height="30" rx="4" stroke-dasharray="3 3"/><rect x="3" y="5" width="24" height="30" rx="4"/><path d="M27 12H32V24H27"/><path d="M8 12H21M8 18H19M8 24H17"/>',
     shapes: ["round", "square"] },
   { id: "scroll", name: "スクロールバー", icon: '<rect x="5" y="4" width="50" height="32" rx="5"/><path d="M11 12H37M11 19H40M11 26H33"/><rect x="45" y="9" width="5" height="12" rx="2.5"/>',
@@ -195,6 +197,7 @@ function newPart(type = "button") {
   if (type === "chip") Object.assign(base, { size: "s", bg: "lemon", onBg: "accent", onFg: "box", labels: "#FF14、#ミラプリ、#スクショ" });
   if (type === "tab") Object.assign(base, { size: "s", block: true, bd: "line", fg: "muted", shadow: "none", press: "none" });
   if (type === "scroll") Object.assign(base, { bg: "primary", bd: "ink", bw: 2, shadow: "none", press: "none" });
+  if (type === "vtab") Object.assign(base, { size: "s", shape: "round", radius: 12, fg: "muted", onBg: "sky", onFg: "text", press: "none", side: "right", labels: "レイヤー、色、設定" });
   if (type === "drawer") Object.assign(base, { shape: "round", radius: 16, bw: 2.5, press: "none", label: "レイヤー", title: "レイヤー", body: "ここに中身が入ります。" });
   return base;
 }
@@ -261,8 +264,8 @@ function partCSS(p) {
     p.shape === "custom" && p.custom?.keep ? `--ub-ar: ${p.custom.w} / ${p.custom.h}; --ub-w: ${p.custom.width}px;` : "",
   ].filter(Boolean);
   let css = `/* ${p.name || "自分で作った部品"}(${ubType(p).name})${p.desc ? ":" + p.desc : ""} */\n.${ubClassName(p)} {\n  ${vars.join("\n  ")}\n}`;
-  // 選んでいるとき(チップ・タブ)
-  if (p.type === "chip" || p.type === "tab") {
+  // 選んでいるとき(チップ・タブ・縦タブ)
+  if (p.type === "chip" || p.type === "tab" || p.type === "vtab") {
     css += `\n.${ubClassName(p)}[aria-pressed="true"] {\n  --ub-bg: ${ubColor(p.onBg)};\n  --ub-fg: ${ubColor(p.onFg)};\n  --ub-bd: ${ubColor(p.onBd)};\n}`;
   }
   return css;
@@ -273,6 +276,7 @@ function partClasses(p) {
   return [
     "ub",
     p.type === "box" ? "ub--box" : "",
+    p.type === "vtab" ? "ub--vtab" : "",
     UB_CLASS_SHAPES.includes(p.shape) ? "ub--" + p.shape : "",
     svg ? "ub--svg" : "",
     svg && p.bs === "double" ? "ub--dbl" : "",
@@ -323,9 +327,10 @@ function partHTML(p, { inside = false } = {}) {
     const body = p.body ? `<p>${escapeHTML(p.body).replace(/\n/g, "<br>")}</p>` : "";
     return `<section class="${cls}">${shape}${title}${body}</section>`;
   }
-  if (p.type === "chip" || p.type === "tab") {
+  if (p.type === "chip" || p.type === "tab" || p.type === "vtab") {
     const labels = ubLabels(p);
     const items = (labels.length ? labels : ["A"]).map((l, i) => `<button type="button" class="${cls}" aria-pressed="${i === 0}">${shape}${withDeco(p, l)}</button>`).join("");
+    if (p.type === "vtab") return `<div class="ub-vtabs${p.side === "left" ? " ub-vtabs--left" : ""}" role="group">${items}</div>`;
     return p.type === "chip"
       ? `<div class="ub-chips">${items}</div>`
       : `<div class="ub-tabs${p.block ? " ub-tabs--fill" : ""}${p.shape === "sticky" ? " ub-tabs--sticky" : ""}" role="group">${items}</div>`;
@@ -342,7 +347,7 @@ function bindPartDemo(root) {
       h.setAttribute("aria-expanded", String(open));
       return;
     }
-    const b = e.target.closest(".ub-chips > .ub, .ub-tabs > .ub");
+    const b = e.target.closest(".ub-chips > .ub, .ub-tabs > .ub, .ub-vtabs > .ub");
     if (!b) return;
     if (b.parentElement.classList.contains("ub-chips")) b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
     else for (const x of b.parentElement.children) x.setAttribute("aria-pressed", x === b ? "true" : "false");
@@ -357,6 +362,7 @@ function partForAI(p) {
     p.name ? `名前:${p.name}` : null,
     p.shape === "custom" && p.custom?.name ? `形:${p.custom.name}(自分で描いた形)` : null,
     p.desc ? `使いどころ:${p.desc}` : null,
+    p.type === "vtab" ? "サイドバーのふちに縦に並べるタブ。押したタブだけ aria-pressed=\"true\" にして、そのタブの中身を出す。.ub-vtabs はサイドバーのふちにくっつけて置く(右に出るときはサイドバーの右はし、.ub-vtabs--left のときは左はし)" : null,
     p.type === "drawer" ? "つまみ(.ub-drawer-handle)を押したら、.ub-drawer に open を付け外しして出し入れする(しくみは ui/kit.css の「自由サイドバー」)" : null,
     "",
     "CSS:",
@@ -373,7 +379,7 @@ function partForAI(p) {
 // どこでも使える版の AI に渡す文章。ui/kit.css の中身(kitCss)から、テーマの色と自由ボタンのしくみを取り出して一緒に渡す
 //   テーマの色は .ub などの部品の中だけで決める(貼る先のページの CSS 変数とぶつからないように)
 function partForAnywhere(p, kitCss) {
-  const UBS = ".ub, .ub-chips, .ub-tabs, .ub-scroll, .ub-drawer";
+  const UBS = ".ub, .ub-chips, .ub-tabs, .ub-vtabs, .ub-scroll, .ub-drawer";
   const theme = kitCss.slice(kitCss.indexOf("/* ---------- テーマ"), kitCss.indexOf("* { box-sizing"))
     .replace(':root, [data-theme="sora"] {', `${UBS}, [data-theme="sora"] :is(${UBS}) {`)
     .replace(/^\[data-theme="(\w+)"\] \{/gm, (_, id) => `[data-theme="${id}"] :is(${UBS}) {`) // sora 以外のテーマ(ichigo・mikan・remon・mori・budo…)をぜんぶ
@@ -392,12 +398,12 @@ function partForAnywhere(p, kitCss) {
         '  h.setAttribute("aria-expanded", String(open));',
         "});",
       ]
-    : p.type === "chip" || p.type === "tab"
+    : p.type === "chip" || p.type === "tab" || p.type === "vtab"
     ? [
         "",
         "JavaScript(押したときの切り替え。チップは押すたびにオン・オフ、タブは押したものだけオン):",
         'document.addEventListener("click", (e) => {',
-        '  const b = e.target.closest(".ub-chips > .ub, .ub-tabs > .ub");',
+        '  const b = e.target.closest(".ub-chips > .ub, .ub-tabs > .ub, .ub-vtabs > .ub");',
         "  if (!b) return;",
         '  if (b.parentElement.classList.contains("ub-chips")) b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");',
         '  else for (const x of b.parentElement.children) x.setAttribute("aria-pressed", x === b ? "true" : "false");',
