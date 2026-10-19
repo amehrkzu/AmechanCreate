@@ -109,20 +109,15 @@
     --ub-bd: color-mix(in oklab, var(--accent) 45%, #6b4a5c); /* キャラごとの色に合わせる */
     --ub-sh: var(--border);
     --ub-bw: 0px;
+    /* ボタンそのものは入れ物(切り抜かない)。中身の .slant-body を平行四辺形に切り抜き、NEW マークはその外に乗せる(切れないように) */
     position: relative;
     isolation: isolate;
     display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    /* 上下:ボタンの形はマスの上下 10% ずつ内側に描いてあるので、顔アイコン(高さ 40px)がちょうど形の上下にくっつく余白(40 ÷ 8 = 5px)。
-       右は傾いた分だけ広め。左は、顔アイコンを斜めの辺にくっつける(--edge-x) */
-    padding: 5px 30px 5px 0;
+    padding: 0;
+    background: none;
     /* 高さは 50px に固定(文字の大きさやフォントで高さが変わると、顔アイコンが形の上下からずれるため)。顔アイコン 40px が真ん中 = 上下 5px */
     box-sizing: border-box;
     height: 50px;
-    /* 形:ボタンそのものを平行四辺形に切り抜く。中の顔アイコンのはみ出しも、ここで切れる */
-    background: var(--ub-bg);
-    clip-path: polygon(5% 10%, 80% 10%, 95% 90%, 20% 90%);
     color: var(--ub-fg);
     border: 0;
     font: inherit;
@@ -132,6 +127,20 @@
     white-space: nowrap;
     cursor: pointer;
     transition: transform .12s;
+  }
+  /* ボタンの中身:平行四辺形に切り抜く。中の顔アイコンのはみ出しも、ここで切れる
+     上下:形はマスの上下 10% ずつ内側(=5px)なので、顔アイコン(高さ 40px)がちょうど形の上下にくっつく。右は傾いた分だけ広め。
+     左は、顔アイコンを斜めの辺にくっつける(--edge-x) */
+  .slant-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 5px 30px 5px 0;
+    background: var(--ub-bg);
+    clip-path: polygon(5% 10%, 80% 10%, 95% 90%, 20% 90%);
   }
   .ub-chara-slant:focus-visible { filter: brightness(.9); } /* 切り抜くと枠が見えないので、キーボードで選んだときは少し暗く */
   .ub-chara-slant:hover { transform: translateY(-3px); z-index: 1; } /* のせると浮く(となりと重なっているので、前に出す) */
@@ -256,10 +265,84 @@
     padding-right: 24px;
     white-space: nowrap;
   }
+  /* プロフィール・補足の文の中のリンク */
+  .fields dd a, .extra-body a { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; word-break: break-all; }
+  .light-color .fields dd a, .light-color .extra-body a { color: var(--accent-deep); }
   .fields dd {
     white-space: pre-wrap;
     word-break: break-word;
   }
+  /* ---- 絞り込み(種族・性別・ジョブ)---- */
+  /* 一覧の上の「絞り込み」ボタンと、いまの条件 */
+  .filter-bar { width: min(880px, 100%); margin: 0 0 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+  .filter-now { font-size: .8rem; color: var(--muted); }
+  .filter-open {
+    font: inherit; font-size: .9rem; font-weight: 700; color: var(--text);
+    background: var(--card); border: 2px solid var(--border); border-radius: 999px; padding: 4px 16px; cursor: pointer;
+  }
+  .filter-open:hover { border-color: var(--accent); }
+  .filter-open.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .light-color .filter-open.on { color: var(--accent-deep); }
+  /* 絞り込みのウィンドウ */
+  .filter-dialog {
+    width: min(560px, 92vw); max-height: 85vh; padding: 0; color: var(--text);
+    background: var(--card); border: 2px solid var(--border); border-radius: 20px; box-shadow: 0 12px 40px rgba(0, 0, 0, .18);
+  }
+  .filter-dialog::backdrop { background: rgba(40, 20, 30, .35); }
+  .filter-dialog[open] { display: flex; flex-direction: column; animation: dialog-pop .18s ease-out; }
+  @keyframes dialog-pop { from { opacity: 0; transform: scale(.96); } }
+  @media (prefers-reduced-motion: reduce) { .filter-dialog[open] { animation: none; } }
+  .filter-dialog-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 8px; }
+  .filter-dialog-head b { font-size: 1.05rem; color: var(--accent); }
+  .light-color .filter-dialog-head b { color: var(--accent-deep); }
+  .filter-x { font: inherit; font-size: 1.3rem; line-height: 1; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 4px 8px; }
+  .filters { overflow-y: auto; padding: 4px 18px 12px; display: flex; flex-direction: column; gap: 12px; }
+  .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .filter-row > b { width: 100%; font-size: .8rem; color: var(--muted); }
+  .filter-dialog-foot { display: flex; align-items: center; gap: 10px; padding: 10px 18px 14px; border-top: 2px dashed var(--border); }
+  .filter-count { flex: 1; font-size: .85rem; color: var(--muted); }
+  .filter-done {
+    font: inherit; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 999px; padding: 6px 20px; cursor: pointer;
+  }
+  .light-color .filter-done { color: var(--accent-deep); }
+  .filter-chip {
+    font: inherit; font-size: .8rem; font-weight: 700; color: var(--text);
+    background: var(--card); border: 2px solid var(--border); border-radius: 999px; padding: 2px 12px; cursor: pointer;
+  }
+  .filter-chip:hover { border-color: var(--accent); }
+  .filter-chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .light-color .filter-chip[aria-pressed="true"] { color: var(--accent-deep); }
+  .filter-clear { font: inherit; font-size: .8rem; color: var(--muted); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+  .filter-empty { color: var(--muted); text-align: center; margin: 12px 0; }
+
+  /* ---- 前へ・次へ(プロフィール欄の左右)---- */
+  .profile { position: relative; }
+  .pager {
+    position: absolute; top: 24px; width: 40px; height: 40px; border-radius: 50%;
+    font: inherit; font-size: 1.4rem; font-weight: 800; line-height: 1; color: var(--accent);
+    background: var(--card); border: 2px solid var(--border); cursor: pointer;
+  }
+  .pager:hover { border-color: var(--accent); }
+  .pager--prev { left: -20px; }
+  .pager--next { right: -20px; }
+  .light-color .pager { color: var(--accent-deep); }
+  @media (max-width: 640px) { .pager--prev { left: 6px; } .pager--next { right: 6px; } .pager { top: 8px; width: 34px; height: 34px; } }
+
+  /* ---- 更新マーク(更新日が最近のキャラ)---- */
+  .new-badge {
+    position: absolute; z-index: 2; top: -4px; left: calc(var(--edge-x, 12px) + 4px); /* ボタンの形の外(上)に乗せる */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+    font-size: .6rem; font-weight: 800; letter-spacing: .05em; line-height: 1;
+    color: #fff; background: var(--accent2); border-radius: 4px; padding: 2px 4px; pointer-events: none;
+  }
+  .profile-name .new-badge { position: static; display: inline-block; vertical-align: middle; margin-left: .5em; font-size: .7rem; }
+
+  /* ---- キャラごとの背景画像(「背景」の列)---- */
+  /* もわもわの雲の上に重ねる(z-index は雲と同じ -1、あとに書いてあるので上)。透けさせず、そのまま出す */
+  .chara-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: center / cover no-repeat; opacity: 0; transition: opacity .6s; }
+  .chara-bg.on { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .chara-bg { transition: none; } }
+
   .placeholder, .loading {
     color: var(--muted);
     text-align: center;
@@ -402,10 +485,26 @@
 </head>
 <body>
 <div class="mofu" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="chara-bg" id="charaBg" aria-hidden="true"></div>
 
 <h1>キャラクター紹介</h1>
 
+<div class="filter-bar" id="filterBar" hidden>
+  <span class="filter-now" id="filterNow"></span>
+  <button type="button" class="filter-open" id="filterOpen" aria-haspopup="dialog">絞り込み</button>
+</div>
+<dialog class="filter-dialog" id="filterDialog" aria-labelledby="filterTitle">
+  <div class="filter-dialog-head"><b id="filterTitle">絞り込み</b><button type="button" class="filter-x" id="filterX" aria-label="閉じる">×</button></div>
+  <div class="filters" id="filters"></div>
+  <div class="filter-dialog-foot">
+    <span class="filter-count" id="filterCount"></span>
+    <button type="button" class="filter-clear" id="filterClear">ぜんぶ外す</button>
+    <button type="button" class="filter-done" id="filterDone">決定</button>
+  </div>
+</dialog>
+
 <div class="char-list char-list--packed" id="charList"></div>
+<p class="filter-empty" id="filterEmpty" hidden>この条件のキャラはいません</p>
 
 <!-- 隠しキャラ:見えない文字で名前が書いてある。ドラッグで文字を選ぶ(反転させる)と見つかる -->
 <p class="secret-line" id="secretLine"></p>
@@ -498,7 +597,30 @@ function attachAvatarFallback(root) {
 const SECRET_LABEL = "隠し";
 // 「カラー」という見出しの列に色を書いたキャラは、選んだときにページの色がその色になる(プロフィールの項目としては表示しない)
 const COLOR_LABEL = "カラー";
-const HIDDEN_LABELS = [SECRET_LABEL, COLOR_LABEL];
+// 「背景」:そのキャラを選んだときのページの背景画像(ドライブの共有リンクか画像の URL)。「更新日」:最近なら NEW を付ける
+const BG_LABEL = "背景";
+const UPDATED_LABEL = "更新日";
+const IMAGE_LABEL = "画像";
+const HIDDEN_LABELS = [SECRET_LABEL, COLOR_LABEL, BG_LABEL, UPDATED_LABEL, IMAGE_LABEL];
+// シートの列がずれたときの直し:Apps Script は「B列 = 顔アイコンの画像」として読むので、B列に別の列(更新日など)を入れると、
+//   画像が「画像」という見出しの項目に、B列の中身(日付など)が画像の欄に入ってしまう。
+//   そのときは、「画像」の項目を顔アイコンに使い、画像の欄に入っていた日付は「更新日」として扱う
+function fixColumns(ch) {
+  const isUrl = (v) => /^https?:\/\//.test(String(v || "").trim());
+  if (isUrl(ch.image)) return ch; // 画像の欄に、ちゃんと画像の URL が入っている
+  const fields = [...(ch.fields || [])];
+  const imgField = fields.find((f) => f.label === IMAGE_LABEL && isUrl(f.value));
+  const out = { ...ch, fields, image: imgField ? driveThumb(String(imgField.value).trim(), 800) : "" };
+  // 画像の欄に入っていたもの(日付など)は「更新日」として扱う(「更新日」の項目がないときだけ)
+  if (/\d{4}\D+\d{1,2}\D+\d{1,2}/.test(String(ch.image || "")) && !fields.some((f) => f.label === UPDATED_LABEL)) fields.push({ label: UPDATED_LABEL, value: String(ch.image) });
+  return out;
+}
+// ドライブの共有リンクを、表示できる画像の URL に直す(ドライブ以外の URL はそのまま)
+function driveThumb(v, w) {
+  const id = v.match(/\/d\/([\w-]{20,})/)?.[1] ?? v.match(/[?&]id=([\w-]{20,})/)?.[1];
+  return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w${w}` : v;
+}
+const fieldOf = (ch, label) => String((ch.fields || []).find(f => f.label === label)?.value ?? "").trim();
 // 色の明るさ(0 = 黒 〜 1 = 白。WCAG の相対輝度)。色の名前(skyblue など)も、canvas に通して #rrggbb にしてから計る
 function luminance(color) {
   const g = document.createElement("canvas").getContext("2d");
@@ -607,13 +729,146 @@ function rowSizes(n, m) {
   }
   return extra > 0 ? [...sizes, extra] : sizes;
 }
+// ---------- 11. 更新マーク ----------
+// 「更新日」の列が、今日から NEW_DAYS 日以内なら NEW。日付は 2026/10/15・2026-10-15・2026年10月15日 のどれでもよい
+const NEW_DAYS = 14;
+function isNew(ch) {
+  const m = fieldOf(ch, UPDATED_LABEL).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  if (!m) return false;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const days = (Date.now() - d.getTime()) / 86400000;
+  return days >= -1 && days <= NEW_DAYS;
+}
+const NEW_BADGE = '<span class="new-badge">NEW</span>';
+
+// ---------- 8. キャラごとの背景画像 ----------
+// ドライブの共有リンク(…/file/d/ID/… や ?id=ID)は、表示できる画像の URL に直す。それ以外は、そのまま使う(http・https だけ)
+function bgUrl(v) {
+  const id = v.match(/\/d\/([\w-]{20,})/)?.[1] ?? v.match(/[?&]id=([\w-]{20,})/)?.[1];
+  if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w1920`;
+  return /^https?:\/\//.test(v) ? v : "";
+}
+const charaBg = document.getElementById("charaBg");
+let bgToken = 0;
+function applyCharaBg(ch) {
+  const url = bgUrl(fieldOf(ch, BG_LABEL));
+  const token = ++bgToken;
+  charaBg.classList.remove("on"); // いったん消してから、読めたら ふわっと出す
+  if (!url) return;
+  const img = new Image();
+  img.referrerPolicy = "no-referrer";
+  img.onload = () => {
+    if (token !== bgToken) return; // 読んでいる間に、別のキャラを選んだとき
+    charaBg.style.backgroundImage = `url("${url.replace(/"/g, "%22")}")`;
+    charaBg.classList.add("on");
+  };
+  img.src = url;
+}
+
+// ---------- 4. 絞り込み ----------
+// 絞り込みに使う列と、値の分け方(種族は「アウラ・レン」→「アウラ」、ジョブは「戦士・白魔導士」→ 戦士 と 白魔導士)
+const FILTERS = [
+  { label: "種族", values: (v) => [raceOf(v)] },
+  { label: "性別", values: (v) => [v.split("・").pop()] }, // 「トランスジェンダー・男」は「男」、「トランスジェンダー・女」は「女」として
+  { label: "ジョブ", values: (v) => v.split(/[・、,，/]/) },
+];
+// 種族:「アウラ・レン」「ラヴァ・ヴィエラ」のように、種族名が前のことも後ろのこともあるので、種族の一覧と見比べて選ぶ。
+//   RACES にない種族(斧・ドラゴン族など)は、まとめて「その他」
+const RACES = ["ヒューラン", "エレゼン", "ララフェル", "ミコッテ", "ルガディン", "アウラ", "ロスガル", "ヴィエラ", "エレダイト"];
+const OTHER_RACE = "その他";
+function raceOf(v) {
+  if (!v.trim()) return "";
+  return v.split("・").map((x) => x.trim()).find((p) => RACES.includes(p)) ?? OTHER_RACE;
+}
+const filterBox = document.getElementById("filters");
+const picked = {}; // { 種族: Set(["アウラ"]) … }
+const valuesOf = (ch, f) => f.values(fieldOf(ch, f.label)).map((x) => x.trim()).filter(Boolean);
+function renderFilters() {
+  const shown = characters.filter((ch) => !isSecret(ch));
+  const rows = FILTERS.map((f) => {
+    const vals = [...new Set(shown.flatMap((ch) => valuesOf(ch, f)))].sort((x, y) => (x === OTHER_RACE) - (y === OTHER_RACE)); // 「その他」はいちばん最後
+    if (vals.length < 2) return ""; // 1種類しかない列は、絞り込んでも意味がないので出さない
+    picked[f.label] ??= new Set();
+    return `<div class="filter-row" role="group" aria-label="${escapeHtml(f.label)}で絞り込む"><b>${escapeHtml(f.label)}</b>${
+      vals.map((v) => `<button type="button" class="filter-chip" data-label="${escapeHtml(f.label)}" data-value="${escapeHtml(v)}" aria-pressed="${picked[f.label].has(v)}">${escapeHtml(v)}</button>`).join("")}</div>`;
+  }).join("");
+  filterBox.innerHTML = rows;
+  document.getElementById("filterBar").hidden = !rows;
+  // 一覧の上の表示:選んでいる条件と人数。ボタンは、絞り込み中なら色が付く
+  const chosen = Object.values(picked).flatMap((set) => [...set]);
+  const count = characters.filter((ch) => !isSecret(ch) && matches(ch)).length;
+  document.getElementById("filterNow").textContent = chosen.length ? `${chosen.join("・")}(${count}人)` : "";
+  document.getElementById("filterOpen").classList.toggle("on", chosen.length > 0);
+  document.getElementById("filterCount").textContent = `${count}人`;
+}
+// ウィンドウ:チップを押すと、すぐに一覧も絞り込まれる(うしろで変わるのが見える)。「決定」「×」・外側を押す・Esc で閉じる
+const filterDialog = document.getElementById("filterDialog");
+document.getElementById("filterOpen").addEventListener("click", () => filterDialog.showModal());
+for (const id of ["filterDone", "filterX"]) document.getElementById(id).addEventListener("click", () => filterDialog.close());
+filterDialog.addEventListener("click", (e) => {
+  if (e.target === filterDialog) return filterDialog.close(); // ウィンドウの外側(暗いところ)
+  if (e.target.id === "filterClear") {
+    for (const set of Object.values(picked)) set.clear();
+  } else {
+    const chip = e.target.closest(".filter-chip");
+    if (!chip) return;
+    const set = picked[chip.dataset.label];
+    if (set.has(chip.dataset.value)) set.delete(chip.dataset.value);
+    else set.add(chip.dataset.value);
+  }
+  renderFilters();
+  applyFilters();
+});
+// 同じ列の中は「どれか」(または)、ちがう列どうしは「ぜんぶ」(かつ)
+function matches(ch) {
+  return FILTERS.every((f) => !picked[f.label]?.size || valuesOf(ch, f).some((v) => picked[f.label].has(v)));
+}
+function applyFilters() {
+  let count = 0;
+  for (const btn of charList.querySelectorAll(".char-btn")) {
+    btn.hidden = !matches(characters[Number(btn.dataset.index)]);
+    if (!btn.hidden) count++;
+  }
+  document.getElementById("filterEmpty").hidden = count > 0;
+  rowsFor = 0;
+  layoutRows();
+}
+
+// ---------- 2. 前へ・次へ ----------
+// 今ボタンが出ているキャラ(絞り込みで消えているキャラ・隠しキャラは飛ばす)の中で、となりへ
+let currentIndex = -1;
+function step(dir) {
+  const order = [...charList.querySelectorAll(".char-btn")].filter((b) => !b.hidden).map((b) => Number(b.dataset.index)).sort((a, b) => a - b);
+  if (!order.length) return;
+  const at = order.indexOf(currentIndex);
+  const next = at < 0 ? order[0] : order[(at + dir + order.length) % order.length];
+  select(next);
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  if (e.target.closest?.("input, textarea, select") || !document.getElementById("lightbox").hidden || currentIndex < 0) return;
+  e.preventDefault();
+  step(e.key === "ArrowLeft" ? -1 : 1);
+});
+// スマホ:プロフィール欄を左右にスワイプ(横に 60px 以上、縦の動きより大きいとき)
+{
+  let sx = 0, sy = 0;
+  const box = document.getElementById("profile");
+  box.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  box.addEventListener("touchend", (e) => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
+  }, { passive: true });
+}
+
 // ボタンを段(.char-row)に分けて並べる。画面の幅が変わって、1段に入る人数が変わったときも並べ直す
 let rowsFor = 0;
 function layoutRows() {
   if (!charList.classList.contains("char-list--packed")) return;
-  const btns = [...charList.querySelectorAll(".char-btn")];
-  if (!btns.length) return;
-  const pw = btns[0].offsetWidth || 240;
+  const all = [...charList.querySelectorAll(".char-btn")].sort((a, b) => a.dataset.index - b.dataset.index);
+  const btns = all.filter((b) => !b.hidden);
+  const hiddenBtns = all.filter((b) => b.hidden);
+  const pw = btns[0]?.offsetWidth || 270;
   const m = Math.max(1, Math.floor((charList.clientWidth - pw * 0.25) / (pw * 0.75))); // 1人ぶんは幅の 75%(25% はとなりと重なる)
   if (m === rowsFor && charList.querySelector(".char-row")) return;
   rowsFor = m;
@@ -623,14 +878,17 @@ function layoutRows() {
     row.append(...btns.splice(0, k));
     return row;
   });
-  charList.replaceChildren(...rows);
+  const rest = document.createElement("div"); // 絞り込みで消えているボタンの置き場所(見えない)
+  rest.hidden = true;
+  rest.append(...hiddenBtns);
+  charList.replaceChildren(...rows, rest);
 }
 if (window.ResizeObserver) new ResizeObserver(() => layoutRows()).observe(charList);
 
 function renderButtons() {
   charList.innerHTML = characters.map((ch, i) => isSecret(ch) ? "" :
     `<button class="char-btn ub-chara-slant" type="button" data-index="${i}" aria-pressed="false">
-      ${avatarHtml(ch)}<span>${escapeHtml(ch.name)}</span>
+      ${isNew(ch) ? NEW_BADGE : ""}<span class="slant-body">${avatarHtml(ch)}<span>${escapeHtml(ch.name)}</span></span>
     </button>`).join("");
   renderSecrets();
   attachAvatarFallback(charList);
@@ -639,8 +897,8 @@ function renderButtons() {
     fitSlant(btn);
     slantObserver?.observe(btn);
   });
-  rowsFor = 0;
-  layoutRows();
+  renderFilters();
+  applyFilters();
 }
 
 // 隠しキャラの名前を、見えない文字で並べる
@@ -687,19 +945,25 @@ function select(index, scroll = false) {
   const secretEl = secretLine.querySelector(`.secret[data-index="${index}"]`);
   if (secretEl) markFound(secretEl);
 
+  currentIndex = index;
   applyCharaColor(ch);
+  applyCharaBg(ch);
   const fields = (ch.fields || []).filter(f => !HIDDEN_LABELS.includes(f.label) && String(f.value).trim());
   const fieldsHtml = fields.length
     ? `<dl class="fields">${fields.map(f =>
-        `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.value)}</dd>`).join("")}</dl>`
+        `<dt>${escapeHtml(f.label)}</dt><dd>${linkify(f.value)}</dd>`).join("")}</dl>`
     : `<p class="placeholder">プロフィールはまだ準備中です</p>`;
 
   profile.innerHTML = `
+    <button type="button" class="pager pager--prev" aria-label="前のキャラ" title="前のキャラ(←)">‹</button>
+    <button type="button" class="pager pager--next" aria-label="次のキャラ" title="次のキャラ(→)">›</button>
     <div class="profile-head">
       ${avatarHtml(ch)}
-      <h2 class="profile-name">${escapeHtml(ch.name)}</h2>
+      <h2 class="profile-name">${escapeHtml(ch.name)}${isNew(ch) ? NEW_BADGE : ""}</h2>
     </div>
     ${fieldsHtml}`;
+  profile.querySelector(".pager--prev").addEventListener("click", () => step(-1));
+  profile.querySelector(".pager--next").addEventListener("click", () => step(1));
   attachAvatarFallback(profile);
   renderExtras(ch.extras || []);
 
@@ -742,7 +1006,7 @@ function extraHtml(ex, splitCount) {
     ? `<img src="${escapeHtml(ex.image)}" alt="${escapeHtml(ex.title)}" loading="lazy" referrerpolicy="no-referrer">`
     : "";
   const title = hasTitle ? `<h3 class="extra-title">${escapeHtml(ex.title)}</h3>` : "";
-  const body = hasBody ? `<p class="extra-body">${escapeHtml(ex.body)}</p>` : "";
+  const body = hasBody ? `<p class="extra-body">${linkify(ex.body)}</p>` : "";
 
   // 画像だけ／画像＋見出しだけ → 大きく表示
   if (img && !hasBody) {
@@ -792,6 +1056,22 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") lightbox.hidden = true;
 });
 
+// 文字をページに出すときに、リンクを作る(それ以外の文字は、HTML として読まれないように escapeHtml を通す)
+//   [表示する文字](https://…) → その文字がリンク / https://… をそのまま書く → URL がリンク
+//   http:// と https:// だけ。そのまま書いた URL は半角の文字だけ(日本語が続いてもそこで切れる。最後の . や , は含めない)。リンクは新しいタブで開く
+const LINK_RE = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[A-Za-z0-9\-._~:/?#[\]@!$&'*+,;=%]*[A-Za-z0-9\-_~/#=&%])/g;
+function linkify(text) {
+  const t = String(text);
+  let out = "", last = 0;
+  for (const m of t.matchAll(LINK_RE)) {
+    const url = m[2] ?? m[3], label = m[1] ?? m[3];
+    out += escapeHtml(t.slice(last, m.index));
+    out += `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+    last = m.index + m[0].length;
+  }
+  return out + escapeHtml(t.slice(last));
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, ch =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -801,7 +1081,7 @@ async function init() {
   profile.innerHTML = `<p class="loading" role="status"><span class="spinner" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>読み込み中…</p>`;
   try {
     const data = await loadData();
-    characters = data.characters || [];
+    characters = (data.characters || []).map(fixColumns);
   } catch (e) {
     profile.innerHTML = `<p class="error">データの読み込みに失敗しました<br>時間をおいて再読み込みしてね</p>`;
     return;
