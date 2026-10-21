@@ -132,6 +132,21 @@ body { font-size: 14px; }
     </section>
 
     <section class="box">
+      <h2>下書き</h2>
+      <label class="btn btn--small btn--primary">下書きを読み込む<input id="draftFile" type="file" accept="image/*" hidden></label>
+      <div id="draftPanel" hidden>
+        <label class="field field--check" style="margin-top:10px"><input id="draftShow" type="checkbox"> 下書きを表示</label>
+        <label class="field">
+          <span>うすさ <output id="draftOpacityOut"></output></span>
+          <input id="draftOpacity" type="range" min="0.05" max="1" step="0.05">
+        </label>
+        <div class="actions" style="margin-top:10px">
+          <button type="button" class="btn btn--small btn--danger" id="draftRemove">下書きを外す</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="box">
       <h2>書き出し</h2>
       <div class="chips" id="outChips"></div>
       <label class="field">
@@ -178,6 +193,7 @@ const blank = () => ({
   w: 16, h: 16, px: Array(16 * 16).fill(""),
   color: "#ff8a3d", grid: true,
   out: 1024, bgOn: false, bg: "#ffffff", name: "",
+  draft: { src: "", show: true, opacity: 0.5 },
 });
 let doc = load() ?? blank();
 let tool = "pen";
@@ -198,7 +214,12 @@ let saveTimer;
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    try { sessionStorage.setItem(KEY, JSON.stringify(doc)); } catch {}
+    try {
+      sessionStorage.setItem(KEY, JSON.stringify(doc));
+    } catch {
+      // 下書きの画像が大きすぎると入らないので、画像なしで保存する
+      try { sessionStorage.setItem(KEY, JSON.stringify({ ...doc, draft: { ...doc.draft, src: "" } })); } catch {}
+    }
   }, 300);
 }
 
@@ -277,6 +298,14 @@ function draw() {
         ctx.fillRect(x0, y0 + hh, hw, ch - hh);
       }
     }
+  }
+  // 下書き:マスの上にうすく重ねる(縦横の比はそのまま、真ん中に収める)
+  if (doc.draft.src && doc.draft.show && draftImg.complete && draftImg.naturalWidth) {
+    const s = Math.min(W / draftImg.naturalWidth, H / draftImg.naturalHeight);
+    const dw = draftImg.naturalWidth * s, dh = draftImg.naturalHeight * s;
+    ctx.globalAlpha = doc.draft.opacity;
+    ctx.drawImage(draftImg, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    ctx.globalAlpha = 1;
   }
   if (doc.grid) {
     const line = Math.max(1, Math.round((window.devicePixelRatio || 1) * 0.75));
@@ -477,6 +506,49 @@ $("gridToggle").addEventListener("click", () => {
   save();
 });
 
+// ---------- 下書き ----------
+// 画像をマスの上にうすく表示するだけ。絵(px)にも書き出しにも入らない
+const draftImg = new Image();
+draftImg.addEventListener("load", draw);
+function renderDraftPanel() {
+  const d = doc.draft;
+  $("draftPanel").hidden = !d.src;
+  $("draftShow").checked = d.show;
+  $("draftOpacity").value = d.opacity;
+  $("draftOpacityOut").textContent = `${Math.round(d.opacity * 100)}%`;
+}
+function setDraft(src) {
+  doc.draft = { ...doc.draft, src, show: true };
+  draftImg.src = src;
+  renderDraftPanel();
+  draw();
+  save();
+}
+function loadDraftFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith("image/")) { $("status").textContent = "画像のファイルを選んでください"; return; }
+  const r = new FileReader();
+  r.onload = () => { setDraft(r.result); $("status").textContent = "下書きを読み込みました"; };
+  r.readAsDataURL(file);
+}
+$("draftFile").addEventListener("change", (e) => { loadDraftFile(e.target.files[0]); e.target.value = ""; });
+$("draftShow").addEventListener("change", (e) => { doc.draft.show = e.target.checked; draw(); save(); });
+$("draftOpacity").addEventListener("input", (e) => { doc.draft.opacity = +e.target.value; renderDraftPanel(); draw(); save(); });
+$("draftRemove").addEventListener("click", () => {
+  doc.draft = { ...blank().draft };
+  draftImg.removeAttribute("src");
+  renderDraftPanel();
+  draw();
+  save();
+});
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", (e) => { e.preventDefault(); loadDraftFile(e.dataTransfer.files[0]); });
+document.addEventListener("paste", (e) => {
+  if (e.target.closest?.("input, textarea")) return;
+  const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith("image/"));
+  if (item) loadDraftFile(item.getAsFile());
+});
+
 // ---------- 書き出し ----------
 function outDims() {
   const L = Math.max(doc.w, doc.h);
@@ -562,6 +634,8 @@ $("gridToggle").setAttribute("aria-pressed", String(doc.grid));
 $("bgOn").checked = doc.bgOn;
 $("bgColor").value = doc.bg;
 $("fileName").value = doc.name;
+if (doc.draft.src) draftImg.src = doc.draft.src;
+renderDraftPanel();
 afterPictureChange();
 new ResizeObserver(resizeCanvas).observe(canvas);
 window.addEventListener("resize", resizeCanvas);
