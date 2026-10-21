@@ -165,7 +165,7 @@ button, label.btn, .tab, .sheet-tab { touch-action: manipulation; } /* ダブル
 .zoom-ctl button:hover { background: var(--tint); }
 #zoomFit { min-width: 4.2em; font-size: 11px; border-left: 2px solid var(--line); border-right: 2px solid var(--line); }
 .artboard { cursor: grab; } /* 余白をドラッグすると表示が動く */
-.artboard.space-pan #card { cursor: grab !important; }
+.artboard.space-pan #card, .artboard.shift-pan #card { cursor: grab !important; }
 .artboard.panning, .artboard.panning #card { cursor: grabbing !important; }
 
 .sheet {

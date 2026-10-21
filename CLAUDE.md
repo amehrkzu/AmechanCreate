@@ -1,27 +1,20 @@
-# あめちゃんもの置き
+# あめちゃんもの置き — 目次
 
-## UI を作る・直すとき(このサイトのすべての HTML)
-- 部品は [ui-kit.html](ui-kit.html)(パーツ台帳。前の名前は UI見本帳)にあるものを使う。見た目は [ui/kit.css](ui/kit.css) にまとまっている
-- ユーザーは見本帳の**テーマ名**(そら=水色 / いちご=ピンク / みかん=オレンジ / レモン=黄色(remon) / もり=緑(mori) / ぶどう=むらさき(budo))、**部品の名前**(「箱」「ぷっくりボタン」「リンクカード」など)、**色の名前**(「アクセント」「付箋・ミント」など)で指示する
-- 新しいページは `<html data-theme="…">` + `ui/kit.css` を読み込んで作る。色は直接書かず `var(--accent)` などを使う
-- テーマの目安:サイトのトップ=そら、キャラ紹介・カップリング=いちご、ツール=みかん
-- 見本帳にない部品を作ったら、名前を決めて ui/kit.css と見本帳の両方に足す(`<article class="kit-item box" data-name="名前" data-cls=".クラス" data-desc="説明">` の中に `.kit-demo` を置く)
-- ユーザーは [ui-maker.html](ui-maker.html)(パーツメーカー)でボタン・箱・チップ・タブ・縦タブ・スクロールバー・サイドバーの見た目を作れる。仕組みは ui/kit.css の「自由ボタン」(`.ub`)・「自由スクロールバー」(`.ub-scroll`)・「自由サイドバー」(`.ub-drawer`)と [ui/parts.js](ui/parts.js)
-  - 部品そのものは保存しない(使うたびに作り直して AI に渡す)。保存できるのは自分で描いた形だけ(このブラウザの `uikit:shapes`。設計データの `custom`)
-  - 「この見た目の部品を使ってください(UIパーツメーカーで作りました)」で始まる文章が貼られたら:その CSS(`.ub-p…` の変数)と HTML を使って作る。ページで使うときはクラス名を中身の分かる英語(例 `.ub-heart-like`)に変える。「見本帳に入れて」と言われたら、CSS を ui/kit.css の「自由ボタン」の下に足し、見本帳の合う欄(ボタン → ボタン、箱・スクロールバー・サイドバー → 入れ物、チップ・タブ・縦タブ → 選ぶ部品)に `kit-item` として足す
-- どのページにも、ブラウザのタブのアイコンを付ける:`<title>` のすぐ下に `<link rel="icon" type="image/png" href="Icon.png">`(フォルダーの深さに合わせて `../Icon.png` など)
-- 合言葉は「かわいく」:パステル・太めの枠線・まるい角・押すと沈むボタン・丸ゴシック(M PLUS Rounded 1c)
-- スマホ(幅 320px)でも崩れないこと。入力欄の文字は 16px 以上
-- **外側の余白を多くしない(ユーザーの好み)**:PC(広い画面)では、画面の左右を大きく空けて真ん中に小さくまとめない。特に一覧・キャラ選択・ギャラリーなど「並べて見せる」部分は、画面の幅いっぱい近くまで使う(内容に max-width を付けるなら大きめに。文章を読ませる部分だけは、読みやすい幅にしてよい)。スマホ(狭い画面)は余白多めでもよい
-- 今あるページ(index / coupling / profile / キャラカ / Tシャツ)は、まだ ui/kit.css を使っていない(それぞれのページの中に CSS がある)
-- どのページにも「あめちゃんもの置き」(トップへ戻る文字だけのリンク。「あめちゃん/もの置き」の小さめの2行)を付ける:`ui/site-header.js` を `defer` で読み込み、上の帯があればその帯に `data-site-bar` を付ける(なければ左上に浮く)。ページ一覧は付けない。行き来は関係のあるページ同士だけ(パーツ台帳 ⇔ パーツメーカー、キャラカ ⇔ 枠エディタ・シンボルエディタ。アイコンメーカーはトップの「SVGメーカー」のカードから開くだけ)。Tシャツのページにはまだ付けない
-- **ツールのレイヤーは、サイドバーで管理する(ルール)**:このサイトで作るツール(キャラカ・枠エディタ・シンボルエディタ・今後の SVG 系・描画系のツール)は、レイヤー(線・図形・要素)の一覧を、画面の左から前面に出てくる「レイヤーのサイドバー」に置く。右のシートや、シートのタブの中には置かない。
-  - **エディタ系の配置(ルール)**:広い画面(幅1000px以上)では、引き出しにせず**左の列にいつも出す**(UEのヒエラルキーのような配置)。左の上=「追加」(要素・図形・ツールを選んで足す)、左の下=「階層」(レイヤー一覧)、右=「詳細」(選んでいる物の設定。何も選んでいなければ空)。キャラカの「デザイン・キャラ・エフェクト・カード」など、選択に関係ない設定は右の別タブ。狭い画面では、左も右も前面に出る引き出しになる(左=つまみ「☂ レイヤー」、右=つまみ「✿ 詳細」/キャラカは「✿ 設定」。右は `ui/layer-drawer.css` の `.right-drawer`・`.right-handle`)。左の列は1つの箱(`<section class="box"><h2>追加</h2>…<h2 class="next">階層</h2>…</section>`)にして、箱ごとスクロールする(追加と階層を別の箱に分けると、階層が押しつぶされて見えなくなる)
-  - 見た目と動きは共通:テーマ「そら」(水色)、四角い角・枠線なし・ぷっくり影・ふわっと。いつも見えている付箋のつまみ「☂ レイヤー」を押すと出し入れ(開いても閉じても同じ水色)。開いているかは、そのタブを開いている間だけ覚える
-  - 新しいツールは、`ui/layer-drawer.css` と `ui/layer-drawer.js` を読み込み、`<aside class="layer-drawer" id="layerDrawer">` の中に `<section class="box"><h2>レイヤー</h2>…一覧…</section>` と `<button class="layer-handle" id="layerHandle">☂ レイヤー</button>` を置く(書き方は ui/layer-drawer.js の先頭のコメント)。一覧の行は `.layer-list li`(選んでいる行は `.on`)にすると、水色に合う
-  - 枠エディタ・シンボルエディタは対応済み。キャラカは自前の同じ見た目(`characa/style.css` の `.layer-drawer`)。SVGメーカー(アイコンメーカー)にはレイヤー一覧がないので、作るときはこのルールで
-  - 同じ名前のサイドバーの部品が、パーツメーカーの「サイドバー」(`ui/kit.css` の `.ub-drawer`)にもある
+作業の前に、この目次から関係する md を読む。
+- **基盤(〜_基盤)は必ず読む**。まず全体の基盤(Base.md)、次にその分野の基盤、最後に個別の md
+- このファイルは目次だけ。決まり・仕様・作業の記録は、それぞれの md に書く(新しい分野ができたら md を作って、ここに1行足す)
 
-## 引き継ぎメモ
-- アプリダウンロード(パスワードつき・暗号化して置く):[HANDOFF_download.md](HANDOFF_download.md)
-- キャラ紹介・関係辞典(Apps Script のデータ):[HANDOFF_coupling_profile.md](HANDOFF_coupling_profile.md)
+## 目次
+- 全体規約_基盤:[docs/Base.md](docs/Base.md) ← **いつも必ず読む**
+- キャラ系の変更_基盤:[docs/Chara.md](docs/Chara.md)
+  - プロフィール(キャラクター紹介・profile.html):[docs/Chara_1.md](docs/Chara_1.md)
+  - 関係辞典(カップリング辞典・coupling.html):[docs/Chara_2.md](docs/Chara_2.md)
+- ツール系の変更_基盤:[docs/Tools.md](docs/Tools.md)
+  - キャラカ(characa/。枠エディタ・シンボルエディタも):[docs/CharacterCard.md](docs/CharacterCard.md)
+    - 作業の記録:[docs/CharacterCard_history.md](docs/CharacterCard_history.md)
+    - 古いメモ:[docs/CharacterCard_mobile.md](docs/CharacterCard_mobile.md)(スマホ対応)、[docs/CharacterCard_frameEditor.md](docs/CharacterCard_frameEditor.md)(枠エディタ)
+  - パーツ(パーツ台帳・パーツメーカー):[docs/htmlParts.md](docs/htmlParts.md)
+  - SVGメーカー(アイコンメーカー):[docs/svgCreate.md](docs/svgCreate.md)
+  - ドット絵メーカー(dot-maker.html):[docs/dotMaker.md](docs/dotMaker.md)
+  - アプリダウンロード(download/):[docs/Download.md](docs/Download.md)
+- その他/外部リンク:今のところなし

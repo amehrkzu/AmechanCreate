@@ -1376,10 +1376,16 @@ document.addEventListener("keyup", (e) => {
   spaceHeld = false;
   $("artboard").classList.remove("space-pan");
 });
+// Shift を押している間も、表示を動かせる印(つかむ形のカーソル)。要素の大きさを変えている途中の Shift(縦横比を保つ)はそのまま
+const shiftPan = (e) => $("artboard").classList.toggle("shift-pan", e.shiftKey && !drag);
+document.addEventListener("keydown", shiftPan);
+document.addEventListener("keyup", shiftPan);
+window.addEventListener("blur", () => $("artboard").classList.remove("shift-pan"));
 
 canvas.addEventListener("pointerdown", (e) => {
   const p = toCard(e);
-  if (spaceHeld || e.button === 1) {
+  // スペースを押しながら・ホイールボタン・Shift を押しながら左クリック → 表示を動かす(要素は選ばない・動かさない)
+  if (spaceHeld || e.button === 1 || (e.button === 0 && e.shiftKey)) {
     e.preventDefault(); // ホイールボタンの自動スクロールを出さない
     startViewDrag(e);
     canvas.setPointerCapture(e.pointerId);
@@ -3036,7 +3042,8 @@ $("gridToggle").addEventListener("click", () => setGrid($("artboard").classList.
 // カードの外側(制作エリアの余白)を押したら選択を外す。拡大中ならそのままドラッグでスクロール
 $("artboard").addEventListener("pointerdown", (e) => {
   if (e.target !== e.currentTarget) return;
-  if (startViewDrag(e, true)) e.currentTarget.setPointerCapture(e.pointerId); // 選択を外すのは、クリックで離したときだけ
+  // 選択を外すのは、クリックで離したときだけ。Shift を押しながらのときは、表示を動かすだけ(選択は外さない)
+  if (startViewDrag(e, !e.shiftKey)) e.currentTarget.setPointerCapture(e.pointerId);
 });
 $("artboard").addEventListener("pointermove", (e) => {
   if (!viewDrag || pinch) return;

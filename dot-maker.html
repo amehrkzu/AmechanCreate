@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="ja" data-theme="mikan">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ドット絵メーカー</title>
+<link rel="icon" type="image/png" href="Icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
+<link rel="stylesheet" href="ui/kit.css">
+<link rel="stylesheet" href="ui/layer-drawer.css">
+<style>
+/* このページだけの並べ方。部品の見た目は ui/kit.css */
+body { font-size: 14px; }
+.btn:disabled { cursor: default; }
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  max-width: 1700px;
+  margin: 0 auto;
+}
+@media (min-width: 1000px) { .app { grid-template-columns: 280px minmax(0, 1fr) 340px; } }
+.tool-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tool-list .btn { justify-content: flex-start; }
+.tool-list .btn[aria-pressed="true"] { background: var(--lemon); }
+
+/* 色見本 */
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, 28px); gap: 6px; }
+.sw {
+  width: 28px; height: 28px; padding: 0;
+  border: 2px solid var(--ink); border-radius: 8px;
+  background: var(--c); cursor: pointer; touch-action: manipulation;
+}
+.sw[aria-pressed="true"] { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--accent); }
+.now { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.now input[type="color"] { width: 56px; flex-shrink: 0; }
+.now code { font-size: 13px; color: var(--muted); }
+.sub { margin: 12px 0 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
+
+/* 真ん中:描くマス */
+.stage { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.toolbar .grow { flex: 1; }
+.board {
+  --ar: 1;
+  position: relative;
+  aspect-ratio: var(--ar);
+  width: min(100%, calc((100vh - 140px) * var(--ar)));
+  width: min(100%, calc((100dvh - 140px) * var(--ar)));
+  margin: 0 auto;
+  background: #fff;
+  border: var(--border) solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 4px 0 var(--ink-soft);
+  overflow: hidden;
+}
+#canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+
+/* 右:詳細 */
+.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel .chips { margin-bottom: 10px; }
+.size-row { display: flex; align-items: center; gap: 6px; }
+.size-row input { width: 76px; }
+.out-info { margin: 6px 0 0; font-size: 13px; font-weight: 700; }
+.panel .field + .field, .panel .field + .actions, .panel .actions + .field { margin-top: 10px; }
+.bg-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.bg-row input[type="color"] { width: 56px; }
+
+@media (max-width: 999.98px) {
+  .board { width: min(100%, calc((100dvh - 120px) * var(--ar))); }
+}
+</style>
+<script src="ui/site-header.js" defer></script>
+</head>
+<body class="bg-dots">
+<header class="topbar top" data-site-bar>
+  <h1>ドット絵メーカー</h1>
+</header>
+
+<main class="app">
+  <!-- 左の列:上に「追加」(道具)、下に「色」。広い画面ではいつも出ていて、狭い画面では前面に出る引き出し -->
+  <aside class="layer-drawer" id="layerDrawer" aria-label="道具と色">
+    <section class="box">
+      <h2>追加</h2>
+      <div class="tool-list" role="group" aria-label="道具">
+        <button type="button" class="btn" data-tool="pen" title="ペン(B)">✏️ ペン</button>
+        <button type="button" class="btn" data-tool="eraser" title="消しゴム(E)。右クリックでも消せます">🧽 消しゴム</button>
+        <button type="button" class="btn" data-tool="fill" title="塗りつぶし(G)">🪣 塗りつぶし</button>
+        <button type="button" class="btn" data-tool="pick" title="スポイト(I)">💧 スポイト</button>
+      </div>
+      <h2 class="next">色</h2>
+      <div class="now">
+        <input id="color" type="color" aria-label="いまの色">
+        <code id="colorCode"></code>
+      </div>
+      <div class="swatches" id="palette" role="group" aria-label="パレット"></div>
+      <p class="sub" id="usedTitle">使っている色</p>
+      <div class="swatches" id="used" role="group" aria-label="使っている色"></div>
+    </section>
+    <button type="button" class="layer-handle" id="layerHandle" aria-controls="layerDrawer" aria-expanded="false">☂ レイヤー</button>
+  </aside>
+
+  <section class="stage">
+    <div class="toolbar">
+      <button type="button" class="switch" id="gridToggle" aria-pressed="true">マス目</button>
+      <span class="grow"></span>
+      <button type="button" class="btn btn--small" id="undo" title="元に戻す(Ctrl+Z)">↶ 戻す</button>
+      <button type="button" class="btn btn--small" id="redo" title="やり直す(Ctrl+Y)">↷ やり直す</button>
+    </div>
+    <div class="board" id="board">
+      <canvas id="canvas"></canvas>
+    </div>
+  </section>
+
+  <aside class="right-drawer" id="rightDrawer" aria-label="詳細">
+  <div class="panel">
+    <section class="box">
+      <h2>マス</h2>
+      <div class="chips" id="gridChips"></div>
+      <div class="size-row">
+        <input id="gridW" type="number" min="1" max="128" aria-label="横のマス数">
+        <span>×</span>
+        <input id="gridH" type="number" min="1" max="128" aria-label="縦のマス数">
+        <button type="button" class="btn btn--small" id="gridApply">変える</button>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button type="button" class="btn btn--small btn--danger" id="clearAll">ぜんぶ消す</button>
+      </div>
+    </section>
+
+    <section class="box">
+      <h2>書き出し</h2>
+      <div class="chips" id="outChips"></div>
+      <label class="field">
+        <span>長い辺の大きさ(px)</span>
+        <input id="outSize" type="number" min="16" max="4096" step="1">
+      </label>
+      <p class="out-info" id="outInfo"></p>
+      <div class="bg-row">
+        <label class="field field--check"><input id="bgOn" type="checkbox"> 背景を塗る</label>
+        <input id="bgColor" type="color" aria-label="背景の色">
+      </div>
+      <label class="field">
+        <span>ファイル名</span>
+        <input id="fileName" type="text" placeholder="dot">
+      </label>
+      <div class="actions" style="margin-top:12px">
+        <button type="button" class="btn btn--primary btn--block" id="savePng">PNG で保存</button>
+      </div>
+      <p class="status status--ok" id="status" role="status"></p>
+    </section>
+  </div>
+  <button type="button" class="right-handle" id="rightHandle" aria-controls="rightDrawer" aria-expanded="false">✿ 詳細</button>
+  </aside>
+</main>
+
+<script src="ui/layer-drawer.js"></script>
+<script>
+"use strict";
+// ---------- 状態 ----------
+// 絵は「横 w × 縦 h のマス」に色("#rrggbb"。空 "" は透明)を入れたもの。書き出すときだけ大きくする
+const KEY = "dotmaker:v1";
+const MAX_GRID = 128;
+const PALETTE = [
+  "#000000", "#5f574f", "#c2c3c7", "#ffffff", "#7e2553", "#ff004d", "#ffa3c4", "#ffccaa",
+  "#ab5236", "#ff8a3d", "#ffec27", "#00e436", "#008751", "#29adff", "#1d2b53", "#83769c",
+];
+const GRID_PRESETS = [8, 16, 24, 32, 48, 64];
+const OUT_PRESETS = [256, 512, 1000, 1024, 2048];
+const $ = (id) => document.getElementById(id);
+const canvas = $("canvas");
+const ctx = canvas.getContext("2d");
+
+const blank = () => ({
+  w: 16, h: 16, px: Array(16 * 16).fill(""),
+  color: "#ff8a3d", grid: true,
+  out: 1024, bgOn: false, bg: "#ffffff", name: "",
+});
+let doc = load() ?? blank();
+let tool = "pen";
+let hover = null; // マウスがのっているマス [x, y]
+let stroke = null; // 描いている途中 { last: [x, y], color, before }
+const undoStack = [], redoStack = [];
+
+function load() {
+  try {
+    const d = JSON.parse(sessionStorage.getItem(KEY));
+    if (!d || !Array.isArray(d.px) || d.px.length !== d.w * d.h) return null;
+    return { ...blank(), ...d };
+  } catch {
+    return null;
+  }
+}
+let saveTimer;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { sessionStorage.setItem(KEY, JSON.stringify(doc)); } catch {}
+  }, 300);
+}
+
+// ---------- 元に戻す ----------
+const picture = () => JSON.stringify({ w: doc.w, h: doc.h, px: doc.px });
+function pushUndo(before) {
+  undoStack.push(before);
+  if (undoStack.length > 200) undoStack.shift();
+  redoStack.length = 0;
+  updateHistoryButtons();
+}
+function restore(json) {
+  const p = JSON.parse(json);
+  doc.w = p.w; doc.h = p.h; doc.px = p.px;
+  afterPictureChange();
+}
+function undo() {
+  if (!undoStack.length) return;
+  redoStack.push(picture());
+  restore(undoStack.pop());
+}
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push(picture());
+  restore(redoStack.pop());
+}
+function updateHistoryButtons() {
+  $("undo").disabled = !undoStack.length;
+  $("redo").disabled = !redoStack.length;
+}
+function afterPictureChange() {
+  updateHistoryButtons();
+  renderGridUi();
+  renderUsed();
+  renderOutInfo();
+  resizeCanvas();
+  save();
+}
+
+// ---------- マスの線の位置 ----------
+// n マスを total px に分けるときの、それぞれの境目(整数)。62.5px のような半端でも、にじまずにくっきり塗れる
+function edges(n, total) {
+  const e = [];
+  for (let i = 0; i <= n; i++) e.push(Math.round((i * total) / n));
+  return e;
+}
+
+// ---------- 画面に描く ----------
+function resizeCanvas() {
+  $("board").style.setProperty("--ar", doc.w / doc.h);
+  const dpr = window.devicePixelRatio || 1;
+  const r = canvas.getBoundingClientRect();
+  const W = Math.max(1, Math.round(r.width * dpr));
+  const H = Math.max(1, Math.round(r.height * dpr));
+  if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+  draw();
+}
+function draw() {
+  const W = canvas.width, H = canvas.height;
+  const xs = edges(doc.w, W), ys = edges(doc.h, H);
+  ctx.clearRect(0, 0, W, H);
+  for (let y = 0; y < doc.h; y++) {
+    for (let x = 0; x < doc.w; x++) {
+      const x0 = xs[x], y0 = ys[y], cw = xs[x + 1] - x0, ch = ys[y + 1] - y0;
+      const c = doc.px[y * doc.w + x];
+      if (c) {
+        ctx.fillStyle = c;
+        ctx.fillRect(x0, y0, cw, ch);
+      } else {
+        // 透明のマスは、小さな市松模様
+        const hw = Math.round(cw / 2), hh = Math.round(ch / 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(x0, y0, cw, ch);
+        ctx.fillStyle = "#f4ebe3";
+        ctx.fillRect(x0 + hw, y0, cw - hw, hh);
+        ctx.fillRect(x0, y0 + hh, hw, ch - hh);
+      }
+    }
+  }
+  if (doc.grid) {
+    const line = Math.max(1, Math.round((window.devicePixelRatio || 1) * 0.75));
+    for (let i = 1; i < doc.w; i++) {
+      ctx.fillStyle = i % 8 === 0 ? "rgba(168,113,74,.45)" : "rgba(168,113,74,.18)";
+      ctx.fillRect(xs[i], 0, line, H);
+    }
+    for (let i = 1; i < doc.h; i++) {
+      ctx.fillStyle = i % 8 === 0 ? "rgba(168,113,74,.45)" : "rgba(168,113,74,.18)";
+      ctx.fillRect(0, ys[i], W, line);
+    }
+  }
+  if (hover) {
+    const [x, y] = hover;
+    const lw = Math.max(2, Math.round((window.devicePixelRatio || 1) * 2));
+    ctx.strokeStyle = "#ff8a3d";
+    ctx.lineWidth = lw;
+    ctx.strokeRect(xs[x] + lw / 2, ys[y] + lw / 2, xs[x + 1] - xs[x] - lw, ys[y + 1] - ys[y] - lw);
+  }
+}
+
+// ---------- 描く ----------
+function cellAt(e) {
+  const r = canvas.getBoundingClientRect();
+  const x = Math.floor(((e.clientX - r.left) / r.width) * doc.w);
+  const y = Math.floor(((e.clientY - r.top) / r.height) * doc.h);
+  if (x < 0 || y < 0 || x >= doc.w || y >= doc.h) return null;
+  return [x, y];
+}
+function cellAtClamped(e) {
+  const r = canvas.getBoundingClientRect();
+  const x = Math.floor(((e.clientX - r.left) / r.width) * doc.w);
+  const y = Math.floor(((e.clientY - r.top) / r.height) * doc.h);
+  return [Math.min(doc.w - 1, Math.max(0, x)), Math.min(doc.h - 1, Math.max(0, y))];
+}
+function setPx(x, y, c) {
+  if (x < 0 || y < 0 || x >= doc.w || y >= doc.h) return;
+  doc.px[y * doc.w + x] = c;
+}
+// 前の点から今の点まで、すき間なくマスを塗る(ブレゼンハム)
+function lineTo(x0, y0, x1, y1, c) {
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  for (;;) {
+    setPx(x0, y0, c);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
+// 同じ色でつながっているマスを塗る(上下左右)
+function floodFill(x, y, c) {
+  const from = doc.px[y * doc.w + x];
+  if (from === c) return;
+  const stack = [[x, y]];
+  while (stack.length) {
+    const [cx, cy] = stack.pop();
+    if (cx < 0 || cy < 0 || cx >= doc.w || cy >= doc.h) continue;
+    const i = cy * doc.w + cx;
+    if (doc.px[i] !== from) continue;
+    doc.px[i] = c;
+    stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+  }
+}
+
+canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+canvas.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0 && e.button !== 2) return;
+  const cell = cellAt(e);
+  if (!cell) return;
+  e.preventDefault();
+  const [x, y] = cell;
+  const erase = tool === "eraser" || e.button === 2;
+  const color = erase ? "" : doc.color;
+  if (tool === "pick" && !erase) {
+    const c = doc.px[y * doc.w + x];
+    if (c) { setColor(c); setTool("pen"); }
+    return;
+  }
+  const before = picture();
+  if (tool === "fill") {
+    floodFill(x, y, color);
+    if (picture() !== before) { pushUndo(before); afterPictureChange(); }
+    return;
+  }
+  canvas.setPointerCapture(e.pointerId);
+  stroke = { last: cell, color, before };
+  setPx(x, y, color);
+  draw();
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (stroke) {
+    const cell = cellAtClamped(e);
+    lineTo(stroke.last[0], stroke.last[1], cell[0], cell[1], stroke.color);
+    stroke.last = cell;
+  }
+  const h = e.pointerType === "mouse" ? cellAt(e) : null;
+  if (String(h) !== String(hover) || stroke) { hover = h; draw(); }
+});
+function endStroke() {
+  if (!stroke) return;
+  const { before } = stroke;
+  stroke = null;
+  if (picture() !== before) { pushUndo(before); afterPictureChange(); }
+}
+canvas.addEventListener("pointerup", endStroke);
+canvas.addEventListener("pointercancel", endStroke);
+canvas.addEventListener("pointerleave", () => { if (hover && !stroke) { hover = null; draw(); } });
+
+// ---------- 道具・色 ----------
+function setTool(t) {
+  tool = t;
+  for (const b of document.querySelectorAll("[data-tool]")) b.setAttribute("aria-pressed", String(b.dataset.tool === t));
+}
+for (const b of document.querySelectorAll("[data-tool]")) b.addEventListener("click", () => setTool(b.dataset.tool));
+
+function setColor(c) {
+  doc.color = c.toLowerCase();
+  $("color").value = doc.color;
+  $("colorCode").textContent = doc.color;
+  for (const b of document.querySelectorAll(".sw")) b.setAttribute("aria-pressed", String(b.dataset.c === doc.color));
+  if (tool === "eraser" || tool === "pick") setTool("pen");
+  save();
+}
+$("color").addEventListener("input", (e) => setColor(e.target.value));
+
+function swatch(c) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "sw";
+  b.dataset.c = c;
+  b.style.setProperty("--c", c);
+  b.title = c;
+  b.setAttribute("aria-label", c);
+  b.setAttribute("aria-pressed", String(c === doc.color));
+  b.addEventListener("click", () => setColor(c));
+  return b;
+}
+function renderPalette() {
+  $("palette").replaceChildren(...PALETTE.map(swatch));
+}
+function renderUsed() {
+  const used = [...new Set(doc.px.filter(Boolean))];
+  $("used").replaceChildren(...used.map(swatch));
+  $("usedTitle").hidden = !used.length;
+}
+
+// ---------- マス数 ----------
+// 大きさを変えるときは、絵を真ん中に置いたまま、まわりを足す・けずる
+function resizeGrid(w, h) {
+  w = Math.min(MAX_GRID, Math.max(1, Math.round(w) || 1));
+  h = Math.min(MAX_GRID, Math.max(1, Math.round(h) || 1));
+  if (w === doc.w && h === doc.h) { renderGridUi(); return; }
+  const before = picture();
+  const ox = Math.floor((w - doc.w) / 2), oy = Math.floor((h - doc.h) / 2);
+  const px = Array(w * h).fill("");
+  for (let y = 0; y < doc.h; y++) {
+    for (let x = 0; x < doc.w; x++) {
+      const nx = x + ox, ny = y + oy;
+      if (nx >= 0 && ny >= 0 && nx < w && ny < h) px[ny * w + nx] = doc.px[y * doc.w + x];
+    }
+  }
+  doc.w = w; doc.h = h; doc.px = px;
+  hover = null;
+  pushUndo(before);
+  afterPictureChange();
+}
+function renderGridUi() {
+  $("gridW").value = doc.w;
+  $("gridH").value = doc.h;
+  for (const b of $("gridChips").children) b.setAttribute("aria-pressed", String(+b.dataset.n === doc.w && +b.dataset.n === doc.h));
+}
+$("gridChips").replaceChildren(...GRID_PRESETS.map((n) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "chip";
+  b.dataset.n = n;
+  b.textContent = `${n}×${n}`;
+  b.addEventListener("click", () => resizeGrid(n, n));
+  return b;
+}));
+$("gridApply").addEventListener("click", () => resizeGrid(+$("gridW").value, +$("gridH").value));
+for (const id of ["gridW", "gridH"]) $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") resizeGrid(+$("gridW").value, +$("gridH").value); });
+$("clearAll").addEventListener("click", () => {
+  if (!doc.px.some(Boolean)) return;
+  const before = picture();
+  doc.px = Array(doc.w * doc.h).fill("");
+  pushUndo(before);
+  afterPictureChange();
+});
+
+$("gridToggle").addEventListener("click", () => {
+  doc.grid = !doc.grid;
+  $("gridToggle").setAttribute("aria-pressed", String(doc.grid));
+  draw();
+  save();
+});
+
+// ---------- 書き出し ----------
+function outDims() {
+  const L = Math.max(doc.w, doc.h);
+  return [Math.max(1, Math.round((doc.out * doc.w) / L)), Math.max(1, Math.round((doc.out * doc.h) / L))];
+}
+function renderOutInfo() {
+  const [W, H] = outDims();
+  const cell = W / doc.w;
+  const cellText = Number.isInteger(cell) ? `${cell}` : `約${Math.round(cell * 10) / 10}`;
+  $("outInfo").textContent = `${W} × ${H} px(1マス ${cellText}px)`;
+  $("outSize").value = doc.out;
+  for (const b of $("outChips").children) b.setAttribute("aria-pressed", String(+b.dataset.n === doc.out));
+}
+function setOut(n) {
+  doc.out = Math.min(4096, Math.max(16, Math.round(n) || 1024));
+  renderOutInfo();
+  save();
+}
+$("outChips").replaceChildren(...OUT_PRESETS.map((n) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "chip";
+  b.dataset.n = n;
+  b.textContent = n;
+  b.addEventListener("click", () => setOut(n));
+  return b;
+}));
+$("outSize").addEventListener("change", (e) => setOut(+e.target.value));
+$("bgOn").addEventListener("change", (e) => { doc.bgOn = e.target.checked; save(); });
+$("bgColor").addEventListener("input", (e) => { doc.bg = e.target.value; doc.bgOn = true; $("bgOn").checked = true; save(); });
+$("fileName").addEventListener("input", (e) => { doc.name = e.target.value; save(); });
+
+// 書き出し用の絵:マスを整数の境目で塗るだけ(拡大しないので、ぼやけない)
+function renderPng() {
+  const [W, H] = outDims();
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const g = c.getContext("2d");
+  if (doc.bgOn) { g.fillStyle = doc.bg; g.fillRect(0, 0, W, H); }
+  const xs = edges(doc.w, W), ys = edges(doc.h, H);
+  for (let y = 0; y < doc.h; y++) {
+    for (let x = 0; x < doc.w; x++) {
+      const col = doc.px[y * doc.w + x];
+      if (!col) continue;
+      g.fillStyle = col;
+      g.fillRect(xs[x], ys[y], xs[x + 1] - xs[x], ys[y + 1] - ys[y]);
+    }
+  }
+  return c;
+}
+$("savePng").addEventListener("click", () => {
+  const c = renderPng();
+  const name = (doc.name.trim() || "dot").replace(/[\\/:*?"<>|]/g, "_");
+  c.toBlob((blob) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${name}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    $("status").textContent = `保存しました(${c.width}×${c.height} px)`;
+  }, "image/png");
+});
+
+// ---------- キー ----------
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest("input, select, textarea")) return;
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); redo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const map = { b: "pen", p: "pen", e: "eraser", g: "fill", i: "pick" };
+  if (map[k]) setTool(map[k]);
+});
+$("undo").addEventListener("click", undo);
+$("redo").addEventListener("click", redo);
+
+// ---------- はじめ ----------
+renderPalette();
+setColor(doc.color);
+setTool("pen");
+$("gridToggle").setAttribute("aria-pressed", String(doc.grid));
+$("bgOn").checked = doc.bgOn;
+$("bgColor").value = doc.bg;
+$("fileName").value = doc.name;
+afterPictureChange();
+new ResizeObserver(resizeCanvas).observe(canvas);
+window.addEventListener("resize", resizeCanvas);
+</script>
+</body>
+</html>

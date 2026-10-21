@@ -1,4 +1,6 @@
-# FF14 キャラカ(キャラクターカード)ジェネレータ 作成ロードマップ
+# FF14 キャラカ(キャラクターカード)ジェネレータ 作成ロードマップ — 作業の記録
+
+今の仕様のまとめは [CharacterCard.md](CharacterCard.md)。ここは、いつ・なぜ変えたかの記録(前の「キャラカ作成ロードマップ.md」)。新しい記録は末尾に足す
 
 最終更新: 2026-10-01
 
@@ -14,18 +16,18 @@
 - [x] Lodestone からキャラ情報が取れるかの調査 → **取れる(ただしサーバー側からのみ)**
 - [x] 既存サイト2つの仕組み調査 → **どちらも自前サーバー経由**
 - [x] **方針決定(2026-10-01): 案A(GitHub Pages + Cloudflare Workers)で行く**
-- [x] Worker 実装 → [`characa/worker.js`](characa/worker.js)(Node + 実 Lodestone でローカルテスト済み)
+- [x] Worker 実装 → [`characa/worker.js`](../characa/worker.js)(Node + 実 Lodestone でローカルテスト済み)
 - [x] Cloudflare にデプロイ → **`https://characa.game-rain-0406.workers.dev/`**(2026-10-01、Cloudflare Access はオフ)
   - `?id=22997788` で全項目取得OK、`/img?url=` 中継OK → **Cloudflare IP でも Lodestone にブロックされない**ことを確認
   - コード更新はダッシュボード「コードを編集」で `characa/worker.js` を丸ごと貼り替え → デプロイ
-- [x] カード UI 初版 → [`characa/index.html`](characa/index.html) + `app.js` + `style.css`(2026-10-01)
+- [x] カード UI 初版 → [`characa/index.html`](../characa/index.html) + `app.js` + `style.css`(2026-10-01)
   - canvas 直描き(見たまま PNG)。要素: テキスト / 画像 / 図形 / ジョブ一覧。クリック選択・ドラッグ移動・右下ハンドルで拡大縮小・矢印キー・Delete
   - テキストに差し込み項目 `{name}` `{server}` … `{lv:ナイト}` → 取得データで置換(手入力でも編集可)
   - **キャラ画像はユーザーのスクショをもらう形が基本**(2026-10-01 方針)。パネル最上部「スクショを選ぶ」or カードへドラッグ&ドロップ
     - 画像は枠(w×h)+ 収め方(cover/contain)+ ズーム + 位置。ホイールでズーム、Alt+ドラッグで枠内の位置調整
     - **Lodestone の全身・顔画像は使わない**(2026-10-02 ユーザー指示で削除。みんな自分で撮ったスクショを使うため)。Lodestone 取得は文字情報だけ
   - 背景はグラデ/単色/画像
-  - **ジョブアイコン**: [`characa/job-icons.js`](characa/job-icons.js)(22ジョブの単色SVGを1ファイルに、41KB)
+  - **ジョブアイコン**: [`characa/job-icons.js`](../characa/job-icons.js)(22ジョブの単色SVGを1ファイルに、41KB)
     - 元素材: `Downloads/FFXIV_Jobs_Plus_Bonus_3`(1.8MB、Git には入れない)。scratchpad の `build_icons.mjs` で Inkscape メタデータ除去+座標丸めして生成
     - 表示形式: アイコン+レベル(既定)/ アイコン+名前+レベル / 名前+レベル。アイコン色は自由
     - 素材に無い クラフター・ギャザラーは頭文字で代用。クラス名(剣術士等)は対応ジョブのアイコン
@@ -34,7 +36,7 @@
   - 動作確認: ID 取得 → 描画 → PNG 書き出し(canvas tainted にならない)OK
   - ローカル確認は `http://localhost:8000` で開く(Worker の CORS 許可がこのオリジンのため。file:// 直開きだと取得が失敗する)
 - [x] **デザイン(テンプレート)と配色の切り替え**(2026-10-02)
-  - 一覧は [`characa/templates/index.js`](characa/templates/index.js)。`CHARACA_TEMPLATES`(JSONファイル名と表示名)と `CHARACA_PALETTES`(配色)を持つ
+  - 一覧は [`characa/templates/index.js`](../characa/templates/index.js)。`CHARACA_TEMPLATES`(JSONファイル名と表示名)と `CHARACA_PALETTES`(配色)を持つ
   - テンプレートは「書き出し」と同じ形式の JSON(`version: 2`, `card`, `layers`。省略した項目は既定値で補う)。初期の5種：クラシック / スプリット / シネマ(以上 1920×1080)、スクエア(1080×1080)、ポートレート(1080×1920)
   - 配色の役割：`accent` `text` `sub` `muted` `panel` `bg1` `bg2` `shadow`。要素の色に `"@accent"` のように書くと、選んでいる配色の色になる。`#xxxxxx` と直接書いた色は固定(古い保存データはこちらの扱い)
   - 色欄は「配色の色 or 自由に選ぶ」を選べる。初期の配色は7種：夜空 / 黒金 / 紅 / 海 / 森 / 桜 / 白磁
@@ -42,7 +44,7 @@
   - サムネイルは今のキャラ情報・配色で自動で描く(`drawScene` で縮小描画、250ms待ってからまとめて描く)
   - PNG保存は、読み込み途中の画像・フォントを最大3秒待ってから描く(配色を変えた直後に、ジョブアイコンが頭文字になってしまうのを防ぐため)
   - テンプレートは fetch で読み込むので、file:// では出ない(localhost か Pages で開く)
-- [x] **スクショのエフェクト**(2026-10-02)→ [`characa/effects.js`](characa/effects.js) + `app.js` の `drawPhoto`
+- [x] **スクショのエフェクト**(2026-10-02)→ [`characa/effects.js`](../characa/effects.js) + `app.js` の `drawPhoto`
   - 画素を自前で計算する(`ctx.filter` は Safari で使えない・不安定なため)
   - 明るさ / コントラスト / 彩度、色味(そのまま・モノクロ・セピア・デュオトーン・**パートカラー**)、色をかぶせる(乗算・スクリーン・オーバーレイ・そのまま)、周辺を暗く、端をぼかす(まわり全部・左右・上下・片側だけ)
   - **パートカラー**(ユーザーの要望):選んだ色相の±幅だけ色を残し、ほかはモノクロにする。色がうすい所(肌・グレー)は残さない。「スクショから色を拾う」で、カード上を押すと元画像のその位置の色相を取る(周辺の平均)
@@ -87,7 +89,7 @@
   - タブは デザイン / キャラ / 要素 / カード の4つ。「要素」タブの中に、追加ボタン → 要素の一覧 → 選択中の要素の調整欄 の順に並べる
   - 一覧で選んでもタブは切り替わらない。カード上で要素を押したときは「要素」タブを開く(すでに開いていればスクロール位置もそのまま)
   - 前に「編集」タブを開いていた人は「要素」タブで始まる
-- [x] **アイコンメーカー**(2026-10-08、ユーザーが自分でジョブアイコンを描くためのツール)→ [`characa/tools/icon-maker.html`](characa/tools/icon-maker.html)(1ファイルで完結)
+- [x] **アイコンメーカー**(2026-10-08、ユーザーが自分でジョブアイコンを描くためのツール)→ [`characa/tools/icon-maker.html`](../characa/tools/icon-maker.html)(1ファイルで完結)
   - 432×432 の正方形に、下書き画像(PNG・JPG・SVG。読み込み・ドラッグ&ドロップ・貼り付け)をうすく敷いて描く。下書きは移動・拡大・回転・うすさを変えられる
   - 描く:クリックした点をなめらかにつなぐ(Catmull-Rom)。点ごとに「角」にできる。最初の点を押すと閉じた形、閉じた形は「塗る」にもできる(重なりは穴)
   - 線はどれも同じ太さ・丸い先端(ほかのアイコンと同じく currentColor で色が付く)
@@ -190,7 +192,7 @@
 - **未検証リスク**: Cloudflare の IP から Lodestone が素直に返すか(XIVAPI は 403 を食らっている)。作ったらまず確認する
 - 対策: Cache API で同一IDを数分〜10分キャッシュ、User-Agent 設定、`Access-Control-Allow-Origin` は自分の Pages の URL のみ許可
 
-### Worker 実装: [`characa/worker.js`](characa/worker.js)
+### Worker 実装: [`characa/worker.js`](../characa/worker.js)
 - `GET /?id={ID}` → キャラ情報 JSON
   - `name, title, server, dataCenter, race, tribe, gender, birthday, guardian, hometown, grandCompany, grandCompanyRank, freeCompany, selfIntroduction, id, levels[{name, level}]`
   - `levels`: 未習得は `"-"`。ジョブ未取得時はクラス名(例: 剣術士)。末尾にエレメンタル/レジスタンス/ナレッジレベルも含まれる
@@ -217,7 +219,7 @@
 4. ~~GitHub Pages に公開 → `ALLOWED_ORIGINS` を更新して Worker 再デプロイ~~ → 完了(2026-10-14)
 5. デザインを増やす(ツールで作る→書き出す→`templates/` に置いて一覧に1行足す)。表現が足りなくなったら部品(飾り素材・図形の種類・画像枠の形・背景の模様)を増やす
 6. 改善候補: Lodestone ID の調べ方説明画像、X 共有、スナップ(中央揃えガイド)
-7. **スマホ対応**(画面の構成は 2026-10-02 に完了。指での操作・保存などが残り)→ やること・気をつける点は [`キャラカ_スマホ対応メモ.md`](キャラカ_スマホ対応メモ.md)
+7. **スマホ対応**(画面の構成は 2026-10-02 に完了。指での操作・保存などが残り)→ やること・気をつける点は [CharacterCard_mobile.md](CharacterCard_mobile.md)
 - エフェクトは、画像を選んでいないときメインのスクショを調整
 - エディタ系の配置を、左=追加+階層、右=詳細に統一(キャラカ・枠エディタ・シンボルエディタ・アイコンメーカー。1000px未満は引き出し)
 - 狭い画面(1000px未満)では、右のシートも右から出る引き出しに(つまみ「✿ 設定」「✿ 詳細」)
@@ -234,3 +236,4 @@
 - 枠の形は、詳細で見本アイコンを横スクロールして選ぶ(最後に「作る」=枠エディタ。作った枠はその欄に入る)。デザインタブの「枠の形」はなくす
 - 整理:カード全体の「枠の形」(project.frame。前のデザインタブの名残)をなくし、枠ごとの形だけに(前の保存データは読み込むときに枠へ移す)。「丸い角」は角丸0でも丸く見えるように(テンプレの角丸0の枠は「四角」と明記)。使っていない関数・CSSを削除
 - 線の太さを詳細で:枠の「枠線の太さ」がオリジナル枠にも効く(0 = 枠エディタの太さ)。タグに「タグの線の太さ」(0 = 自動)
+- 制作エリア:Shift を押しながら左ドラッグでも表示を動かす(そのときは要素を選ばない・動かさない。Shift を押している間はつかむ形のカーソル)
