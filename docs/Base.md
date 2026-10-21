@@ -18,6 +18,7 @@
 | SVGメーカー(アイコンメーカー) | `characa/tools/icon-maker.html` | ツール系 → [svgCreate.md](svgCreate.md) |
 | ドット絵メーカー | `dot-maker.html` | ツール系 → [dotMaker.md](dotMaker.md) |
 | アプリダウンロード | `download/` | ツール系 → [Download.md](Download.md) |
+| バックログ(やること一覧の見える化) | `backlog.html` | その他 → [BacklogView.md](BacklogView.md) |
 | HNB(文字アニメの確認) | `test.html` | — |
 | Tシャツ画像データメーカー | `tshirt-designer.html` | 作業中。トップでは非表示 |
 
@@ -25,7 +26,7 @@
 - テーマ「そら」。見出しごとにカードを並べる:キャラ / ツール / その他 / 外部リンク
 - キャラ:キャラクター紹介・関係辞典(どちらも「～作成中～」)
 - ツール:キャラカメーカー・パーツメーカー・SVGメーカー・ドット絵メーカー(Tシャツは `hidden`)
-- その他:HNB・パーツ台帳・アプリダウンロード
+- その他:HNB・パーツ台帳・アプリダウンロード・バックログ
 - 外部リンク:譜面屋「G Clef.」
 
 ---
@@ -54,10 +55,16 @@
 - **画面の確認**
   - ブラウザのペイン(preview_start / navigate)は自分から開かない。開くと空タブが残って、ユーザーが困る
   - Write ツールで `.html` を作る・書き換えると、アプリが自動でそのファイルのタブを開く。HTML は node のスクリプトで書くか、Write のあとでタブを確認して全部閉じる
-  - 確認は、見えないブラウザ(ヘッドレス Chrome:`C:/Program Files/Google/Chrome/Application/chrome.exe --headless=new --remote-debugging-port=… --user-data-dir=一時フォルダー` を Node の WebSocket(CDP)で動かす)で行う。写真(Page.captureScreenshot)も撮れる。拡大率のずれは Emulation.setDeviceMetricsOverride の deviceScaleFactor で再現できる
+  - 確認は見えないブラウザで:`C:/Program Files/Google/Chrome/Application/chrome.exe` を `--headless=new --remote-debugging-port=… --user-data-dir=一時フォルダー` で立て、Node の WebSocket(CDP)で動かす。写真も撮れる。拡大率のずれは deviceScaleFactor で再現
   - 確認用のサーバーは、自分で Node の小さなサーバーをポート **8765** に立てて、そのプロセスだけを止める。**ポート 8000 はユーザーが `npx http-server C:/Users/kikuchi/Documents/AmechanCreate -p 8000 -c-1` で使う**ので、さわらない
   - このPCの `python` は動かない(Microsoft Store の案内だけ)
 - **ファイルの書き換え**
-  - いくつかのファイルは改行が CRLF(`index.html`・`profile.html` など)。node のスクリプトで、いったん LF にして直し、元の改行に戻す
+  - 手元の改行は、`index.html`・`tshirt-designer.html` が CRLF、`coupling.html` は CRLF と LF がまざる(ほかは LF)。node のスクリプトで、いったん LF にして直し、元の改行に戻す。`sed -i` は使わない(CRLF が消える)
   - bash のヒアドキュメントの中に JS の正規表現(`\/` など)を書くと、`\` が消えることがある。正規表現を含むスクリプトは Write ツールで書く(String.raw を使う)
 - 新しい決まり・仕様が決まったら、合う md に書き足す([CLAUDE.md](../CLAUDE.md) は目次だけにする)
+- **トップ(index.html)から行けるページ(カード・ボタン)を増やしたら、必ずそのページの md を作る**。別のスレッドに移っても、その md を読めばすぐ作業を続けられるように書く:何をするものか・ファイルと役目・画面・しくみ(コードのどこで何をしているか)・確認のしかた・今の進捗(できたこと)・次の候補・作業のメモ。見本は [dotMaker.md](dotMaker.md)。作ったら、この md のページ一覧、分野の基盤(例:[Tools.md](Tools.md) のツール一覧)、[CLAUDE.md](../CLAUDE.md) の目次に1行ずつ足す
+- 個別の md の「作業のメモ(AI 向け)」には、そのページだけのことを書く。この md にあることはくり返さない(無ければ省く)
+- **やること(未対応・候補)が増えた・片付いたら、[Backlog.md](Backlog.md) にも1行で足す・消す**(くわしくは各 md)
+- **ユーザー確認系は、どの md にも書かない**(ユーザーの好み):ユーザーが画面・実機で確かめること(「未確認」)と、ユーザーがやる作業(データを入れる・デプロイ・コミットなど)。必要なら報告の中で伝えるだけにする
+- **ページ・仕組みを変えたら、同じ作業の中で、変えた所に当たる md も直す**(画面・しくみ・進捗など、変わった所を書き換え、「最終更新」の日付も変える)。md と中身がずれたままにしない
+- **md は端的に書く**。作業の前に読む md(目次・基盤・個別の md)を合わせても、コンテキストの 15% を超えないようにする。同じことを何度も書かない・長い説明や例は削る・古くなった記録は短くまとめるか消す

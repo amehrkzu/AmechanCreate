@@ -140,7 +140,7 @@ const UB_COLORS = [
   ["danger", "警告"],
   ["danger-bg", "警告(うすい)"],
 ];
-const ubColor = (v) => (v && v[0] === "#" ? v : `var(--${v || "box"})`);
+const ubColorOf = (v) => (v && v[0] === "#" ? v : `var(--${v || "box"})`);
 
 // 文字の大きさ, 横の余白, 縦の余白
 const UB_SIZES = { s: [12, 10, 3], m: [14, 14, 6], l: [17, 20, 9] };
@@ -212,20 +212,25 @@ const UB_SCROLL_SIZES = { s: 8, m: 12, l: 16 };
 // サイドバーの幅(px)
 const UB_DRAWER_SIZES = { s: 240, m: 320, l: 400 };
 
-// その部品だけの CSS(変数を決める)
-function partCSS(p) {
+// 色の設定(コピーする文章には入れない。色は置く場所に合わせて決める)
+const UB_COLOR_NOTE = "色は指定していません(形・大きさ・線・影・動きだけ)。色は置く場所に合わせて決めてください。";
+const UB_COLOR_KEYS = ["bg", "fg", "bd", "sh", "pat", "tc", "onBg", "onFg", "onBd", "track", "trackBd", "thumbHover", "handleBg", "handleOn"];
+
+// その部品だけの CSS(変数を決める)。colors: false のときは色の変数を書かない(kit.css の初めの色になる)
+function partCSS(p, { colors = true } = {}) {
+  const cv = (name, v) => (colors ? `${name}: ${ubColorOf(v)};` : "");
   if (p.type === "drawer") {
     const vars = [
       `--ud-w: ${UB_DRAWER_SIZES[p.size] ?? 320}px;`,
       `--ud-r: ${p.shape === "square" ? 0 : p.radius}px;`,
-      `--ud-bg: ${ubColor(p.bg)};`,
-      `--ud-fg: ${ubColor(p.fg)};`,
-      `--ud-bd: ${ubColor(p.bd)};`,
+      cv("--ud-bg", p.bg),
+      cv("--ud-fg", p.fg),
+      cv("--ud-bd", p.bd),
       `--ud-bw: ${p.bs === "none" ? 0 : p.bw}px;`,
       p.bs !== "solid" && p.bs !== "none" ? `--ud-bs: ${p.bs};` : "",
-      `--ud-sh: ${ubColor(p.sh)};`,
-      `--ud-hbg: ${ubColor(p.handleBg)};`,
-      `--ud-hon: ${ubColor(p.handleOn)};`,
+      cv("--ud-sh", p.sh),
+      cv("--ud-hbg", p.handleBg),
+      cv("--ud-hon", p.handleOn),
     ].filter(Boolean);
     return `/* ${p.name || "自分で作った部品"}(サイドバー)${p.desc ? ":" + p.desc : ""} */\n.${ubClassName(p)} {\n  ${vars.join("\n  ")}\n}`;
   }
@@ -234,25 +239,25 @@ function partCSS(p) {
     const vars = [
       `--us-w: ${UB_SCROLL_SIZES[p.size] ?? 12}px;`,
       `--us-r: ${r};`,
-      `--us-thumb: ${ubColor(p.bg)};`,
-      `--us-hover: ${ubColor(p.thumbHover)};`,
-      `--us-ring: ${ubColor(p.bd)};`,
+      cv("--us-thumb", p.bg),
+      cv("--us-hover", p.thumbHover),
+      cv("--us-ring", p.bd),
       `--us-ringw: ${p.bs === "none" ? 0 : p.bw}px;`,
       `--us-gap: ${p.gap}px;`,
-      `--us-track: ${ubColor(p.track)};`,
-      `--us-tring: ${ubColor(p.trackBd)};`,
-    ];
+      cv("--us-track", p.track),
+      cv("--us-tring", p.trackBd),
+    ].filter(Boolean);
     return `/* ${p.name || "自分で作った部品"}(スクロールバー)${p.desc ? ":" + p.desc : ""} */\n.${ubClassName(p)} {\n  ${vars.join("\n  ")}\n}`;
   }
   const [fs, px, py] = (p.type === "box" ? UB_BOX_SIZES : UB_SIZES)[p.size] ?? UB_SIZES.m;
   const svg = ubIsSvg(p);
   const vars = [
-    `--ub-bg: ${ubColor(p.bg)};`,
-    `--ub-fg: ${ubColor(p.fg)};`,
-    `--ub-bd: ${ubColor(p.bd)};`,
-    `--ub-sh: ${ubColor(p.sh)};`,
-    p.pattern !== "none" && !svg ? `--ub-pat: ${ubColor(p.pat)};` : "",
-    p.type === "box" ? `--ub-title: ${ubColor(p.tc)};` : "",
+    cv("--ub-bg", p.bg),
+    cv("--ub-fg", p.fg),
+    cv("--ub-bd", p.bd),
+    cv("--ub-sh", p.sh),
+    p.pattern !== "none" && !svg ? cv("--ub-pat", p.pat) : "",
+    p.type === "box" ? cv("--ub-title", p.tc) : "",
     // 二重線は、線・すき間・線の3つ分の太さにする(CSS の double は太さが足りないと1本に見えるため)
     `--ub-bw: ${p.bs === "none" ? 0 : p.bs === "double" && !svg ? p.bw * 3 : p.bw}px;`,
     p.bs === "double" && p.shape === "bubble" ? `--ub-lw: ${p.bw}px;` : "", // 吹き出しのしっぽは1本の線の太さで描く
@@ -266,7 +271,9 @@ function partCSS(p) {
   let css = `/* ${p.name || "自分で作った部品"}(${ubType(p).name})${p.desc ? ":" + p.desc : ""} */\n.${ubClassName(p)} {\n  ${vars.join("\n  ")}\n}`;
   // 選んでいるとき(チップ・タブ・縦タブ)
   if (p.type === "chip" || p.type === "tab" || p.type === "vtab") {
-    css += `\n.${ubClassName(p)}[aria-pressed="true"] {\n  --ub-bg: ${ubColor(p.onBg)};\n  --ub-fg: ${ubColor(p.onFg)};\n  --ub-bd: ${ubColor(p.onBd)};\n}`;
+    css += colors
+      ? `\n.${ubClassName(p)}[aria-pressed="true"] {\n  ${cv("--ub-bg", p.onBg)}\n  ${cv("--ub-fg", p.onFg)}\n  ${cv("--ub-bd", p.onBd)}\n}`
+      : `\n.${ubClassName(p)}[aria-pressed="true"] {\n  /* 選んでいるときの色(--ub-bg・--ub-fg・--ub-bd)は、置く場所に合わせて決める */\n}`;
   }
   return css;
 }
@@ -364,15 +371,16 @@ function partForAI(p) {
     p.desc ? `使いどころ:${p.desc}` : null,
     p.type === "vtab" ? "サイドバーのふちに縦に並べるタブ。押したタブだけ aria-pressed=\"true\" にして、そのタブの中身を出す。.ub-vtabs はサイドバーのふちにくっつけて置く(右に出るときはサイドバーの右はし、.ub-vtabs--left のときは左はし)" : null,
     p.type === "drawer" ? "つまみ(.ub-drawer-handle)を押したら、.ub-drawer に open を付け外しして出し入れする(しくみは ui/kit.css の「自由サイドバー」)" : null,
+    UB_COLOR_NOTE,
     "",
     "CSS:",
-    partCSS(p),
+    partCSS(p, { colors: false }),
     "",
     "HTML:",
     partHTML(p),
     "",
     "設計データ:",
-    JSON.stringify(p),
+    JSON.stringify(Object.fromEntries(Object.entries(p).filter(([k]) => !UB_COLOR_KEYS.includes(k)))),
   ].filter((l) => l !== null).join("\n");
 }
 
@@ -411,10 +419,11 @@ function partForAnywhere(p, kitCss) {
       ]
     : [];
   return [
-    "次の CSS と HTML で、この見た目の部品を作ってください。CSS はそのまま使えば、同じ見た目になります(ほかのファイルは要りません)。",
+    "次の CSS と HTML で、この見た目の部品を作ってください。CSS はそのまま使えば、同じ形・動きになります(ほかのファイルは要りません)。",
     `種類:${ubType(p).name}`,
     p.shape === "custom" && p.custom?.name ? `形:${p.custom.name}(自分で描いた形)` : null,
     p.desc ? `使いどころ:${p.desc}` : null,
+    UB_COLOR_NOTE,
     "色の組み合わせ(テーマ)は6つ。部品を囲む要素に data-theme=\"sora\"(水色)/\"ichigo\"(ピンク)/\"mikan\"(オレンジ)/\"remon\"(黄色)/\"mori\"(緑)/\"budo\"(むらさき)を付けて選ぶ。付けないときは sora。",
     "フォントは M PLUS Rounded 1c(Google Fonts)を使うとそろう。",
     "",
@@ -426,7 +435,7 @@ function partForAnywhere(p, kitCss) {
     machine,
     "",
     "/* この部品 */",
-    partCSS(p),
+    partCSS(p, { colors: false }),
     "",
     "HTML:",
     partHTML(p),

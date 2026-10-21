@@ -4,8 +4,7 @@
 
 ## 何をするもの
 - 友達に、自分で作ったアプリ(まずは Android の PetApp)を、**パスワードを知っている人だけ**ダウンロードしてもらうページ
-- サイトは GitHub Pages(静的。サーバー側の処理はできない)。Cloudflare R2 + Worker で門番を立てる案もあったが、R2 はカードの登録が要るのでやめた
-- そこで **ファイルをパスワードで暗号化してから置く** 方式にした(案A)。暗号化したファイルは誰でも取れるが、パスワードが無いと中身は読めない
+- サイトは静的なので、**ファイルをパスワードで暗号化してから置く** 方式にした(R2 + Worker の門番案は、カード登録が要るのでやめた)。暗号化したファイルは誰でも取れるが、パスワードが無いと中身は読めない
 
 ## ファイル
 | ファイル | 役目 |
@@ -23,47 +22,27 @@
 - `.enc` の中身:`"AMEENC1"`(7バイト)+ salt(16)+ iv(12)+ 暗号文。暗号文を元に戻すと「名前の長さ(2バイト)+ 元のファイル名(UTF-8)+ 元のファイル」
 - パスワードが違うと元に戻すところで失敗する(→ ページに「パスワードが違います」)
 
-### アプリの一覧(download/index.html の `APPS`)
-```js
-const APPS = [
-  { name: "PetApp", desc: "Android アプリ", file: "files/petapp.enc", type: "application/vnd.android.package-archive", icon: "var(--mint)" },
-];
-```
-アプリを増やすときは、ここに1行足して、`files/` に `.enc` を置く。`.enc` が無いアプリは「まだ準備中です」と出る。
+### アプリの一覧
+- `download/index.html` の `APPS`(1アプリ1行:name・desc・file(`files/petapp.enc`)・type・icon)。増やすときは1行足して `files/` に `.enc` を置く。`.enc` が無いアプリは「まだ準備中です」と出る
 
 ## 今の進捗
 - [x] ダウンロードページ・暗号化の道具・暗号の処理を作った(ヘッドレス Chrome で、暗号化 → 元に戻すと中身も名前も同じ / 違うパスワードは失敗 / ファイルが無いと「まだ準備中です」を確認済み)
-- [x] トップの「その他」にカードを足した
-- [ ] **PetApp を暗号化して `download/files/petapp.enc` を置く**(ユーザーがやる。パスワードはユーザーが決める)
-- [ ] localhost で、ダウンロードできるか試す
-- [ ] コミット・プッシュ(ユーザーがやる)→ 友達に URL とパスワードを送る
-
+- [x] トップの「その他」にカード。ここまでコミット済み(7fa47d9)
 ## 手順(PetApp を置く)
-1. サーバーを立てる:`npx http-server C:/Users/kikuchi/Documents/AmechanCreate -p 8000 -c-1`
-2. http://localhost:8000/download/encrypt.html を開く
-3. 「ファイルを選ぶ」で `C:\Users\kikuchi\Documents\ToolsCreate\AmeToolsCreate\AmeToolsCreateRepository\PetApp\app\build\outputs\apk\release\app-release.apk`(約 3.9MB)を選ぶ
-4. 「ダウンロードしたときのファイル名」= **`PetApp.apk`**、「暗号化したファイルの名前」= **`petapp.enc`**
-5. パスワードを2回入れて「暗号化して保存」
-6. 保存された `petapp.enc` を `download/files/` に置く(フォルダーは作る)
-7. http://localhost:8000/download/ でパスワードを入れて、ダウンロードできるか試す
-8. コミット・プッシュ(`download/` と `index.html`)。公開先:https://amehrkzu.github.io/AmechanCreate/download/
-9. 友達に URL とパスワードを送る(できれば別の方法で。URL はメッセージ、パスワードは口頭など)
+1. ポート 8000 のサーバー([Base.md](Base.md))で http://localhost:8000/download/encrypt.html を開く
+2. 「ファイルを選ぶ」で `C:\Users\kikuchi\Documents\ToolsCreate\AmeToolsCreate\AmeToolsCreateRepository\PetApp\app\build\outputs\apk\release\app-release.apk`(約 3.9MB)を選ぶ
+3. 「ダウンロードしたときのファイル名」= **`PetApp.apk`**、「暗号化したファイルの名前」= **`petapp.enc`**
+4. パスワードを2回入れて「暗号化して保存」
+5. 保存された `petapp.enc` を `download/files/` に置く(フォルダーは作る)
+6. http://localhost:8000/download/ でパスワードを入れて、ダウンロードできるか試す
+7. コミット・プッシュ(`download/files/petapp.enc`)。公開先:https://amehrkzu.github.io/AmechanCreate/download/
+8. 友達に URL とパスワードを送る(できれば別の方法で。URL はメッセージ、パスワードは口頭など)
 
 ## 安全のために気をつけること(大事な順)
 1. **パスワードは 10文字以上・意味のない並び**にする。暗号化したファイルは誰でも取れて、手元で何度でも試せる(回数制限なし)
-2. 一度渡したものは取り戻せない:友達が APK やパスワードを他の人に渡せば広がる
-3. **Git の履歴に古い `.enc` が残る**:パスワードを変えて置き直しても、古いパスワードで古い版は開ける
-4. **元の APK をコミットしない**(一度プッシュすると履歴に残る)。`download/files/` には `.enc` だけ
-5. アプリの中に API キーなどの秘密を入れない(APK は分解できる)
-6. 署名の鍵(keystore)はどこにも上げない
-7. GitHub に2段階認証を付ける(乗っ取られるとページを書き換えられる)
-8. 友達の端末の安全はこちらでは守れない
-9. 「PetApp が約 4MB で置いてある」ことは誰でも分かる(中身は守れている)
-10. 本物か確かめたいときは、APK の SHA-256 を別の方法で伝える
+2. **Git の履歴に古い `.enc` が残る**:パスワードを変えて置き直しても、古いパスワードで古い版は開ける
+3. **元の APK をコミットしない**(一度プッシュすると履歴に残る)。`download/files/` には `.enc` だけ
+4. アプリの中に API キーなどの秘密を入れない(APK は分解できる)
+5. そのほか:渡したものは取り戻せない・keystore は上げない・GitHub に2段階認証・本物か確かめるなら SHA-256 を別に伝える
 
 心配しなくていいこと:暗号化のページ・仕組みのコードが知られること、暗号そのもの(AES-GCM)、パスワードが外に送られること(ページの中だけで使う。外部の JS も読み込まない)
-
-## 作業するときのメモ(AI 向け)
-- コミット・プッシュはユーザーがやる。しない・すすめない
-- 画面の確認は、ユーザーに見えないヘッドレス Chrome で行う(ブラウザのペインは開かない)。Write ツールで `.html` を作ると、アプリが自動でタブを開くので、すぐ閉じる
-- 確認用のサーバーはポート 8765 で自分で立てて、自分のものだけ止める(ユーザーがポート 8000 で `npx http-server` を立てていることがある)

@@ -6,15 +6,17 @@
 
 ## 目次
 - 全体規約_基盤:[docs/Base.md](docs/Base.md) ← **いつも必ず読む**
+- バックログ(全体のやること一覧):[docs/Backlog.md](docs/Backlog.md)
 - キャラ系の変更_基盤:[docs/Chara.md](docs/Chara.md)
   - プロフィール(キャラクター紹介・profile.html):[docs/Chara_1.md](docs/Chara_1.md)
   - 関係辞典(カップリング辞典・coupling.html):[docs/Chara_2.md](docs/Chara_2.md)
 - ツール系の変更_基盤:[docs/Tools.md](docs/Tools.md)
   - キャラカ(characa/。枠エディタ・シンボルエディタも):[docs/CharacterCard.md](docs/CharacterCard.md)
-    - 作業の記録:[docs/CharacterCard_history.md](docs/CharacterCard_history.md)
-    - 古いメモ:[docs/CharacterCard_mobile.md](docs/CharacterCard_mobile.md)(スマホ対応)、[docs/CharacterCard_frameEditor.md](docs/CharacterCard_frameEditor.md)(枠エディタ)
+    - 作業の記録(年表):[docs/CharacterCard_history.md](docs/CharacterCard_history.md)
+    - 枠エディタ・シンボルエディタ:[docs/CharacterCard_frameEditor.md](docs/CharacterCard_frameEditor.md)
   - パーツ(パーツ台帳・パーツメーカー):[docs/htmlParts.md](docs/htmlParts.md)
   - SVGメーカー(アイコンメーカー):[docs/svgCreate.md](docs/svgCreate.md)
   - ドット絵メーカー(dot-maker.html):[docs/dotMaker.md](docs/dotMaker.md)
   - アプリダウンロード(download/):[docs/Download.md](docs/Download.md)
-- その他/外部リンク:今のところなし
+- その他
+  - バックログの見える化(backlog.html):[docs/BacklogView.md](docs/BacklogView.md)

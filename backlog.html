@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ja" data-theme="sora">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>バックログ - あめちゃんもの置き</title>
+<link rel="icon" type="image/png" href="Icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
+<link rel="stylesheet" href="ui/kit.css">
+<style>
+.page { max-width: 1600px; }
+/* 見出しごとのタブ(パーツメーカーで作ったタグ形のタブ)。タブの数は .label */
+.ub-backlog-tab {
+  --ub-bg: color-mix(in srgb, var(--c) 50%, #fff); /* 色は見出しの色(選ぶと濃く) */
+  --ub-fg: var(--muted);
+  --ub-bd: var(--line);
+  --ub-sh: var(--ink-soft);
+  --ub-bw: 2px;
+  --ub-fs: 17px; --ub-px: 20px; --ub-py: 9px;
+  gap: 6px;
+}
+.ub-backlog-tab[aria-pressed="true"] {
+  --ub-bg: var(--c);
+  --ub-fg: var(--text);
+  --ub-bd: var(--ink);
+}
+.ub-backlog-tab .label { background: var(--box); border: 1.5px solid var(--ink); }
+/* 一覧の箱(パーツメーカーで作った箱)。色は、選んだ見出しの色をうすく */
+.ub-backlog-list {
+  --ub-bg: color-mix(in srgb, var(--c) 38%, #fff);
+  --ub-fg: var(--text);
+  --ub-bd: var(--ink);
+  --ub-sh: var(--ink-soft);
+  --ub-pat: #fff; /* 市松模様は白 */
+  --ub-title: var(--accent);
+  --ub-bw: 1px;
+  --ub-bs: dashed;
+  --ub-fs: 14px; --ub-px: 16px; --ub-py: 14px;
+  margin-top: 10px;
+}
+/* 項目の一覧:5つまで見せて、それより多いとスクロール(高さは JS の fitList で合わせる) */
+.items { list-style: none; margin: 0; padding: 0 4px 0 0; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; position: relative; }
+.items > li { flex-shrink: 0; padding: 7px 10px; background: var(--box); border: 2px solid var(--line); border-left: 6px solid var(--c); border-radius: 12px; font-size: 14px; line-height: 1.55; }
+.items > li.done { opacity: .5; text-decoration: line-through; }
+.items code { font-size: 12px; background: var(--tint); border-radius: 6px; padding: 0 4px; word-break: break-all; }
+.items .chips { margin-top: 4px; }
+/* 分野ごとの数 */
+/* 分野ごとの箱(パーツメーカーで作った箱) */
+.ub-backlog-areas {
+  --ub-bg: var(--box);
+  --ub-fg: var(--text);
+  --ub-bd: var(--ink);
+  --ub-sh: var(--ink-soft);
+  --ub-title: var(--accent);
+  --ub-bw: 1px;
+  --ub-bs: dashed;
+  --ub-fs: 14px; --ub-px: 16px; --ub-py: 14px;
+  margin-top: 18px;
+}
+.bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bars > li { display: grid; grid-template-columns: minmax(0, 11em) 1fr 2em; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+.bars a { color: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar { display: flex; height: 16px; border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; background: var(--box); }
+.bar i { background: var(--c); }
+.bar i + i { border-left: 2px solid var(--ink); }
+.bars small { text-align: right; color: var(--muted); }
+</style>
+<script src="ui/site-header.js" defer></script>
+</head>
+<body class="bg-dots">
+<main class="page">
+  <div class="title-wrap">
+    <h1 class="title">バックログ</h1>
+    <p class="lead" id="updated"></p>
+  </div>
+  <div id="view"><span class="spinner" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+</main>
+
+<script>
+"use strict";
+// docs/Backlog.md を読んで、見出し(##)ごとに並べる。読むのは「- [ ] 文 → [名前](x.md)」の行だけ
+const SRC = "docs/Backlog.md";
+const DOC_URL = "https://github.com/amehrkzu/AmechanCreate/blob/main/docs/"; // md のリンク先(GitHub で読みやすく表示)
+const COLORS = ["var(--pink)", "var(--lemon)", "var(--orange)", "var(--mint)", "var(--lilac)", "var(--sky)"];
+
+const view = document.getElementById("view");
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// 文の中の `コード` と [名前](x.md) を HTML に
+const inline = (s) => esc(s)
+  .replace(/`([^`]+)`/g, "<code>$1</code>")
+  .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, t, u) => `<a href="${docHref(u)}" target="_blank" rel="noopener">${t}</a>`);
+const docHref = (u) => /^https?:/.test(u) ? u : DOC_URL + u.replace(/^\.\//, "");
+
+function parse(md) {
+  const sections = [];
+  let updated = "";
+  for (const line of md.split(/\r?\n/)) {
+    const up = line.match(/^最終更新[::](.+)/);
+    if (up) updated = up[1].trim();
+    const h = line.match(/^##\s+(.+)/);
+    if (h) { sections.push({ title: h[1].trim(), items: [] }); continue; }
+    const it = line.match(/^\s*[-*]\s+\[( |x|X)\]\s+(.+)/);
+    if (!it || !sections.length) continue;
+    // 最後の「→ [名前](x.md)」を、リンク先として分ける(いくつあってもよい)
+    let text = it[2];
+    const links = [];
+    const tail = text.match(/\s*→\s*((?:\[[^\]]+\]\([^)]+\)[、,\s]*)+)$/);
+    if (tail) {
+      for (const m of tail[1].matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)) links.push({ name: m[1], href: m[2] });
+      text = text.slice(0, tail.index);
+    }
+    sections.at(-1).items.push({ done: it[1] !== " ", text, links });
+  }
+  return { updated, sections: sections.filter((s) => s.items.length) };
+}
+
+function render({ updated, sections }) {
+  document.getElementById("updated").textContent = updated ? `最終更新:${updated}` : "";
+  if (!sections.length) { view.innerHTML = '<p class="empty">やることは ありません</p>'; return; }
+  sections.forEach((s, i) => { s.c = COLORS[i % COLORS.length]; s.id = `s${i + 1}`; });
+
+  const tabs = sections.map((s, i) => `
+    <button type="button" class="ub ub--tag ub--svg ub--hover-wiggle ub--press-squish ub-backlog-tab" aria-pressed="${i === 0}" data-i="${i}" style="--c:${s.c}"><svg class="ub-shape" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><path d="M14 1.5H97Q98.5 1.5 98.5 3V37Q98.5 38.5 97 38.5H14L1.5 20Z"/></svg>${esc(s.title)}<span class="label">${s.items.filter((x) => !x.done).length}</span></button>`).join("");
+
+  // 分野(リンク先の md)ごとに、見出しの色で積んだ棒
+  const areas = new Map();
+  sections.forEach((s) => s.items.forEach((x) => x.links.forEach((l) => {
+    if (!areas.has(l.href)) areas.set(l.href, { name: l.name.replace(/\.md$/, ""), per: new Map(), n: 0 });
+    const a = areas.get(l.href);
+    a.per.set(s, (a.per.get(s) || 0) + 1);
+    a.n++;
+  })));
+  const list = [...areas.entries()].sort((a, b) => b[1].n - a[1].n);
+  const max = list.length ? list[0][1].n : 1;
+  const bars = list.map(([href, a]) => `
+    <li><a href="${docHref(href)}" target="_blank" rel="noopener">${esc(a.name)}</a>
+      <span class="bar" style="width:${(a.n / max) * 100}%">${[...a.per].map(([s, n]) => `<i style="--c:${s.c};flex:${n}" title="${esc(s.title)}:${n}"></i>`).join("")}</span>
+      <small>${a.n}</small></li>`).join("");
+
+  view.innerHTML = `<div class="ub-tabs ub-tabs--fill" role="group">${tabs}</div>
+    <div class="ub ub--box ub--leaf ub--sh-soft ub--pat-check ub-backlog-list"><ul class="items ub-scroll" id="items"></ul></div>${list.length ? `
+    <section class="ub ub--box ub--leaf ub--sh-soft ub-backlog-areas"><h2>✿ 分野ごと</h2><ul class="bars">${bars}</ul></section>` : ""}`;
+  const items = document.getElementById("items");
+  const show = (i) => {
+    const s = sections[i];
+    view.querySelectorAll(".ub-backlog-tab").forEach((b) => b.setAttribute("aria-pressed", b.dataset.i == i));
+    items.parentElement.style.setProperty("--c", s.c);
+    items.innerHTML = s.items.map((x) => `
+      <li class="${x.done ? "done" : ""}">${inline(x.text)}${x.links.length ? `
+        <div class="chips">${x.links.map((l) => `<a class="chip" href="${docHref(l.href)}" target="_blank" rel="noopener">${esc(l.name.replace(/\.md$/, ""))}</a>`).join("")}</div>` : ""}</li>`).join("");
+    items.scrollTop = 0;
+    fitList();
+  };
+  view.querySelector(".ub-tabs").addEventListener("click", (e) => {
+    const b = e.target.closest(".ub-backlog-tab");
+    if (b) show(+b.dataset.i);
+  });
+  addEventListener("resize", fitList);
+  document.fonts?.ready.then(fitList); // 文字の形が読み込まれると高さが変わる
+  show(0);
+}
+
+// 一覧の高さを、5つ目の項目の下はしまでにする(6つ以上あるとスクロール)
+const SHOW = 5;
+function fitList() {
+  const items = document.getElementById("items");
+  if (!items) return;
+  items.style.maxHeight = "";
+  const li = items.children;
+  if (li.length <= SHOW) return;
+  items.style.maxHeight = `${li[SHOW - 1].offsetTop + li[SHOW - 1].offsetHeight}px`;
+}
+
+fetch(SRC, { cache: "no-store" })
+  .then((r) => { if (!r.ok) throw new Error(r.status); return r.text(); })
+  .then((md) => render(parse(md)))
+  .catch(() => { view.innerHTML = '<p class="empty">Backlog.md を読めませんでした</p>'; });
+</script>
+</body>
+</html>
