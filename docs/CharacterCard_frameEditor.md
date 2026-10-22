@@ -1,6 +1,6 @@
 # 枠エディタ・シンボルエディタ(characa/frame-editor.html・symbol-editor.html)
 
-最終更新:2026-10-21。キャラカ本体は [CharacterCard.md](CharacterCard.md)、配置の決まりは [Tools.md](Tools.md)
+最終更新:2026-10-22。キャラカ本体は [CharacterCard.md](CharacterCard.md)、配置の決まりは [Tools.md](Tools.md)
 
 キャラカのオリジナル枠(パネルの飾り)と、オリジナルのシンボル(図形の要素)を描く別ページ。JS はどちらも `frame-editor.js`(シンボルエディタは `<body data-editor="symbol">` → `SYMBOL_MODE`)。描いたものは `frames.js` で描く(キャラカと共通)。
 
@@ -28,6 +28,6 @@
 - キャラカの書き出し JSON に、使っている枠・シンボル(`customFrames` / `customSymbols`)が入る。読み込むと、このブラウザに足される
 
 ## 次の候補・未決
-- 「プリセット反映」ボタン:土台の形を変える処理 `setBase`(frame-editor.js の 1210 行あたり)を、画面の選択欄をなくしたあとも残してある。このボタンから使う予定
+- 「プリセット反映」ボタン:土台の形を変える処理 `setBase`(frame-editor.js)を、画面の選択欄をなくしたあとも残してある。このボタンから使う予定
 - 辺の模様の見せ方を見直す(ユーザーが、どういう機能か分からなかった)。枠線の模様のように「となりとつなげて描ける」ようにするかも決める
 - 枠だけの書き出し・読み込み(人と交換する用)は、まだ決めていない

@@ -163,6 +163,7 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
 }
 </style>
 <link rel="stylesheet" href="../../ui/layer-drawer.css">
+<link rel="stylesheet" href="../scrollbar.css">
 <script src="../../ui/site-header.js" defer></script>
 </head>
 <body>
@@ -214,13 +215,14 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
   </section>
 
   <aside class="right-drawer" id="rightDrawer" aria-label="詳細">
+  <div class="right-tabs" role="tablist" aria-label="詳細の切り替え"><button type="button" role="tab" data-tab="path" style="--c:#bdeccd">詳細</button><button type="button" role="tab" data-tab="all" style="--c:#ffcf9f">全体</button><button type="button" role="tab" data-tab="draft" style="--c:#ffe7a3">下書き</button><button type="button" role="tab" data-tab="preview" style="--c:#ffd1e8">プレビュー</button><button type="button" role="tab" data-tab="file" style="--c:#dccbff">ファイル</button></div>
   <div class="panel">
-    <section class="box">
+    <section class="box" data-panel="path">
       <h2>詳細</h2>
       <div id="pathPanel"></div>
     </section>
 
-    <section class="box">
+    <section class="box" data-panel="all">
       <h2>全体</h2>
       <label class="field">
         <span>全体の線の太さ <output id="strokeOut"></output></span>
@@ -233,19 +235,19 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
       </div>
     </section>
 
-    <section class="box">
+    <section class="box" data-panel="draft">
       <h2>下書き</h2>
       <div id="draftPanel"></div>
     </section>
 
-    <section class="box">
+    <section class="box" data-panel="preview">
       <h2>プレビュー</h2>
       <div class="row"><span class="field" style="margin:0">色</span><input id="previewColor" type="color" value="#e6e9f0"></div>
       <div class="preview preview--dark" id="previewDark"></div>
       <div class="preview preview--light" id="previewLight"></div>
     </section>
 
-    <section class="box">
+    <section class="box" data-panel="file">
       <h2>ファイル</h2>
       <div class="field">
         <span>名前(保存するファイル名・コピーするときのジョブ名)</span>

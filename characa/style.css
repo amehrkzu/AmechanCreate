@@ -607,7 +607,7 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   top: var(--top-h, 49px);
   bottom: 0;
   width: min(320px, 82vw);
-  padding: 10px 0 max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  padding: 0 0 0 env(safe-area-inset-left); /* 画面の左と上の帯に、すき間なくくっつける */
   display: flex;
   flex-direction: column;
   transform: translateX(-100%);
@@ -645,7 +645,7 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 14px;
+  padding: 14px 14px max(14px, env(safe-area-inset-bottom));
   border: 0;
   border-radius: 0;
   box-shadow: 4px 4px 0 var(--ink-soft);
@@ -689,7 +689,7 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
     transition: none;
     pointer-events: auto;
     width: 300px;
-    padding: 14px 0 14px 14px;
+    padding: 0;
     overflow-y: auto;
   }
   .layer-drawer > .box { opacity: 1; transition: none; }

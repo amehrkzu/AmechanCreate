@@ -1,6 +1,6 @@
 # バックログ(全体のやること一覧)
 
-最終更新:2026-10-21
+最終更新:2026-10-22
 
 - 1項目1行。くわしい事情は、リンク先の md に書く(ここには書かない)
 - 片付いたら、ここから消して、リンク先の md の進捗も直す。新しく出たら、両方に足す
@@ -9,7 +9,7 @@
 ## 修正提案
 - [ ] キャラカの入力欄が 14px(16px 未満で、iPhone で拡大される) → [CharacterCard.md](CharacterCard.md)
 - [ ] SVGメーカーの自動保存が localStorage(決まりは sessionStorage。直すか聞く) → [svgCreate.md](svgCreate.md)
-- [ ] SVGメーカーが共通のスクロールバー(`characa/scrollbar.css`)を読み込んでいない → [svgCreate.md](svgCreate.md)
+- [ ] キャラカのサイドバーのスクロールの精査(項目が多いので後回し) → [Tools.md](Tools.md)
 
 ## 対応予定
 - [ ] キャラ紹介と関係辞典をつなぐ(データが8割そろってから) → [Chara.md](Chara.md)

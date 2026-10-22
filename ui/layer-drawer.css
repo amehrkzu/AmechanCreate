@@ -8,7 +8,7 @@
   top: var(--top-h, 49px);
   bottom: 0;
   width: min(320px, 82vw);
-  padding: 10px 0 max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  padding: 0 0 0 env(safe-area-inset-left); /* 画面の左と上の帯に、すき間なくくっつける */
   display: flex;
   flex-direction: column;
   transform: translateX(-100%);
@@ -32,7 +32,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 14px;
+  padding: 14px 14px max(14px, env(safe-area-inset-bottom));
   background: #fff;
   border: 0;
   border-radius: 0;
@@ -86,7 +86,8 @@
     pointer-events: auto;
     width: auto;
     min-width: 0;
-    padding: 0 0 0 0;
+    padding: 0;
+    margin: -14px 0 -14px -14px; /* ページの外側の余白(.app の padding 14px)を打ち消して、左と上の帯にくっつける */
   }
   .layer-drawer > .box { opacity: 1; transition: none; }
   .layer-handle { display: none; }
@@ -140,5 +141,50 @@
     cursor: pointer;
     touch-action: manipulation;
   }
+  /* スマホでスクロールさせないための、詳細の中のタブ。キャラカと同じ付箋タブ(<div class="right-tabs" role="tablist"> の中に
+     <button role="tab" data-tab="…" style="--c:…">、箱に data-panel="…")。選んでいるタブだけ色が濃く、少し上に飛び出して、
+     下の紙(タブのすぐ後ろの列)とつながる。紙には選んでいるタブの色(--tab-c)を薄くしく。広い画面ではタブを出さず、箱を全部ならべる */
+  .right-tabs { display: flex; gap: 4px; flex: none; padding: 0 10px; position: relative; z-index: 1; margin-bottom: calc(var(--border, 2.5px) * -1); }
+  .right-tabs > button {
+    flex: 1 1 auto; /* 文字数に合わせた幅で、余りを分け合う */
+    min-width: 0;
+    border: var(--border, 2.5px) solid var(--ink, #a8714a);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    background: linear-gradient(rgba(255, 255, 255, .5), rgba(255, 255, 255, .5)), var(--c, #ffcf9f);
+    color: var(--muted, #b0907a);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 6px 5px;
+    margin-top: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: margin .15s, padding .15s;
+    touch-action: manipulation;
+  }
+  .right-tabs > button[aria-selected="true"] { background: var(--c, #ffcf9f); color: var(--text, #5a3f2c); margin-top: 0; padding-bottom: calc(8px + var(--border, 2.5px)); }
+  .right-drawer > .right-tabs + * {
+    background: linear-gradient(rgba(255, 255, 255, .62), rgba(255, 255, 255, .62)), var(--tab-c, #ffcf9f);
+    border: var(--border, 2.5px) solid var(--ink, #a8714a);
+    border-radius: 16px;
+    padding: 12px;
+    /* 紙の中のスクロールバーも、タブの色に(characa/scrollbar.css の変数) */
+    --us-thumb: var(--tab-c, #ffbf8a);
+    --us-hover: color-mix(in srgb, var(--tab-c, #ffbf8a) 65%, var(--ink, #a8714a));
+    --us-track: color-mix(in srgb, var(--tab-c, #ffbf8a) 14%, #fff);
+  }
+  .right-drawer [data-panel]:not(.on) { display: none; }
 }
+/* スマホ(幅400px以下):タブが5つでも文字が切れないよう、小さく */
+@media (max-width: 400px) {
+  .right-tabs > button { font-size: 12px; padding-left: 3px; padding-right: 3px; }
+}
+@media (max-width: 360px) {
+  .right-tabs { gap: 2px; padding: 0 6px; }
+  .right-tabs > button { font-size: 11px; padding-left: 2px; padding-right: 2px; }
+}
+@media (min-width: 1000px) { .right-tabs { display: none; } }
 @media (prefers-reduced-motion: reduce) { .right-drawer { transition: none; } }
