@@ -562,6 +562,7 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
 }
 /* 狭い画面: シートは、右から前面に出る引き出し(閉じているときは、付箋のつまみだけ見える) */
 @media (max-width: 999.98px) {
+  input, select, textarea { font-size: 16px; } /* iPhone でタップしたときに拡大されないように */
   .sheet {
     position: fixed;
     z-index: 20;

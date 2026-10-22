@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ファイルの暗号化 - あめちゃんもの置き</title>
 <link rel="icon" type="image/png" href="../Icon.png">
+<link rel="stylesheet" href="../ui/scrollbar.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
@@ -54,11 +55,10 @@
   <p class="note">ファイルはこのブラウザの中だけで暗号化します(どこにも送りません)。パスワードを忘れると誰も開けなくなるので、元のファイルは手元に残しておいてください。</p>
 </main>
 
+<script src="../ui/util.js"></script>
 <script src="ame-crypt.js"></script>
 <script>
 "use strict";
-const $ = (id) => document.getElementById(id);
-const SPINNER = '<span class="spinner" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>';
 let picked = null;
 
 function pick(file) {

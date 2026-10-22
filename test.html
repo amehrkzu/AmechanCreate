@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Background Page</title>
   <link rel="icon" type="image/png" href="Icon.png">
+  <link rel="stylesheet" href="ui/scrollbar.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200;300&display=swap" rel="stylesheet">
@@ -148,6 +149,11 @@
     }
 
     .controls input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+
+    @media (max-width: 999.98px) {
+      .controls select,
+      .controls input[type="number"] { font-size: 16px; } /* iPhone でタップしたときに拡大されないように */
+    }
 
     .controls button {
       background: rgba(255, 255, 255, 0.12);

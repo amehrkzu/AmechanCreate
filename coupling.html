@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>関係辞典</title>
 <link rel="icon" type="image/png" href="Icon.png">
+<link rel="stylesheet" href="ui/scrollbar.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
@@ -177,6 +178,8 @@
   <p>(C) SQUARE ENIX / <a href="https://support.jp.square-enix.com/rule.php?id=5382&tag=authc" target="_blank" rel="noopener">FINAL FANTASY XIV 著作物利用条件</a></p>
 </footer>
 
+<script src="ui/util.js"></script>
+<script src="chara.js"></script>
 <script>
 // ============================================================
 // 設定
@@ -211,16 +214,9 @@ const result = document.getElementById("result");
 let characters = [];
 let couplings = [];
 
-async function loadData() {
-  if (!API_URL) return SAMPLE_DATA;
-  const res = await fetch(API_URL);
-  if (!res.ok) throw new Error(res.status);
-  return res.json();
-}
-
 function fillSelect(sel) {
   sel.innerHTML = '<option value="">えらんでね</option>' +
-    characters.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join("");
+    characters.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join("");
 }
 
 function findCoupling(a, b) {
@@ -228,29 +224,13 @@ function findCoupling(a, b) {
       || couplings.find(c => c.a === b && c.b === a);
 }
 
-function initial(name) {
-  return escapeHtml([...name][0] || "?");
-}
-
 function avatarHtml(name) {
   const ch = characters.find(c => c.name === name);
   if (ch && ch.image) {
-    return `<img class="avatar" src="${escapeHtml(ch.image)}" alt="${escapeHtml(name)}"
+    return `<img class="avatar" src="${esc(ch.image)}" alt="${esc(name)}"
       data-initial="${initial(name)}" referrerpolicy="no-referrer">`;
   }
   return `<div class="avatar">${initial(name)}</div>`;
-}
-
-// 画像の読み込みに失敗したらイニシャル表示に差し替える
-function attachAvatarFallback() {
-  result.querySelectorAll("img.avatar").forEach(img => {
-    img.addEventListener("error", () => {
-      const div = document.createElement("div");
-      div.className = "avatar";
-      div.textContent = img.dataset.initial;
-      img.replaceWith(div);
-    }, { once: true });
-  });
 }
 
 function render() {
@@ -266,34 +246,29 @@ function render() {
     if (cp) {
       html = `
         ${avatars}
-        <div class="pair-label">${escapeHtml(cp.a)} × ${escapeHtml(cp.b)}</div>
-        <h2 class="cp-name">${escapeHtml(cp.name)}</h2>
-        <p class="cp-note">${escapeHtml(cp.note)}</p>`;
+        <div class="pair-label">${esc(cp.a)} × ${esc(cp.b)}</div>
+        <h2 class="cp-name">${esc(cp.name)}</h2>
+        <p class="cp-note">${esc(cp.note)}</p>`;
     } else {
       html = `
         ${avatars}
-        <div class="pair-label">${escapeHtml(a)} × ${escapeHtml(b)}</div>
+        <div class="pair-label">${esc(a)} × ${esc(b)}</div>
         <p class="placeholder">この組み合わせはまだ登録されていません</p>`;
     }
   }
 
   result.innerHTML = html;
-  attachAvatarFallback();
+  attachAvatarFallback(result);
   result.classList.remove("pop");
   void result.offsetWidth; // アニメーション再生用
   result.classList.add("pop");
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, ch =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
-}
-
 async function init() {
-  result.innerHTML = `<p class="loading" role="status"><span class="spinner" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>読み込み中…</p>`;
+  result.innerHTML = `<p class="loading" role="status">${SPINNER}読み込み中…</p>`;
   selA.disabled = selB.disabled = true;
   try {
-    const data = await loadData();
+    const data = await loadData(API_URL, SAMPLE_DATA);
     characters = data.characters || [];
     couplings = data.couplings || [];
   } catch (e) {

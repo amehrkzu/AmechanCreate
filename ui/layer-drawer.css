@@ -171,7 +171,7 @@
     border: var(--border, 2.5px) solid var(--ink, #a8714a);
     border-radius: 16px;
     padding: 12px;
-    /* 紙の中のスクロールバーも、タブの色に(characa/scrollbar.css の変数) */
+    /* 紙の中のスクロールバーも、タブの色に(ui/scrollbar.css の変数) */
     --us-thumb: var(--tab-c, #ffbf8a);
     --us-hover: color-mix(in srgb, var(--tab-c, #ffbf8a) 65%, var(--ink, #a8714a));
     --us-track: color-mix(in srgb, var(--tab-c, #ffbf8a) 14%, #fff);

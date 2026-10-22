@@ -2,7 +2,7 @@
 
 最終更新:2026-10-22。キャラカ本体は [CharacterCard.md](CharacterCard.md)、配置の決まりは [Tools.md](Tools.md)
 
-キャラカのオリジナル枠(パネルの飾り)と、オリジナルのシンボル(図形の要素)を描く別ページ。JS はどちらも `frame-editor.js`(シンボルエディタは `<body data-editor="symbol">` → `SYMBOL_MODE`)。描いたものは `frames.js` で描く(キャラカと共通)。
+キャラカのオリジナル枠(パネルの飾り)と、オリジナルのシンボル(図形の要素)を描く別ページ。JS はどちらも `frame-editor.js`(シンボルエディタは `<body data-editor="symbol">` → `SYMBOL_MODE`)。描いたものは `frames.js` で描く(キャラカと共通)。`$` は `ui/util.js`。
 
 ## 枠の4つの部品(上の選択欄で切り替え)
 | 部品 | 描くマス | カードでの使われ方 |
@@ -31,7 +31,5 @@
 - 「プリセット反映」ボタン:土台の形を変える処理 `setBase`(frame-editor.js)を、画面の選択欄をなくしたあとも残してある。このボタンから使う予定
 - 辺の模様の見せ方を見直す(ユーザーが、どういう機能か分からなかった)。枠線の模様のように「となりとつなげて描ける」ようにするかも決める
 - 枠だけの書き出し・読み込み(人と交換する用)は、まだ決めていない
-- 線の形の計算を SVGメーカーとそろえる:`frames.js` の `pieceHandles` は角の点の手動ハンドルを残すが、SVGメーカーの `handlesOf` は捨てる。まっすぐな区間の判定(`isStraight` と `segmentPart`)、座標の丸め(0.01 と 0.1)も違う
-- 入力欄が 16px 未満:`.toolbar select` と `.layer-list .name-input`(13px。スマホ用の 16px の指定に優先順位で負けている)
 - 枠エディタとシンボルエディタの `<style>`(186行)がまったく同じ。1つの CSS ファイルにする
 - キャラカ本体と同じ処理(予備の配色・`ROLES`・`col`・`"characa:v1"` の直書き・元に戻す・`button()`・`startLayerDrag`・2本指の拡大)をまとめる([CharacterCard.md](CharacterCard.md))

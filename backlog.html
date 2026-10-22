@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>バックログ - あめちゃんもの置き</title>
 <link rel="icon" type="image/png" href="Icon.png">
+<link rel="stylesheet" href="ui/scrollbar.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
@@ -78,6 +79,7 @@
   <div id="view"><span class="spinner" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
 </main>
 
+<script src="ui/util.js"></script>
 <script>
 "use strict";
 // docs/Backlog.md を読んで、見出し(##)ごとに並べる。読むのは「- [ ] 文 → [名前](x.md)」の行だけ
@@ -86,7 +88,6 @@ const DOC_URL = "https://github.com/amehrkzu/AmechanCreate/blob/main/docs/"; // 
 const COLORS = ["var(--pink)", "var(--lemon)", "var(--orange)", "var(--mint)", "var(--lilac)", "var(--sky)"];
 
 const view = document.getElementById("view");
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // 文の中の `コード` と [名前](x.md) を HTML に
 const inline = (s) => esc(s)
   .replace(/`([^`]+)`/g, "<code>$1</code>")

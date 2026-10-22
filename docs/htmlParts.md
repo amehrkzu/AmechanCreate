@@ -13,12 +13,16 @@
 | `ui/parts.js` | パーツメーカーの部品の、設計データ → CSS・HTML(台帳とメーカーで共通) |
 | `ui/layer-drawer.css` / `.js` | ツールのレイヤーのサイドバー([Tools.md](Tools.md)) |
 | `ui/site-header.js` | どのページにも付ける「あめちゃんもの置き」のリンク |
+| `ui/util.js` | みんなで使う小さな処理:`$(id)`・`esc()`(エスケープ)・`toast(文, ms)`(`.toast` が無ければ作る)・`SPINNER`(ぐるぐるの HTML)・`parseColor()` / `toHex()`(色コード ⇔ `{r,g,b,a}`)。ページのスクリプトより前に読み込む。同じ名前をページの中で作り直さない |
+
+- `ui/util.js` を使っているページ:パーツ台帳・パーツメーカー(+ `ui/parts.js` も `esc` を使う)・ドット絵メーカー・バックログ・download の2ページ・SVGメーカー・キャラカ本体・枠エディタ・シンボルエディタ。キャラ紹介・関係辞典・Tシャツはまだ使っていない
 
 ## パーツ台帳(ui-kit.html)
 - テーマの切り替え(そら・いちご・みかん。※台帳はまだ3つだけ。kit.css には remon・mori・budo もある)
 - 見出しの目次:色 / 骨組み / 入れ物 / ボタン / 選ぶ部品 / 入力欄 / 一覧・お知らせ
 - 「テーマと色」の一番上に**カラーピッカー**:色を選ぶ → カラーコードをコピー。コードを打つと色が変わる(# なし・3けたでもよい)。「画面から拾う」(Chrome・Edge だけ)。最後の色を覚える(`uikit:pickColor`)
 - 色を押すと `var(--accent)` などの書き方をコピー
+- 「一覧・お知らせ」に「お知らせ(toast)」(`.toast`。ボタンで出してみられる)
 - 各部品の「コードを見る」「コードをコピー」
 - **新しい部品を足すとき**:名前を決めて、`ui/kit.css` と台帳の両方に足す。台帳には `<article class="kit-item box" data-name="名前" data-cls=".クラス" data-desc="説明">` の中に `.kit-demo` を置く(見本)
 
@@ -34,6 +38,7 @@
   - 「AIプロンプトコピー」:どこでも使える版(テーマの色・しくみの CSS も全部入り。とても長い)
   - **どちらも部品の色は入れない**(形・大きさ・線・影・動きだけ。色は置く場所で決める)。色を選べるのは見本で見るため。`partCSS(p, { colors: false })`、設計データからも色(`UB_COLOR_KEYS`)を外す
 - しくみ:`ui/kit.css` の「自由ボタン」(`.ub`)・「自由スクロールバー」(`.ub-scroll`)・「自由サイドバー」(`.ub-drawer`)と `ui/parts.js`。部品ごとの CSS は `.ub-p…` の変数だけ
+  - `.ub-scroll` は色を決めなければ `ui/scrollbar.css` と同じ(近くの `--c`(無ければテーマの色)、溝はそれをうすく)。色の変数を `.ub-scroll` 自身に書かないのは、外の箱の `--c` を届かせるため
 
 ## 「この見た目の部品を使ってください(UIパーツメーカーで作りました)」が貼られたら
 - その CSS(`.ub-p…` の変数)と HTML を使って作る。色は書いていないので、置く場所に合わせて `--ub-bg` などを決める(選んでいるときの色も)
@@ -43,6 +48,3 @@
 
 ## 次の候補(頼まれてから)
 - 台帳のテーマ切り替えに remon・mori・budo を足す(kit.css にはもうある)
-- `ui/parts.js` の `escapeHTML` が `'` を逃がさない(ほかのページのエスケープは逃がす)
-- ページごとに作り直している小さな処理を `ui/` の共通ファイルにまとめる:`$`(dot-maker・ui-kit・ui-maker・download/encrypt)、エスケープ(`escapeHtml` / `escapeHTML` / `esc` の6つ)、`toast()`(ui-kit・ui-maker)、ぐるぐる `SPINNER` と `say()`(download の2ページ・backlog)、色コードの読み取り(dot-maker の `parseColor` ほか)
-- パーツメーカーの入力欄が 16px 未満:`.theme-pick select` と `.color-ctl select`(14px)。ほかに test の `.controls input[type="number"]`、Tシャツの `.field select`・`.props textarea` も小さい

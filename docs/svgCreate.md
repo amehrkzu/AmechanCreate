@@ -3,7 +3,7 @@
 最終更新:2026-10-22。ツール共通の決まりは [Tools.md](Tools.md)
 
 - 単色の SVG アイコンを描くツール。もとはキャラカのジョブアイコンを描くために作った(2026-10-08)。トップの「SVGメーカー」のカード(アイコン:曲線と点)から開くだけ(キャラカからのリンクはない)
-- 1ファイルで完結(CSS・JS もページの中)。ページのタイトルは「アイコンメーカー」のまま
+- CSS・JS はページの中。線の形の計算だけ `characa/frames.js` を読み込む(枠エディタと同じ形になる)。ページのタイトルは「アイコンメーカー」のまま
 
 ## ファイル
 | ファイル | 役目 |
@@ -11,6 +11,8 @@
 | `characa/tools/icon-maker.html` | ツール本体。`ui/kit.css` は使わず、みかん色(`--accent: #ff8a3d` など)をページの中の CSS に持つ |
 | `ui/layer-drawer.css` / `.js` | 左の列(追加+階層)と右の列。狭い画面では引き出し |
 | `ui/site-header.js` | 「あめちゃんもの置き」のリンク |
+| `ui/util.js` | `$`。SVG の中の `<metadata>` 用の `escapeXml` は、読み戻し(`& < >` だけ戻す)と組なので、ページに残している |
+| `characa/frames.js` | 線の形の計算(`pieceHandles` / `pieceD` / `isStraight`)。枠エディタと共通 |
 | `characa/job-icons.js` | できたアイコンを貼る先(`JOB_ICONS`) |
 
 ## 画面
@@ -18,7 +20,7 @@
   - 左の「追加」:✏️ 描く / ✋ 動かす / 🖼 下書きを動かす、下書きを読み込む、SVG を開く
   - 左の「階層」:線の一覧(線 1、線 2…。上ほど前。タグ:線・閉じた線・塗り)。押すとその線を選ぶ
   - 右:詳細(選んでいる線)・全体(線の太さ・グリッドに吸着・マス目)・下書き・プレビュー・ファイル(名前・SVG で保存・job-icons.js 用にコピー)
-- スクロールバーは共通の見た目(`characa/scrollbar.css`)
+- スクロールバーは共通の見た目(`ui/scrollbar.css`)
 
 ## しくみ
 - 432×432 の正方形に、下書き画像(PNG・JPG・SVG。読み込み・ドラッグ&ドロップ・貼り付け)をうすく敷いて描く。下書きは移動・拡大・回転・うすさを変えられる
@@ -32,7 +34,7 @@
 - そのほかの状態:`mode`(`"draw" | "move" | "draft"`。操作の一言は `HINTS`)、`sel`(選んでいる線と点)、`drawing`、`drag`
 - `load()` / `save()`(0.3 秒まとめて localStorage。入りきらないときは下書きの画像なしで保存)
 - 元に戻す:`snapshot()`(変える前に `doc` 丸ごとを積む。下書きも入る。150 回まで)→ `undo()` / `redo()` → `afterHistory()`
-- 線の形:`handlesOf()`(手で動かした点は `hIn`/`hOut`、無ければ自動)→ `pathD()`。太さは `widthOf(p)`
+- 線の形:frames.js の `pieceHandles()`(手で動かした点は `hIn`/`hOut`、無ければ自動)→ `pieceD()`(座標は 0.01 で丸める)。区間1つだけの線は `segmentD()`(点を足す所を探す用)。太さは `widthOf(p)`
 - 書き出し:`exportSvg(withMeta)`(塗りは1つの path、線は同じ太さごとにまとめる。withMeta で metadata を入れる)。開く:`openSvgText()` / `handleFile()`
 - 描き直し:`renderAll()`(下書き・線・点・パネル・階層・プレビュー)。マウス:`editor` の pointerdown / pointermove / pointerup、`toUnit()`(画面 → 432 の座標)、`snapV()`(吸着は 9 ごと)
 
@@ -41,7 +43,7 @@
 
 ## 今の進捗
 - [x] 描く・動かす・塗り・下書き・SVG 保存と開き直し・job-icons.js 用コピー・元に戻す・自動保存
+- [x] 線の形の計算を枠エディタとそろえた(frames.js を読み込む。2026-10-22)
 
 ## 次の候補(頼まれてから)
-- 線の形の計算が、枠エディタ(`frames.js` の `pieceHandles` / `pieceD`)と少し違う(`handlesOf` は角の点の手動ハンドルを捨てる・`segmentPart` はまっすぐの判定が corner だけ・丸めが 0.1)。同じ点でも形が変わるので、そろえるか frames.js を読み込む
 - 自動保存が localStorage(ずっと残る)で、[Tools.md](Tools.md) の「作りかけは sessionStorage」と合っていない(わかっているずれ。直すかはユーザーに聞く)

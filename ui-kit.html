@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>パーツ台帳 - あめちゃんもの置き</title>
 <link rel="icon" type="image/png" href="Icon.png">
+<link rel="stylesheet" href="ui/scrollbar.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
@@ -43,8 +44,6 @@
 .kit-picker-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .kit-picker-row input[type="color"] { width: 56px; height: 44px; flex-shrink: 0; }
 .kit-picker-row input[type="text"] { width: 9em; font-family: ui-monospace, Consolas, monospace; text-transform: lowercase; }
-.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--text); color: #fff; border-radius: 999px; padding: 6px 16px; font-weight: 700; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
-.toast.on { opacity: 1; }
 </style>
 <script src="ui/site-header.js" defer></script>
 </head>
@@ -256,6 +255,9 @@
       <article class="kit-item box" data-name="ぐるぐる" data-cls=".spinner" data-desc="読み込み中に出す。点が輪になって回る。中に &lt;i&gt; を8つ">
         <div class="kit-demo col"><p class="hint" style="text-align:center"><span class="spinner" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>読み込み中…</p></div>
       </article>
+      <article class="kit-item box" data-name="お知らせ(toast)" data-cls=".toast" data-desc="画面の下に短く出て消える。ui/util.js を読み込んで toast(&quot;文&quot;) で出す(要素は自動で作る)" data-nocode>
+        <div class="kit-demo col"><button type="button" class="btn btn--small" id="toastBtn">出してみる</button></div>
+      </article>
       <article class="kit-item box" data-name="ぽんっと出る" data-cls=".pop" data-desc="表示が切り替わったときに付けると、ぽんっと出てくる。下のボタンで試せます" data-nocode>
         <div class="kit-demo col"><section class="box" id="popDemo"><h2>プロフィール</h2><p class="hint">切り替わるとふわっと出ます</p></section><button type="button" class="btn btn--small" id="popBtn">もう一度</button></div>
       </article>
@@ -263,19 +265,9 @@
   </section>
 </main>
 
-<div class="toast" id="toast"></div>
-
+<script src="ui/util.js"></script>
 <script>
 "use strict";
-const $ = (id) => document.getElementById(id);
-
-function toast(msg) {
-  const t = $("toast");
-  t.textContent = msg;
-  t.classList.add("on");
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => t.classList.remove("on"), 1400);
-}
 async function copy(text, msg) {
   try {
     await navigator.clipboard.writeText(text);
@@ -331,10 +323,9 @@ $("colorList").addEventListener("click", (e) => {
   color.addEventListener("input", () => set(color.value));
   // コードを直接打ったときも、色に反映(#が無くても、3けたでもよい)
   hex.addEventListener("input", () => {
-    let v = hex.value.trim().toLowerCase();
-    if (!v.startsWith("#")) v = "#" + v;
-    if (/^#[0-9a-f]{3}$/.test(v)) v = "#" + [...v.slice(1)].map((c) => c + c).join("");
-    if (/^#[0-9a-f]{6}$/.test(v)) {
+    const c = parseColor(hex.value);
+    if (c && c.a === 255) {
+      const v = toHex(c);
       color.value = v;
       try { localStorage.setItem("uikit:pickColor", v); } catch {}
     }
@@ -425,6 +416,7 @@ $("popBtn").addEventListener("click", () => {
   void el.offsetWidth; // アニメーションをもう一度始めるため
   el.classList.add("pop");
 });
+$("toastBtn").addEventListener("click", () => toast("保存しました"));
 
 // ---------- もくじ ----------
 $("nav").innerHTML = [...document.querySelectorAll(".kit-sec")].map((s) => `<a class="chip" href="#${s.id}">${s.dataset.title}</a>`).join("");

@@ -4,7 +4,7 @@
 
 - アプリ用のドット絵を描くツール。16×16 などの少ないマスで描いて、1000×1000 px などの大きな PNG で、くっきり書き出す(2026-10-21 に作った)
   - きっかけ:ふつうのドット絵ツールの絵は小さすぎて、拡大するとぼやける
-- 1ファイルで完結(CSS・JS もページの中)。新しいページなので `<html data-theme="mikan">` + `ui/kit.css`。`ui/layer-drawer.css` / `.js`、`ui/site-header.js`、共通のスクロールバー `characa/scrollbar.css` も読み込む
+- 1ファイルで完結(CSS・JS もページの中)。新しいページなので `<html data-theme="mikan">` + `ui/kit.css`。`ui/layer-drawer.css` / `.js`、`ui/site-header.js`、共通のスクロールバー `ui/scrollbar.css` も読み込む
 - トップの「ツール」に カード(アイコン:四角いマスのハート。説明「ドット絵を高画質で出力する」)
 
 ## 画面
@@ -29,6 +29,7 @@
 |---|---|
 | `dot-maker.html` | ツール本体(1ファイル。CSS は `<style>`、JS は最後の `<script>`) |
 | `ui/layer-drawer.css` / `.js` | 左の列(`#layerDrawer`)と右の列(`#rightDrawer`)。狭い画面では引き出し |
+| `ui/util.js` | `$` と、色コードの読み書き `parseColor` / `toHex`(`hsvToRgb` / `rgbToHsv` はページの中) |
 | `index.html`(トップ) | 「ツール」の SVGメーカーの次にカード |
 
 ## コードの中の地図(dot-maker.html の JS)

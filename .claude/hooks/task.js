@@ -1,12 +1,16 @@
 // /ok(作業の了承)のしくみ。docs/Base.md の「了承と作業の終わりの確認」。
+// 目印はスレッド(セッション)ごとに .claude/state/task-<セッションID>.json に作る。
 // node .claude/hooks/task.js <mode>
 //   prompt : UserPromptSubmit の Hook。ユーザーが /ok と打ったら「作業中」の目印を作る(ファイルの今の状態も覚える)
-//   gate   : PreToolUse(Edit / Write)の Hook。目印が無いのに、このフォルダーのファイルを書き換えようとしたら止める
+//            /ok unlock なら、ほかのスレッドのロックを外す
+//   gate   : PreToolUse(Edit / Write)の Hook。目印が無いのに書き換えようとしたら止める。
+//            書き換えたファイルをロックし、ほかのスレッドがロック中のファイルなら止める
 //   shell  : PreToolUse(Bash / PowerShell)の Hook。AI が自分で目印を作る・消すのを止める
 //   stop   : Stop の Hook。目印が残ったまま終わろうとしたら、1回だけ止めて確認させる
 //   check  : AI が実行。作業中に変えたファイルを見て、md・Backlog.md・最終更新 の直し忘れを出す
 //   done   : AI が実行。check が通ったら目印を消す(--review "見つけた・後回しにしたこと" が要る。--skip "理由" で警告を飛ばす)
 //   wait   : AI が実行。作業の途中でユーザーに質問するとき、1回だけ止めずに終われるようにする
+// AI が実行するときのスレッドは、環境変数 CLAUDE_CODE_SESSION_ID で見分ける
 "use strict";
 
 const fs = require("fs");
@@ -16,15 +20,21 @@ const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(process.env.CLAUDE_PROJECT_DIR || path.join(__dirname, "..", ".."));
 const STATE_DIR = path.join(ROOT, ".claude", "state");
-const STATE = path.join(STATE_DIR, "task.json");
+// 前のしくみ(全スレッドで1つ)の目印。見つけたら、最初に使ったスレッドの目印にする
+const LEGACY_STATE = path.join(STATE_DIR, "task.json");
 const CODE_EXT = new Set([".html", ".js", ".css", ".gs"]);
 // 進捗・やることを書く見出し(ここが変わったら Backlog.md も見直す)
 const TODO_HEADING = /次|候補|やりたい|未対応|進捗|やること/;
+// どのスレッドも最後に書き足すので、ロックしないファイル
+const NO_LOCK = new Set(["docs/Backlog.md"]);
+// 最後に書き換えてからこの時間が過ぎたスレッドのロックは無視する(閉じたスレッドの残りロック)
+const LOCK_HOURS = 3;
 
 // コードのファイル → そのページの md(上から順に、最初に合ったもの)
 const DOC_MAP = [
   [/^profile(\.html|_api\.gs)$/, "docs/Chara_1.md"],
   [/^coupling(\.html|_api\.gs)$/, "docs/Chara_2.md"],
+  [/^chara\.js$/, "docs/Chara.md"],
   [/^characa\/(frame-editor\.|symbol-editor\.html)/, "docs/CharacterCard_frameEditor.md"],
   [/^characa\/tools\/icon-maker\.html$/, "docs/svgCreate.md"],
   [/^characa\//, "docs/CharacterCard.md"],
@@ -44,17 +54,57 @@ function readStdin() {
   }
 }
 
-function loadState() {
+function stateFile(sid) {
+  return path.join(STATE_DIR, `task-${String(sid).replace(/[^\w-]/g, "_")}.json`);
+}
+
+function loadState(sid) {
+  if (!sid) return null;
+  const file = stateFile(sid);
+  if (!fs.existsSync(file) && fs.existsSync(LEGACY_STATE)) {
+    try {
+      fs.renameSync(LEGACY_STATE, file);
+    } catch {
+      return null;
+    }
+  }
   try {
-    return JSON.parse(fs.readFileSync(STATE, "utf8"));
+    return JSON.parse(fs.readFileSync(file, "utf8"));
   } catch {
     return null;
   }
 }
 
-function saveState(state) {
+function saveState(sid, state) {
   fs.mkdirSync(STATE_DIR, { recursive: true });
-  fs.writeFileSync(STATE, JSON.stringify(state));
+  fs.writeFileSync(stateFile(sid), JSON.stringify(state));
+}
+
+function removeState(sid) {
+  fs.rmSync(stateFile(sid), { force: true });
+}
+
+// ほかのスレッドの目印(ロックが生きているものだけ)
+function otherStates(sid) {
+  let names = [];
+  try {
+    names = fs.readdirSync(STATE_DIR);
+  } catch {
+    return [];
+  }
+  const own = path.basename(stateFile(sid));
+  const limit = Date.now() - LOCK_HOURS * 60 * 60 * 1000;
+  const out = [];
+  for (const name of names) {
+    if (!/^task-.+\.json$/.test(name) || name === own) continue;
+    try {
+      const state = JSON.parse(fs.readFileSync(path.join(STATE_DIR, name), "utf8"));
+      if (Date.parse(state.lastActive || state.startedAt) >= limit) out.push({ name, state });
+    } catch {
+      // 書きかけ・壊れた目印は無視する
+    }
+  }
+  return out;
 }
 
 function rel(file) {
@@ -96,10 +146,16 @@ function snapshot() {
   return { hashes, docs };
 }
 
-function changedFiles(state) {
+// 変わったファイルのうち、ほかのスレッドだけが書き換えたものは外す
+function changedFiles(sid, state) {
   const now = snapshot();
+  const own = new Set(state.touched || []);
+  const others = new Set(otherStates(sid).flatMap((o) => o.state.touched || []));
   const files = new Set([...Object.keys(state.hashes), ...Object.keys(now.hashes)]);
-  const changed = [...files].filter((f) => state.hashes[f] !== now.hashes[f]).sort();
+  const changed = [...files]
+    .filter((f) => state.hashes[f] !== now.hashes[f])
+    .filter((f) => own.has(f) || !others.has(f))
+    .sort();
   return { changed, now };
 }
 
@@ -122,8 +178,8 @@ function todoSections(md) {
   return out.join("\n");
 }
 
-function check(state) {
-  const { changed, now } = changedFiles(state);
+function check(sid, state) {
+  const { changed, now } = changedFiles(sid, state);
   const warnings = [];
   const changedSet = new Set(changed);
 
@@ -165,52 +221,82 @@ function output(obj) {
   process.stdout.write(JSON.stringify(obj));
 }
 
+function deny(reason) {
+  output({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } });
+}
+
 const mode = process.argv[2];
 
 if (mode === "prompt") {
   const data = readStdin();
-  if (/^\s*\/ok(\s|$)/.test(data.prompt || "")) {
-    const { hashes, docs } = snapshot();
-    saveState({ startedAt: new Date().toISOString(), hashes, docs, waiting: false });
-    output({
-      hookSpecificOutput: {
-        hookEventName: "UserPromptSubmit",
-        additionalContext: "/ok を受け取り、作業中の目印を作りました。書き換えてよい状態です。終わったら node .claude/hooks/task.js done --review \"…\" で確認してください。"
+  const sid = data.session_id;
+  const m = /^\s*\/ok(?:\s+(\S+))?/.exec(data.prompt || "");
+  if (m && sid) {
+    const notes = [];
+    if (m[1] === "unlock") {
+      for (const o of otherStates(sid)) {
+        if ((o.state.touched || []).length === 0) continue;
+        o.state.touched = [];
+        fs.writeFileSync(path.join(STATE_DIR, o.name), JSON.stringify(o.state));
       }
-    });
+      notes.push("ほかのスレッドのロックを外しました。");
+    }
+    const prev = loadState(sid);
+    if (prev) {
+      // 作業の途中でもう一度 /ok が来たときは、最初の状態とロックを引き継ぐ
+      prev.lastActive = new Date().toISOString();
+      prev.waiting = false;
+      saveState(sid, prev);
+      notes.push("/ok を受け取りました。作業中の目印は前のまま続いています。");
+    } else {
+      const { hashes, docs } = snapshot();
+      const nowIso = new Date().toISOString();
+      saveState(sid, { startedAt: nowIso, lastActive: nowIso, hashes, docs, touched: [], waiting: false });
+      notes.push("/ok を受け取り、作業中の目印を作りました。書き換えてよい状態です。");
+    }
+    notes.push("終わったら node .claude/hooks/task.js done --review \"…\" で確認してください。");
+    output({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: notes.join("") } });
   }
 } else if (mode === "gate") {
   const data = readStdin();
+  const sid = data.session_id;
   const file = (data.tool_input || {}).file_path || "";
   if (!file || !inProject(file)) process.exit(0);
-  let reason = "";
-  if (rel(file).startsWith(".claude/state/")) {
-    reason = "作業中の目印(.claude/state/)は、AI が直接さわってはいけません。";
-  } else if (!loadState()) {
-    reason = "まだ了承(/ok)がありません。何をどう直すかを伝えて、ユーザーに /ok を打ってもらってから書き換えてください(docs/Base.md の「了承と作業の終わりの確認」)。";
+  const f = rel(file);
+  if (f.startsWith(".claude/state/")) {
+    deny("作業中の目印(.claude/state/)は、AI が直接さわってはいけません。");
+    process.exit(0);
   }
-  if (reason) {
-    output({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } });
+  const state = loadState(sid);
+  if (!state) {
+    deny("まだ了承(/ok)がありません。何をどう直すかを伝えて、ユーザーに /ok を打ってもらってから書き換えてください(docs/Base.md の「了承と作業の終わりの確認」)。");
+    process.exit(0);
   }
+  if (!NO_LOCK.has(f)) {
+    const owner = otherStates(sid).find((o) => (o.state.touched || []).includes(f));
+    if (owner) {
+      deny(`${f} は別のスレッドが作業中です(ロック中)。そのスレッドが終わるのを待つか、別のファイルで作業してください。ユーザーに伝えて待つときは node .claude/hooks/task.js wait を実行してから終えてください。外してよいなら、ユーザーが /ok unlock を打つと外れます。`);
+      process.exit(0);
+    }
+  }
+  state.touched = state.touched || [];
+  if (!state.touched.includes(f)) state.touched.push(f);
+  state.lastActive = new Date().toISOString();
+  saveState(sid, state);
 } else if (mode === "shell") {
   const data = readStdin();
   const cmd = (data.tool_input || {}).command || "";
   if (/\.claude[\\/]+state|task\.js["']?\s+prompt/.test(cmd)) {
-    output({
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: "作業中の目印は、ユーザーの /ok でだけ作られます。AI が作る・消すことはできません(消すのは node .claude/hooks/task.js done)。"
-      }
-    });
+    deny("作業中の目印は、ユーザーの /ok でだけ作られます。AI が作る・消すことはできません(消すのは node .claude/hooks/task.js done)。");
   }
 } else if (mode === "stop") {
   const data = readStdin();
-  const state = loadState();
+  const sid = data.session_id;
+  const state = loadState(sid);
   if (!state) process.exit(0);
   if (state.waiting) {
     state.waiting = false;
-    saveState(state);
+    saveState(sid, state);
     process.exit(0);
   }
   if (data.stop_hook_active) {
@@ -221,22 +307,24 @@ if (mode === "prompt") {
     decision: "block",
     reason: "/ok の作業中の目印が残っています。作業が終わったなら、この作業で見つけた・後回しにしたことを書き出して Backlog.md と md にあるか確かめ、node .claude/hooks/task.js done --review \"…\" を実行してから終えてください。ユーザーに質問して待つだけなら node .claude/hooks/task.js wait を実行してから終えてください。"
   });
-} else if (mode === "wait") {
-  const state = loadState();
-  if (!state) {
-    console.log("作業中ではありません(/ok がまだ)。");
-  } else {
-    state.waiting = true;
-    saveState(state);
-    console.log("質問の返事待ちにしました。この回は止めずに終われます。");
+} else if (mode === "wait" || mode === "check" || mode === "done") {
+  const sid = process.env.CLAUDE_CODE_SESSION_ID;
+  if (!sid) {
+    console.log("スレッドが分かりません(環境変数 CLAUDE_CODE_SESSION_ID がありません)。Claude Code の中から実行してください。");
+    process.exit(1);
   }
-} else if (mode === "check" || mode === "done") {
-  const state = loadState();
+  const state = loadState(sid);
   if (!state) {
-    console.log("作業中ではありません(/ok がまだ)。");
+    console.log("このスレッドは作業中ではありません(/ok がまだ)。");
     process.exit(0);
   }
-  const { changed, warnings } = check(state);
+  if (mode === "wait") {
+    state.waiting = true;
+    saveState(sid, state);
+    console.log("質問の返事待ちにしました。この回は止めずに終われます。");
+    process.exit(0);
+  }
+  const { changed, warnings } = check(sid, state);
   console.log(`この作業で変えたファイル(${changed.length}):`);
   for (const f of changed) console.log(`  ${f}`);
   if (warnings.length > 0) {
@@ -256,8 +344,8 @@ if (mode === "prompt") {
       console.log("\nまだ終われません:上を直すか、直さなくてよい理由を --skip \"理由\" で付けてください(理由はユーザーへの報告にも書く)。");
       process.exit(1);
     }
-    fs.rmSync(STATE, { force: true });
-    console.log(`\n確認が済みました。目印を消しました。\n見つけた・後回しにしたこと:${review}`);
+    removeState(sid);
+    console.log(`\n確認が済みました。目印とロックを消しました。\n見つけた・後回しにしたこと:${review}`);
     if (skip) console.log(`直さなかった理由:${skip}`);
   }
 } else {

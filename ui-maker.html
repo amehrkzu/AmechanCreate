@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>パーツメーカー - あめちゃんもの置き</title>
 <link rel="icon" type="image/png" href="Icon.png">
+<link rel="stylesheet" href="ui/scrollbar.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
@@ -67,8 +68,6 @@
 .tiles-sub { grid-column: 1 / -1; margin: 6px 0 0; font-size: 12px; font-weight: 700; color: var(--muted); }
 .tile .saved-icon { fill: var(--tint); stroke: var(--ink); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
 .tile .tile-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--text); color: #fff; border-radius: 999px; padding: 6px 16px; font-weight: 700; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
-.toast.on { opacity: 1; }
 /* スマホ:見本を上に貼りつけて、その下で調整する */
 @media (max-width: 820px) {
   .maker { grid-template-columns: minmax(0, 1fr); }
@@ -77,6 +76,9 @@
 }
 @media (max-width: 420px) {
   .stages { gap: 4px; }
+}
+@media (max-width: 999.98px) {
+  .theme-pick select, .color-ctl select { font-size: 16px; } /* iPhone でタップしたときに拡大されないように */
 }
 </style>
 <script src="ui/site-header.js" defer></script>
@@ -206,12 +208,10 @@
   </div>
 </main>
 
-<div class="toast" id="toast"></div>
-
+<script src="ui/util.js"></script>
 <script src="ui/parts.js"></script>
 <script>
 "use strict";
-const $ = (id) => document.getElementById(id);
 
 // 選択肢(tabs)の中身。[値, 表示名]
 const OPTIONS = {
@@ -251,14 +251,6 @@ const TYPE_TEXT = {
 const KEEP_ON_TYPE_CHANGE = ["bg", "fg", "bd", "sh", "pat", "bw", "bs", "shadow", "pattern", "hover", "deco", "decoPos", "custom", "track", "trackBd", "thumbHover", "gap", "handleBg", "handleOn", "side", "anim"];
 
 let part = newPart();
-
-function toast(msg) {
-  const t = $("toast");
-  t.textContent = msg;
-  t.classList.add("on");
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => t.classList.remove("on"), 1500);
-}
 
 // ---------- 調整欄を作る ----------
 for (const el of document.querySelectorAll(".tabs[data-key]")) {
@@ -418,7 +410,7 @@ function render() {
     const s = UB_SHAPES.find((x) => x.id === id);
     return `<button type="button" class="tile" data-v="${s.id}" aria-pressed="${s.id === part.shape && !sid}"><svg viewBox="0 0 60 40">${s.icon}</svg>${s.name}</button>`;
   }).join("") + (saved.length ? '<p class="tiles-sub">保存した形</p>' + saved.map((sh) =>
-    `<button type="button" class="tile" data-saved="${sh.sid}" aria-pressed="${sh.sid === sid}"><svg viewBox="-6 -6 ${sh.w + 12} ${sh.h + 12}"><path class="saved-icon" d="${customD(sh)}"/></svg><span class="tile-name">${escapeHTML(sh.name)}</span></button>`).join("") : "");
+    `<button type="button" class="tile" data-saved="${sh.sid}" aria-pressed="${sh.sid === sid}"><svg viewBox="-6 -6 ${sh.w + 12} ${sh.h + 12}"><path class="saved-icon" d="${customD(sh)}"/></svg><span class="tile-name">${esc(sh.name)}</span></button>`).join("") : "");
   for (const el of document.querySelectorAll(".tabs[data-key]")) {
     for (const b of el.children) b.setAttribute("aria-pressed", b.dataset.v === String(part[el.dataset.key]) ? "true" : "false");
   }

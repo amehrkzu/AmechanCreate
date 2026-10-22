@@ -12,13 +12,14 @@ FF14 のキャラクターカード画像を作るツール。**スクショの�
 | ファイル | 中身 |
 |---|---|
 | `characa/index.html` / `style.css` / `app.js` | キャラカ本体(canvas に直接描く。見たまま PNG) |
-| `characa/frames.js` | 枠の描き方(用意してある形+オリジナル枠)とシンボル。本体とエディタで共通 |
+| `characa/frames.js` | 枠の描き方(用意してある形+オリジナル枠)とシンボル。本体とエディタで共通(SVGメーカーも線の形の計算に使う) |
 | `characa/effects.js` | スクショのエフェクト(画素を自前で計算) |
 | `characa/job-icons.js` | ジョブアイコン(単色 SVG、currentColor) |
 | `characa/templates/index.js` + `*.json` | デザイン(テンプレート)5種と配色7種 |
 | `characa/frame-editor.html` / `frame-editor.js` | 枠エディタ |
 | `characa/symbol-editor.html` | シンボルエディタ(frame-editor.js を共有) |
-| `characa/scrollbar.css` | 共通のスクロールバー |
+| `ui/util.js` | `$`(本体・枠エディタ・シンボルエディタで読み込む。`app.js` / `frame-editor.js` の中では作らない) |
+| `ui/scrollbar.css` | 共通のスクロールバー(サイト全体で共通。2026-10-22 に `characa/` から移した) |
 | `characa/worker.js` | Cloudflare Worker(Lodestone からキャラ情報を取る) |
 
 ## しくみ(コードのどこで何をしているか)
@@ -86,13 +87,12 @@ FF14 のキャラクターカード画像を作るツール。**スクショの�
 
 ## 進捗
 - できた:取得(Pages・localhost)、要素・フォルダー・デザイン5種・配色7種・エフェクト、枠エディタ・シンボルエディタ、画面の配置(広い画面・引き出し)
-- 未対応:キャラカ本体の入力欄の文字は 12px(`.field` の 12px を `font: inherit` で受けている。16px 未満なので、iPhone でタップすると画面が拡大される)
+- 入力欄の文字:広い画面は `.field` の 12px を `font: inherit` で受ける。狭い画面(999.98px 以下)は `style.css` の引き出しの `@media` で 16px
 
 ## 次の候補
 - デザインを増やす(ツールで作る → 書き出す → `templates/` に置いて `index.js` に1行足す)
 - 改善候補:Lodestone ID の調べ方の説明画像、X 共有、スナップ(中央揃えガイド)
 - スマホの保存:すぐダウンロードせず、保存用の画面に画像を出す(長押しで保存の案内・「写真に保存 / 共有」= Web Share。`navigator.share` はまだ使っていない)。iOS Safari はボタンを押した直後でないと共有画面を出せないので、画像の準備が済んでからもう一度押してもらう
-- 入力欄を 16px 以上にする(スマホ)
 - 枠エディタ(`frame-editor.js`)と同じ処理をまとめる:予備の配色(`FALLBACK_PALETTE` / `FALLBACK_COLORS`)・`ROLES`・`col` は `frames.js` へ、保存の名前 `characa:v1` は1か所に、色の読み取り(`rgba`・`lightness`)は effects.js の `hexRgb` に寄せる。元に戻す・`button()`・`startLayerDrag`・2本指の拡大も同じ作り
 
 ## 注意

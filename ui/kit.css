@@ -263,6 +263,9 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
 .empty { text-align: center; color: var(--muted); padding: 24px 12px; border: 2px dashed var(--line); border-radius: var(--radius); }
 .foot { padding: 10px 2px 0; margin-top: 24px; color: var(--muted); font-size: 11px; border-top: 2px dashed var(--line); }
 .foot p { margin: 0; }
+/* お知らせ(toast):画面の下に短く出て消える。ui/util.js の toast("文") で出す */
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--text); color: #fff; border-radius: 999px; padding: 6px 16px; font-weight: 700; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+.toast.on { opacity: 1; }
 
 /* ---------- 動き ---------- */
 /* ぐるぐる(読み込み中):点が輪になって回る。<span class="spinner" aria-hidden="true"><i></i>×8</span> */
@@ -390,32 +393,33 @@ input[type="range"] { padding: 0; border: none; box-shadow: none; }
 
 /* ---------- 自由スクロールバー(パーツメーカーの種類「スクロールバー」) ----------
    スクロールする入れ物に .ub-scroll と .ub-〇〇 を付ける。色・太さ・形は変数で決める
-   Chrome・Edge・Safari は ::-webkit-scrollbar で形まで、Firefox は色と太さだけ(scrollbar-color)。スマホはほぼ端末の見た目のまま */
+   Chrome・Edge・Safari は ::-webkit-scrollbar で形まで、Firefox は色と太さだけ(scrollbar-color)。スマホはほぼ端末の見た目のまま
+   色を決めなければ ui/scrollbar.css と同じ:つまみ = 近くの --c(箱・タブの色)→ テーマの --primary。溝はつまみの色をうすく
+   (色の変数を .ub-scroll に書くと、外の箱の --c が届かなくなるので、使う所で決める) */
 .ub-scroll {
   --us-w: 12px;            /* 太さ */
   --us-r: 999px;           /* つまみの角の丸み */
-  --us-thumb: var(--primary);
-  --us-hover: var(--accent);
-  --us-ring: var(--ink);   /* つまみのふち */
-  --us-ringw: 2px;
-  --us-gap: 2px;           /* つまみと溝のすき間 */
-  --us-track: var(--tint);
-  --us-tring: var(--line); /* 溝のふち */
+  --us-ringw: 1.5px;       /* つまみのふちの太さ */
+  --us-gap: 0px;           /* つまみと溝のすき間 */
   overflow: auto;
 }
 .ub-scroll::-webkit-scrollbar { width: var(--us-w); height: var(--us-w); }
-.ub-scroll::-webkit-scrollbar-track { background: var(--us-track); border-radius: var(--us-r); box-shadow: inset 0 0 0 1.5px var(--us-tring); }
+.ub-scroll::-webkit-scrollbar-track {
+  background: var(--us-track, color-mix(in srgb, var(--us-thumb, var(--c, var(--primary))) 14%, #fff));
+  border-radius: var(--us-r);
+  box-shadow: inset 0 0 0 1.5px var(--us-tring, var(--line)); /* 溝のふち */
+}
 .ub-scroll::-webkit-scrollbar-thumb {
-  background: var(--us-thumb) padding-box;
+  background: var(--us-thumb, var(--c, var(--primary))) padding-box;
   border: var(--us-gap) solid transparent;          /* すき間 */
   border-radius: var(--us-r);
-  box-shadow: inset 0 0 0 var(--us-ringw) var(--us-ring); /* ふち */
+  box-shadow: inset 0 0 0 var(--us-ringw) var(--us-ring, var(--ink)); /* ふち */
 }
-.ub-scroll::-webkit-scrollbar-thumb:hover { background-color: var(--us-hover); }
+.ub-scroll::-webkit-scrollbar-thumb:hover { background-color: var(--us-hover, color-mix(in srgb, var(--us-thumb, var(--c, var(--primary))) 65%, var(--ink))); }
 .ub-scroll::-webkit-scrollbar-corner { background: transparent; }
 /* ::-webkit-scrollbar が使えないブラウザ(Firefox)だけ。ほかで書くと Chrome が上の形を使わなくなるため */
 @supports not selector(::-webkit-scrollbar) {
-  .ub-scroll { scrollbar-color: var(--us-thumb) var(--us-track); }
+  .ub-scroll { scrollbar-color: var(--us-thumb, var(--c, var(--primary))) var(--us-track, color-mix(in srgb, var(--us-thumb, var(--c, var(--primary))) 14%, #fff)); }
   .ub-scroll--thin { scrollbar-width: thin; }
 }
 

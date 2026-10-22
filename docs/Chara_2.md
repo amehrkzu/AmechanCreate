@@ -1,6 +1,6 @@
 # 関係辞典(カップリング辞典・coupling.html)
 
-最終更新:2026-10-21。共通の仕組みは [Chara.md](Chara.md)
+最終更新:2026-10-22。共通の仕組みは [Chara.md](Chara.md)
 
 ## 状態
 - Apps Script はデプロイ済みで、`API_URL` も設定済み
@@ -24,7 +24,7 @@
 - 補足の中の改行はそのまま表示する(シートではセル内で Alt+Enter)
 
 ## コードの目印(coupling.html)
-- `fillSelect()`:プルダウンを作る / `findCoupling()`:選んだ順 → 逆の順で探す / `render()` / `loadData()`
+- `fillSelect()`:プルダウンを作る / `findCoupling()`:選んだ順 → 逆の順で探す / `render()` / `init()`(`loadData()` など共通の処理は `chara.js`)
 
 ## 確認のしかた
 - `API_URL` の `/exec` をブラウザで開き、JSON の `characters`・`couplings` に入っているかを見る

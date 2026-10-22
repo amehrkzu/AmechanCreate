@@ -163,7 +163,7 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
 }
 </style>
 <link rel="stylesheet" href="../../ui/layer-drawer.css">
-<link rel="stylesheet" href="../scrollbar.css">
+<link rel="stylesheet" href="../../ui/scrollbar.css">
 <script src="../../ui/site-header.js" defer></script>
 </head>
 <body>
@@ -266,13 +266,14 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
 </main>
 
 <script src="../../ui/layer-drawer.js"></script>
+<script src="../frames.js"></script>
+<script src="../../ui/util.js"></script>
 <script>
 "use strict";
 // ---------- 状態 ----------
 const SIZE = 432;
 const STORAGE_KEY = "iconmaker:v1";
 const NS = "http://www.w3.org/2000/svg";
-const $ = (id) => document.getElementById(id);
 const editor = $("editor");
 
 const blank = () => ({
@@ -343,41 +344,9 @@ function fixSelection() {
 }
 
 // ---------- 曲線 ----------
+// 線の形(ハンドル・path の d)は枠エディタと同じ計算:frames.js の pieceHandles / pieceD
 const r1 = (n) => Math.round(n * 10) / 10;
-// 点 i の曲がり具合を決める取っ手(ハンドル)。in は前の点側、out は次の点側
-//   手で動かした点は hIn / hOut を持つ。持っていなければ自動(Catmull-Rom:前後の点からなめらかに決める)
-//   「角」の点は、ハンドルが点そのものの位置(とがる)
-function handlesOf(p, i) {
-  const P = p.pts, n = P.length, q = P[i];
-  const at = (k) => (p.closed ? P[(k + n) % n] : P[Math.max(0, Math.min(n - 1, k))]);
-  const hasIn = p.closed || i > 0, hasOut = p.closed || i < n - 1;
-  if (q.corner) return { in: hasIn ? q : null, out: hasOut ? q : null };
-  const a = at(i - 1), b = at(i + 1);
-  const autoIn = { x: q.x - (b.x - a.x) / 6, y: q.y - (b.y - a.y) / 6 };
-  const autoOut = { x: q.x + (b.x - a.x) / 6, y: q.y + (b.y - a.y) / 6 };
-  return { in: hasIn ? q.hIn ?? autoIn : null, out: hasOut ? q.hOut ?? autoOut : null };
-}
 const isManual = (q) => !!(q.hIn || q.hOut);
-
-// 区間 i(点 i → 次の点)の曲線
-function segmentPart(p, i) {
-  const P = p.pts, n = P.length, j = (i + 1) % n;
-  const p1 = P[i], p2 = P[j];
-  if (p1.corner && p2.corner) return `L${r1(p2.x)},${r1(p2.y)}`;
-  const c1 = handlesOf(p, i).out, c2 = handlesOf(p, j).in;
-  return `C${r1(c1.x)},${r1(c1.y)} ${r1(c2.x)},${r1(c2.y)} ${r1(p2.x)},${r1(p2.y)}`;
-}
-
-// 点をつないだ線(「角」の点ではとがる)
-function pathD(p) {
-  const P = p.pts, n = P.length;
-  if (!n) return "";
-  if (n === 1) return `M${r1(P[0].x)},${r1(P[0].y)}l0.01,0`;
-  let d = `M${r1(P[0].x)},${r1(P[0].y)}`;
-  const segs = p.closed ? n : n - 1;
-  for (let i = 0; i < segs; i++) d += segmentPart(p, i);
-  return p.closed ? d + "Z" : d;
-}
 
 // 点を動かすとき、手で決めたハンドルも一緒に動かす(o は動かす前の点)
 function placePoint(q, o, dx, dy) {
@@ -394,7 +363,7 @@ const widthOf = (p) => p.w ?? doc.strokeW;
 // 書き出す SVG(色は使う側で color を指定する。fill="currentColor")
 function exportSvg(withMeta) {
   const isFill = (p) => p.fill && p.closed && p.pts.length > 2;
-  const fills = doc.paths.filter(isFill).map(pathD).join("");
+  const fills = doc.paths.filter(isFill).map(pieceD).join("");
   let body = "";
   if (fills) body += `<path fill-rule="evenodd" d="${fills}"/>`;
   // 同じ太さの線は1つの path にまとめる
@@ -402,7 +371,7 @@ function exportSvg(withMeta) {
   for (const p of doc.paths) {
     if (isFill(p) || !p.pts.length) continue;
     const w = widthOf(p);
-    byWidth.set(w, (byWidth.get(w) ?? "") + pathD(p));
+    byWidth.set(w, (byWidth.get(w) ?? "") + pieceD(p));
   }
   for (const [w, d] of byWidth) {
     body += `<path fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" d="${d}"/>`;
@@ -439,7 +408,7 @@ function renderShapes() {
   const g = $("shapeLayer");
   g.replaceChildren();
   for (const p of doc.paths) {
-    const d = pathD(p);
+    const d = pieceD(p);
     if (!d) continue;
     const filled = p.fill && p.closed && p.pts.length > 2;
     const isSel = p.id === sel.path;
@@ -462,7 +431,7 @@ function renderOverlay() {
   g.replaceChildren();
   // 線をつかむための見えない太い線(選びやすくするため)
   for (const p of doc.paths) {
-    const d = pathD(p);
+    const d = pieceD(p);
     if (!d) continue;
     const filled = p.fill && p.closed && p.pts.length > 2;
     el("path", {
@@ -479,7 +448,7 @@ function renderOverlay() {
   // 選んでいる線の中心線と点
   const p = findPath(sel.path);
   if (!p) return;
-  el("path", { d: pathD(p), fill: "none", stroke: "#ff8a3d", "stroke-width": 2, "stroke-dasharray": "5 4", "pointer-events": "none" }, g);
+  el("path", { d: pieceD(p), fill: "none", stroke: "#ff8a3d", "stroke-width": 2, "stroke-dasharray": "5 4", "pointer-events": "none" }, g);
   p.pts.forEach((q, i) => {
     const active = i === sel.point;
     const attrs = { "data-path": p.id, "data-point": i, class: "pt", fill: active ? "#ff8a3d" : "#fff", stroke: "#f57524", "stroke-width": 2.5 };
@@ -489,7 +458,7 @@ function renderOverlay() {
   // 選んでいる点のハンドル(角の点には出さない)
   const q = p.pts[sel.point];
   if (q && !q.corner) {
-    const h = handlesOf(p, sel.point);
+    const h = pieceHandles(p, sel.point);
     for (const which of ["in", "out"]) {
       const c = h[which];
       if (!c) continue;
@@ -766,10 +735,12 @@ function insertPoint(p, at) {
   sel = { path: p.id, point: best.seg + 1 };
   renderAll();
 }
-// 区間 i だけの曲線(pathD と同じ計算)
+// 区間 i だけの曲線(pieceD と同じ計算)
 function segmentD(p, i) {
-  const q = p.pts[i];
-  return `M${q.x},${q.y}${segmentPart(p, i)}`;
+  const P = p.pts, j = (i + 1) % P.length, p1 = P[i], p2 = P[j];
+  if (isStraight(p1, p2)) return `M${p1.x},${p1.y}L${p2.x},${p2.y}`;
+  const c1 = pieceHandles(p, i).out, c2 = pieceHandles(p, j).in;
+  return `M${p1.x},${p1.y}C${c1.x},${c1.y} ${c2.x},${c2.y} ${p2.x},${p2.y}`;
 }
 
 // ドラッグ中に指やマウスが外に出ても追いかける(使えない環境では何もしない)
@@ -881,7 +852,7 @@ editor.addEventListener("pointermove", (e) => {
     const q = p.pts[drag.index];
     // 初めて手で動かす点は、今の(自動の)ハンドルの位置から始める
     if (!isManual(q)) {
-      const h = handlesOf(p, drag.index);
+      const h = pieceHandles(p, drag.index);
       if (h.in) q.hIn = { x: h.in.x, y: h.in.y };
       if (h.out) q.hOut = { x: h.out.x, y: h.out.y };
     }

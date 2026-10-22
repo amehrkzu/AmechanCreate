@@ -219,7 +219,7 @@ const COMMON_FIELDS = [
 
 // ---------- 状態 ----------
 
-const $ = (id) => document.getElementById(id);
+// $ は ui/util.js
 const canvas = $("card");
 const mainCtx = canvas.getContext("2d");
 // 描画関数はこの ctx / project に描く。サムネイルを描くときだけ一時的に差し替える

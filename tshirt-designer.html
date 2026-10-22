@@ -299,6 +299,9 @@
   .mat-item .mat-del:hover{background:#ff7a1c;color:#fff}
 
   input[type=file]{display:none}
+  @media (max-width: 999.98px) {
+    .field select, .field input[type=number], .field input[type=text], .props textarea { font-size: 16px; } /* iPhone でタップしたときに拡大されないように */
+  }
 </style>
 </head>
 <body>

@@ -6,7 +6,7 @@
 const SYMBOL_MODE = document.body.dataset.editor === "symbol";
 
 const NS = "http://www.w3.org/2000/svg";
-const $ = (id) => document.getElementById(id);
+// $ は ui/util.js
 const editor = $("editor");
 
 // ---------- 色(キャラカで選んでいる配色を使う) ----------

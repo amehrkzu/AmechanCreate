@@ -191,10 +191,10 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
   .right { position: static; max-height: none; overflow: visible; }
   .sheet-body { overflow: visible; }
   .board { max-height: none; }
-  input, select { font-size: 16px; } /* iPhone でタップしたときに拡大されないように */
+  input, select, .toolbar select, .layer-list .name-input { font-size: 16px; } /* iPhone でタップしたときに拡大されないように */
 }
 </style>
-<link rel="stylesheet" href="scrollbar.css">
+<link rel="stylesheet" href="../ui/scrollbar.css">
 <link rel="stylesheet" href="../ui/layer-drawer.css">
 <script src="../ui/site-header.js" defer></script>
 </head>
@@ -294,6 +294,7 @@ input[type="color"] { width: 44px; height: 34px; padding: 2px; cursor: pointer; 
   </aside>
 </main>
 
+<script src="../ui/util.js"></script>
 <script src="templates/index.js"></script>
 <script src="../ui/layer-drawer.js"></script>
 <script src="frames.js"></script>

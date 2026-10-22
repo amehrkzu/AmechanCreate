@@ -2,6 +2,7 @@
 // 自分で作った部品(UIパーツメーカーで作る)。設計データから CSS と HTML を作る
 //   UIパーツメーカー(ui-maker.html)と UI見本帳(ui-kit.html)の両方で使う
 //   見た目のしくみは ui/kit.css の「自由ボタン」(.ub)。ここでは変数とクラスを決めるだけ
+//   ui/util.js(esc)を先に読み込んでおく
 
 const UI_SHAPES_KEY = "uikit:shapes"; // 保存した形(自分で描いた形)
 
@@ -297,10 +298,8 @@ function partClasses(p) {
   ].filter(Boolean).join(" ");
 }
 
-const escapeHTML = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-
 function withDeco(p, text) {
-  const t = escapeHTML(text);
+  const t = esc(text);
   if (!p.deco) return t;
   if (p.decoPos === "after") return `${t} ${p.deco}`;
   if (p.decoPos === "both") return `${p.deco} ${t} ${p.deco}`;
@@ -319,8 +318,8 @@ function partHTML(p, { inside = false } = {}) {
   if (p.type === "drawer") {
     const cls = ["ub-drawer", p.side === "right" && "ub-drawer--right", p.anim !== "slide" && "ub-drawer--" + p.anim,
       p.shadow !== "none" && "ub-drawer--sh-" + p.shadow, inside && "ub-drawer--inside open", ubClassName(p)].filter(Boolean).join(" ");
-    const title = p.title ? `<h2 style="margin: 0 0 8px; font-size: 15px;">${escapeHTML(p.title)}</h2>` : "";
-    const body = p.body ? `<p style="margin: 0;">${escapeHTML(p.body).replace(/\n/g, "<br>")}</p>` : "";
+    const title = p.title ? `<h2 style="margin: 0 0 8px; font-size: 15px;">${esc(p.title)}</h2>` : "";
+    const body = p.body ? `<p style="margin: 0;">${esc(p.body).replace(/\n/g, "<br>")}</p>` : "";
     return `<aside class="${cls}"><div class="ub-drawer-panel">${title}${body}</div><button type="button" class="ub-drawer-handle" aria-expanded="${inside}">${withDeco(p, p.label || "メニュー")}</button></aside>`;
   }
   if (p.type === "scroll") {
@@ -331,7 +330,7 @@ function partHTML(p, { inside = false } = {}) {
   const cls = partClasses(p), shape = ubShapeSVG(p);
   if (p.type === "box") {
     const title = p.title ? `<h2>${withDeco(p, p.title)}</h2>` : "";
-    const body = p.body ? `<p>${escapeHTML(p.body).replace(/\n/g, "<br>")}</p>` : "";
+    const body = p.body ? `<p>${esc(p.body).replace(/\n/g, "<br>")}</p>` : "";
     return `<section class="${cls}">${shape}${title}${body}</section>`;
   }
   if (p.type === "chip" || p.type === "tab" || p.type === "vtab") {

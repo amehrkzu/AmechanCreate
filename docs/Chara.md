@@ -13,6 +13,9 @@
 | `profile_api.gs` | キャラクター紹介用スプレッドシートに貼る Apps Script |
 | `coupling.html` | 関係辞典(カップリング辞典)ページ |
 | `coupling_api.gs` | 関係辞典用スプレッドシートに貼る Apps Script |
+| `chara.js` | 2ページで使う処理:`loadData(apiUrl, sample)`・`initial(name)`・`attachAvatarFallback(root)`。エスケープ(`esc`)・ぐるぐる(`SPINNER`)は `ui/util.js`。`avatarHtml` は作る HTML が違うので各ページに置く |
+
+- 2つの .gs は別々のスプレッドシートに貼る別のスクリプトなので、同じ関数(`doGet`・`toImageUrl`・`thumbUrl`)があっても共通にしない(共通にするには Apps Script のライブラリが要り、貼るだけで済まなくなる)
 
 ## 全体の仕組み
 - Apps Script の `doGet` がシートとドライブの画像を JSON にして返し、HTML が fetch して表示する
@@ -34,16 +37,13 @@
 ## デザイン共通
 - ピンク(`--accent: #ff6f9c`)と紫(`--accent2: #b58cff`)のグラデーション
 - 表示が切り替わるときにポップアニメーション(`.pop`)
-- 読み込み中は「ぐるぐる」(パーツ台帳の `.spinner` をページの中に写したもの)+「読み込み中…」
+- 読み込み中は「ぐるぐる」(HTML は `ui/util.js` の `SPINNER`、CSS はパーツ台帳の `.spinner` をページの中に写したもの)+「読み込み中…」
 
 ## やりたいこと(データが8割くらいそろってから)
 - **キャラ紹介と関係辞典をつなぐ**(2026-10-19 にユーザーが希望)
   - プロフィールの下に「このキャラの関係」として、関係辞典に登録してある相手を顔アイコンで並べる。押すと、関係辞典のその2人のページへ飛ぶ
   - 関係辞典の側からも、それぞれのキャラのプロフィールへ飛べるようにする(`profile.html#キャラ名`)
   - キャラ紹介のキャラ名と、関係辞典の「名前」シートのキャラ名がそろっている必要がある(違うときの対応を決める)
-
-## 次の候補
-- キャラ紹介と関係辞典で同じ関数を両方に持っている:`escapeHtml`・`initial`・`loadData`(まったく同じ)・`attachAvatarFallback`・`avatarHtml`(引数が違う)。キャラ用の小さな js 1つにまとめる。.gs の `doGet`・`toImageUrl`・`thumbUrl` も両方にある(`thumbUrl` は大きさを引数で受けるか `THUMB_SIZE` かが違う)
 
 ## ユーザーについて
 - 会社の Google アカウントだと「全員」に公開できない可能性がある。その場合は個人アカウントを使うよう案内する

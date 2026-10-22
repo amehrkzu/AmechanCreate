@@ -1,6 +1,6 @@
 # キャラクター紹介(profile.html)
 
-最終更新:2026-10-21。共通の仕組みは [Chara.md](Chara.md)
+最終更新:2026-10-22。共通の仕組みは [Chara.md](Chara.md)
 
 ## 状態
 - Apps Script(`profile_api.gs`)はデプロイ済み・動作確認済み(2026-10-13)
@@ -50,7 +50,7 @@
 - 「色の調整」の欄(CSS のはじめ):`--btn-bg` / `--btn-fg` / `--btn-on-bg` / `--btn-on-fg` / `--face-bg`。ここを書き換えると、まとめて変わる
 
 ## コードの目印(profile.html)
-- `fixColumns()`:B列がずれたときの直し / `applyCharaColor()` / `applyCharaBg()` / `isNew()` / `renderFilters()`・`applyFilters()`・`matches()` / `step()`(前へ・次へ)/ `rowSizes()`・`layoutRows()` / `fitSlant()` / `renderSecrets()`(隠しキャラ)/ `linkify()` / `select()`
+- `fixColumns()`:B列がずれたときの直し / `applyCharaColor()` / `applyCharaBg()` / `isNew()` / `renderFilters()`・`applyFilters()`・`matches()` / `step()`(前へ・次へ)/ `rowSizes()`・`layoutRows()` / `fitSlant()` / `renderSecrets()`(隠しキャラ)/ `linkify()` / `select()`(`loadData()` など共通の処理は `chara.js`)
 
 ## 確認のしかた
 - `API_URL` の `/exec` をブラウザで開くと JSON が見える。ページは http-server などで開き、ボタン・絞り込み・`#キャラ名` を試す
