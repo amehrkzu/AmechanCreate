@@ -11,8 +11,8 @@
 - [ ] SVGメーカーの自動保存が localStorage(決まりは sessionStorage。直すか聞く) → [svgCreate.md](svgCreate.md)
 - [ ] キャラカのサイドバーのスクロールの精査(項目が多いので後回し) → [Tools.md](Tools.md)
 - [ ] キャラカ本体と枠エディタの同じ処理(予備の配色・`ROLES`・`col`・保存の名前・色の読み取り・元に戻す・`startLayerDrag` など)をまとめる → [CharacterCard.md](CharacterCard.md) → [CharacterCard_frameEditor.md](CharacterCard_frameEditor.md)
+- [ ] /ok の目印が `done` をしていないのに消えていたことがある(理由を調べる) → [Base.md](Base.md)
 - [ ] 枠エディタとシンボルエディタの同じ `<style>`(186行)を1つの CSS にする → [CharacterCard_frameEditor.md](CharacterCard_frameEditor.md)
-- [ ] /ok のしくみ:スクリプトでの書き換えを Hook で止める(ロックがかからないため) → [Base.md](Base.md)
 
 ## 対応予定
 - [ ] キャラ紹介と関係辞典をつなぐ(データが8割そろってから) → [Chara.md](Chara.md)
@@ -23,5 +23,6 @@
 - [ ] キャラカ:デザインを増やす、Lodestone ID の調べ方の画像、X 共有、中央揃えのガイド → [CharacterCard.md](CharacterCard.md)
 - [ ] キャラカ:スマホの保存画面(長押し保存・Web Share) → [CharacterCard.md](CharacterCard.md)
 - [ ] 枠エディタ:「プリセット反映」ボタン、辺の模様の見せ方の見直し、枠だけの書き出し → [CharacterCard_frameEditor.md](CharacterCard_frameEditor.md)
+- [ ] レイアウトメーカー:使ってみて直す・階層のドラッグでの並べ替え → [layoutMaker.md](layoutMaker.md)
 - [ ] パーツ台帳のテーマ切り替えに レモン・もり・ぶどう を足す → [htmlParts.md](htmlParts.md)
 - [ ] Tシャツ画像データメーカー(作業中・トップでは非表示) → [Base.md](Base.md)

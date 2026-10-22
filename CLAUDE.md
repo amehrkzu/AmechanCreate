@@ -17,6 +17,7 @@
   - パーツ(パーツ台帳・パーツメーカー):[docs/htmlParts.md](docs/htmlParts.md)
   - SVGメーカー(アイコンメーカー):[docs/svgCreate.md](docs/svgCreate.md)
   - ドット絵メーカー(dot-maker.html):[docs/dotMaker.md](docs/dotMaker.md)
+  - レイアウトメーカー(layout-maker.html):[docs/layoutMaker.md](docs/layoutMaker.md)
   - アプリダウンロード(download/):[docs/Download.md](docs/Download.md)
 - その他
   - バックログの見える化(backlog.html):[docs/BacklogView.md](docs/BacklogView.md)

@@ -3,6 +3,7 @@
 // node .claude/hooks/task.js <mode>
 //   prompt : UserPromptSubmit の Hook。ユーザーが /ok と打ったら「作業中」の目印を作る(ファイルの今の状態も覚える)
 //            /ok unlock なら、ほかのスレッドのロックを外す
+//            /ok 以外のときは、/ok のあとでユーザーが止めていたら(会話の記録で見る)目印を消す
 //   gate   : PreToolUse(Edit / Write)の Hook。目印が無いのに書き換えようとしたら止める。
 //            書き換えたファイルをロックし、ほかのスレッドがロック中のファイルなら止める
 //   shell  : PreToolUse(Bash / PowerShell)の Hook。AI が自分で目印を作る・消すのを止める
@@ -41,6 +42,7 @@ const DOC_MAP = [
   [/^ui\/layer-drawer\./, "docs/Tools.md"],
   [/^(ui-kit\.html|ui-maker\.html|ui\/)/, "docs/htmlParts.md"],
   [/^dot-maker\.html$/, "docs/dotMaker.md"],
+  [/^layout-maker\.html$/, "docs/layoutMaker.md"],
   [/^download\//, "docs/Download.md"],
   [/^backlog\.html$/, "docs/BacklogView.md"],
   [/^(index|test|tshirt-designer)\.html$/, "docs/Base.md"]
@@ -82,6 +84,30 @@ function saveState(sid, state) {
 
 function removeState(sid) {
   fs.rmSync(stateFile(sid), { force: true });
+}
+
+// 会話の記録(transcript)に、since よりあとで「ユーザーが止めた」があるか
+function interruptedSince(transcriptPath, since) {
+  let text = "";
+  try {
+    text = fs.readFileSync(transcriptPath, "utf8");
+  } catch {
+    return false;
+  }
+  for (const line of text.split("\n")) {
+    if (!line.includes("[Request interrupted by user")) continue;
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (entry.type !== "user" || !(entry.timestamp > since)) continue;
+    const content = (entry.message || {}).content;
+    const texts = typeof content === "string" ? [content] : (content || []).map((c) => (c && c.type === "text" ? c.text : ""));
+    if (texts.some((t) => String(t).startsWith("[Request interrupted by user"))) return true;
+  }
+  return false;
 }
 
 // ほかのスレッドの目印(ロックが生きているものだけ)
@@ -245,17 +271,25 @@ if (mode === "prompt") {
     if (prev) {
       // 作業の途中でもう一度 /ok が来たときは、最初の状態とロックを引き継ぐ
       prev.lastActive = new Date().toISOString();
+      prev.okAt = prev.lastActive;
       prev.waiting = false;
       saveState(sid, prev);
       notes.push("/ok を受け取りました。作業中の目印は前のまま続いています。");
     } else {
       const { hashes, docs } = snapshot();
       const nowIso = new Date().toISOString();
-      saveState(sid, { startedAt: nowIso, lastActive: nowIso, hashes, docs, touched: [], waiting: false });
+      saveState(sid, { startedAt: nowIso, lastActive: nowIso, okAt: nowIso, hashes, docs, touched: [], waiting: false });
       notes.push("/ok を受け取り、作業中の目印を作りました。書き換えてよい状態です。");
     }
     notes.push("終わったら node .claude/hooks/task.js done --review \"…\" で確認してください。");
     output({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: notes.join("") } });
+  } else if (sid) {
+    // /ok のあとでユーザーが止めていたら、了承は取り消し(書き換えたファイルはそのまま)
+    const state = loadState(sid);
+    if (state && interruptedSince(data.transcript_path, state.okAt || state.startedAt)) {
+      removeState(sid);
+      output({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: "ユーザーが作業を止めたので、/ok の作業中の目印とロックを消しました(書き換えたファイルはそのまま)。続けるなら、何をどう直すかを確認の形で出して、/ok を待ってください。" } });
+    }
   }
 } else if (mode === "gate") {
   const data = readStdin();

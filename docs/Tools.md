@@ -9,6 +9,7 @@
 | パーツ台帳・パーツメーカー | `ui-kit.html` / `ui-maker.html` / `ui/` | [htmlParts.md](htmlParts.md) |
 | SVGメーカー(アイコンメーカー) | `characa/tools/icon-maker.html` | [svgCreate.md](svgCreate.md) |
 | ドット絵メーカー | `dot-maker.html` | [dotMaker.md](dotMaker.md) |
+| レイアウトメーカー | `layout-maker.html` | [layoutMaker.md](layoutMaker.md) |
 | アプリダウンロード | `download/` | [Download.md](Download.md) |
 
 ## 共通の決まり
@@ -37,7 +38,7 @@
 - 左のサイドバーは、画面の左と上の帯に**すき間なくくっつける**(広い画面は `.app` の padding 14px を負の margin で打ち消す)
 - 左のサイドバーはテーマ「そら」(水色)、四角い角・枠線なし・ぷっくり影・ふわっと。いつも見えている付箋のつまみ「☂ レイヤー」を押すと出し入れ(開いても閉じても同じ水色)。開いているかは、そのタブを開いている間だけ覚える
 - 新しいツールは、`ui/layer-drawer.css` と `ui/layer-drawer.js` を読み込み、`<aside class="layer-drawer" id="layerDrawer">` の中に、上の1つの箱と `<button class="layer-handle" id="layerHandle">☂ レイヤー</button>` を置く(書き方は `ui/layer-drawer.js` の先頭のコメント)。一覧の行は `.layer-list li`(選んでいる行は `.on`)にすると、水色に合う
-- 対応状況:枠エディタ・シンボルエディタ・SVGメーカー・ドット絵メーカー(レイヤーは1枚なので、左の下は「色」)は `ui/layer-drawer.*` を使う。キャラカは自前の同じ見た目(`characa/style.css` の `.layer-drawer`)
+- 対応状況:枠エディタ・シンボルエディタ・SVGメーカー・レイアウトメーカー・ドット絵メーカー(レイヤーは1枚なので、左の下は「色」)は `ui/layer-drawer.*` を使う。キャラカは自前の同じ見た目(`characa/style.css` の `.layer-drawer`)
 - 同じ名前のサイドバーの部品が、パーツメーカーの「サイドバー」(`ui/kit.css` の `.ub-drawer`)にもある
 
 ## 画像の書き出し(相談済み)
