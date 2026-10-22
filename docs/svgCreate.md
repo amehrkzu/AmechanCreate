@@ -43,4 +43,5 @@
 - [x] 描く・動かす・塗り・下書き・SVG 保存と開き直し・job-icons.js 用コピー・元に戻す・自動保存
 
 ## 次の候補(頼まれてから)
+- 線の形の計算が、枠エディタ(`frames.js` の `pieceHandles` / `pieceD`)と少し違う(`handlesOf` は角の点の手動ハンドルを捨てる・`segmentPart` はまっすぐの判定が corner だけ・丸めが 0.1)。同じ点でも形が変わるので、そろえるか frames.js を読み込む
 - 自動保存が localStorage(ずっと残る)で、[Tools.md](Tools.md) の「作りかけは sessionStorage」と合っていない(わかっているずれ。直すかはユーザーに聞く)

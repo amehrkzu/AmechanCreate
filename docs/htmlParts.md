@@ -1,6 +1,6 @@
 # パーツ(パーツ台帳・パーツメーカー)
 
-最終更新:2026-10-21。ツール共通の決まりは [Tools.md](Tools.md)
+最終更新:2026-10-22。ツール共通の決まりは [Tools.md](Tools.md)
 
 このサイトの HTML の部品(ボタン・箱など)を、名前で指示できるようにするしくみ。
 
@@ -43,3 +43,6 @@
 
 ## 次の候補(頼まれてから)
 - 台帳のテーマ切り替えに remon・mori・budo を足す(kit.css にはもうある)
+- `ui/parts.js` の `escapeHTML` が `'` を逃がさない(ほかのページのエスケープは逃がす)
+- ページごとに作り直している小さな処理を `ui/` の共通ファイルにまとめる:`$`(dot-maker・ui-kit・ui-maker・download/encrypt)、エスケープ(`escapeHtml` / `escapeHTML` / `esc` の6つ)、`toast()`(ui-kit・ui-maker)、ぐるぐる `SPINNER` と `say()`(download の2ページ・backlog)、色コードの読み取り(dot-maker の `parseColor` ほか)
+- パーツメーカーの入力欄が 16px 未満:`.theme-pick select` と `.color-ctl select`(14px)。ほかに test の `.controls input[type="number"]`、Tシャツの `.field select`・`.props textarea` も小さい

@@ -7,9 +7,17 @@
 - `backlog.html` がこの md を読んで表示する。`## 見出し` と `- [ ] 文 → [名前](x.md)` の形は変えない
 
 ## 修正提案
-- [ ] キャラカの入力欄が 14px(16px 未満で、iPhone で拡大される) → [CharacterCard.md](CharacterCard.md)
+- [ ] 入力欄の文字が 16px 未満(iPhone で拡大される):キャラカ本体 12px・枠エディタの選択欄と名前の欄・パーツメーカーの選択欄2つ・test・Tシャツ → [CharacterCard.md](CharacterCard.md) → [CharacterCard_frameEditor.md](CharacterCard_frameEditor.md) → [htmlParts.md](htmlParts.md)
+- [ ] 線の形の計算が、枠エディタ(`frames.js`)と SVGメーカーで少し違う(同じ点でも形が変わる) → [CharacterCard_frameEditor.md](CharacterCard_frameEditor.md) → [svgCreate.md](svgCreate.md)
+- [ ] パーツの `escapeHTML`(`ui/parts.js`)が `'` を逃がさない → [htmlParts.md](htmlParts.md)
+- [ ] 引き出しになる幅(999.98px)と、エディタが1列になる幅(900 / 860px)の間で崩れないか確かめる → [Tools.md](Tools.md)
+- [ ] Base.md の改行の説明が古い(CRLF はキャラカの app.js などや dot-maker.html にもある) → [Base.md](Base.md)
 - [ ] SVGメーカーの自動保存が localStorage(決まりは sessionStorage。直すか聞く) → [svgCreate.md](svgCreate.md)
 - [ ] キャラカのサイドバーのスクロールの精査(項目が多いので後回し) → [Tools.md](Tools.md)
+- [ ] ページごとに作り直している小さな処理(`$`・エスケープ・`toast`・ぐるぐる・色コードの読み取り)を `ui/` にまとめる → [htmlParts.md](htmlParts.md)
+- [ ] キャラ紹介と関係辞典で同じ関数(`escapeHtml`・`initial`・`loadData`・`attachAvatarFallback`、.gs の `toImageUrl`・`thumbUrl`)をまとめる → [Chara.md](Chara.md)
+- [ ] キャラカ本体と枠エディタの同じ処理(予備の配色・`ROLES`・`col`・保存の名前・色の読み取り・元に戻す・`startLayerDrag` など)をまとめる → [CharacterCard.md](CharacterCard.md) → [CharacterCard_frameEditor.md](CharacterCard_frameEditor.md)
+- [ ] 枠エディタとシンボルエディタの同じ `<style>`(186行)を1つの CSS にする → [CharacterCard_frameEditor.md](CharacterCard_frameEditor.md)
 
 ## 対応予定
 - [ ] キャラ紹介と関係辞典をつなぐ(データが8割そろってから) → [Chara.md](Chara.md)
