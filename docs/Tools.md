@@ -1,6 +1,6 @@
 # ツール系(基盤)— このサイトのツールに共通
 
-最終更新:2026-10-22
+最終更新:2026-10-27
 
 ## ツール一覧
 | ツール | ファイル | 詳しい md |
@@ -9,6 +9,7 @@
 | パーツ台帳・パーツメーカー | `ui-kit.html` / `ui-maker.html` / `ui/` | [htmlParts.md](htmlParts.md) |
 | SVGメーカー(アイコンメーカー) | `characa/tools/icon-maker.html` | [svgCreate.md](svgCreate.md) |
 | ドット絵メーカー | `dot-maker.html` | [dotMaker.md](dotMaker.md) |
+| ドット変換 | `dot-convert.html` | [dotConvert.md](dotConvert.md) |
 | レイアウトメーカー | `layout-maker.html` | [layoutMaker.md](layoutMaker.md) |
 | アプリダウンロード | `download/` | [Download.md](Download.md) |
 

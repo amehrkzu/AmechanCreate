@@ -1,6 +1,6 @@
 # バックログ(全体のやること一覧)
 
-最終更新:2026-10-22
+最終更新:2026-10-27
 
 - 1項目1行。くわしい事情は、リンク先の md に書く(ここには書かない)
 - 片付いたら、ここから消して、リンク先の md の進捗も直す。新しく出たら、両方に足す
@@ -20,6 +20,7 @@
 - [ ] シートの更新日を自動にする(onEdit) → [Chara.md](Chara.md)
 - [ ] ドット絵メーカー:小さいドット絵の PNG を開いて大きく書き出す(返事待ち) → [dotMaker.md](dotMaker.md)
 - [ ] ドット絵メーカー:レイヤー → [dotMaker.md](dotMaker.md)
+- [ ] ドット変換:使ってみて直す(色を減らす・ディザ・輪郭などは、いったん不要) → [dotConvert.md](dotConvert.md)
 - [ ] キャラカ:デザインを増やす、Lodestone ID の調べ方の画像、X 共有、中央揃えのガイド → [CharacterCard.md](CharacterCard.md)
 - [ ] キャラカ:スマホの保存画面(長押し保存・Web Share) → [CharacterCard.md](CharacterCard.md)
 - [ ] 枠エディタ:「プリセット反映」ボタン、辺の模様の見せ方の見直し、枠だけの書き出し → [CharacterCard_frameEditor.md](CharacterCard_frameEditor.md)

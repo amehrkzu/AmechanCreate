@@ -1,6 +1,6 @@
 # 全体規約(基盤)— 必ず読む
 
-最終更新:2026-10-22
+最終更新:2026-10-27
 
 ## このサイト
 - 「あめちゃんもの置き」:ユーザー(あめちゃん)が個人で楽しむためのサイト。FF14 のキャラ紹介と、自作ツールを置いている
@@ -17,6 +17,7 @@
 | パーツ台帳・パーツメーカー | `ui-kit.html` / `ui-maker.html` / `ui/` | ツール系 → [htmlParts.md](htmlParts.md) |
 | SVGメーカー(アイコンメーカー) | `characa/tools/icon-maker.html` | ツール系 → [svgCreate.md](svgCreate.md) |
 | ドット絵メーカー | `dot-maker.html` | ツール系 → [dotMaker.md](dotMaker.md) |
+| ドット変換 | `dot-convert.html` | ツール系 → [dotConvert.md](dotConvert.md) |
 | レイアウトメーカー | `layout-maker.html` | ツール系 → [layoutMaker.md](layoutMaker.md) |
 | アプリダウンロード | `download/` | ツール系 → [Download.md](Download.md) |
 | バックログ(やること一覧の見える化) | `backlog.html` | その他 → [BacklogView.md](BacklogView.md) |
@@ -26,7 +27,7 @@
 ### トップ(index.html)
 - テーマ「そら」。見出しごとにカードを並べる:キャラ / ツール / その他 / 外部リンク
 - キャラ:キャラクター紹介・関係辞典(どちらも「～作成中～」)
-- ツール:キャラカメーカー・パーツメーカー・SVGメーカー・ドット絵メーカー・レイアウトメーカー(Tシャツは `hidden`)
+- ツール:キャラカメーカー・パーツメーカー・SVGメーカー・ドット絵メーカー・ドット変換・レイアウトメーカー(Tシャツは `hidden`)
 - その他:HNB・パーツ台帳・アプリダウンロード・バックログ
 - 外部リンク:譜面屋「G Clef.」
 

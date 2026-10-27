@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="ja" data-theme="mikan">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ドット変換</title>
+<link rel="icon" type="image/png" href="Icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
+<link rel="stylesheet" href="ui/kit.css">
+<link rel="stylesheet" href="ui/layer-drawer.css">
+<link rel="stylesheet" href="ui/scrollbar.css">
+<style>
+/* このページだけの並べ方。部品の見た目は ui/kit.css */
+body { font-size: 14px; }
+.btn:disabled { cursor: default; }
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  max-width: 1900px;
+  margin: 0 auto;
+}
+@media (min-width: 1000px) { .app { grid-template-columns: minmax(0, 1fr) 340px; } }
+
+/* 真ん中:決まった大きさの枠1つ。元の絵とドットを切り替えて見る */
+.stage { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.view-switch { display: flex; gap: 6px; }
+.view-switch .btn[aria-pressed="true"] { background: var(--lemon); }
+.frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100dvh - 180px);
+  min-height: 240px;
+  padding: 8px;
+  background: #fff;
+  border: var(--border) solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 4px 0 var(--ink-soft);
+  overflow: hidden;
+}
+.under { display: flex; justify-content: flex-end; margin-top: 4px; }
+.frame.on { outline: 3px solid var(--accent); outline-offset: 3px; }
+.frame img, .frame canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  /* 透明がすけて見える市松模様(絵の部分だけ) */
+  background: repeating-conic-gradient(#e8ddd3 0 25%, #fff 0 50%) 0 0 / 16px 16px;
+}
+.frame canvas { image-rendering: pixelated; }
+.empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border: var(--border) dashed var(--ink-soft);
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* 右:詳細 */
+.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel .chips { margin-bottom: 10px; }
+.dots-row { display: flex; align-items: center; gap: 8px; }
+.dots-row input[type="range"] { flex: 1; min-width: 0; }
+.dots-row input[type="number"] { width: 76px; }
+.info { margin: 8px 0 0; font-size: 13px; font-weight: 700; }
+.panel .field + .actions { margin-top: 12px; }
+</style>
+<script src="ui/site-header.js" defer></script>
+</head>
+<body class="bg-dots">
+<header class="topbar top" data-site-bar>
+  <h1>ドット変換</h1>
+</header>
+
+<main class="app">
+  <section class="stage" id="stage">
+    <div class="toolbar">
+      <div class="view-switch" id="viewSwitch" role="group" aria-label="表示する絵" hidden>
+        <button type="button" class="btn btn--small" data-view="original">元の絵</button>
+        <button type="button" class="btn btn--small" data-view="result">ドット</button>
+      </div>
+    </div>
+    <div class="frame" id="frame">
+      <label class="empty" id="empty">
+        <span>画像を読み込む(ドロップ・貼り付けでも)</span>
+        <input id="emptyFile" type="file" accept="image/*" hidden>
+      </label>
+      <img id="original" alt="元の絵" hidden>
+      <canvas id="result" aria-label="ドットにした絵" hidden></canvas>
+    </div>
+    <div class="under">
+      <label class="btn btn--small btn--primary">画像を読み込む<input id="file" type="file" accept="image/*" hidden></label>
+    </div>
+  </section>
+
+  <aside class="right-drawer" id="rightDrawer" aria-label="詳細">
+  <div class="panel">
+    <section class="box">
+      <h2>ドットの粗さ</h2>
+      <div class="chips" id="dotChips"></div>
+      <div class="dots-row">
+        <input id="dotsRange" type="range" min="16" max="256" step="1" aria-label="横のドット数">
+        <input id="dotsNum" type="number" min="16" max="256" step="1" aria-label="横のドット数">
+      </div>
+      <p class="info" id="dotInfo"></p>
+      <label class="field field--check" style="margin-top:10px"><input id="crispColor" type="checkbox"> 色をくっきり</label>
+      <label class="field field--check"><input id="crispAlpha" type="checkbox"> 透明をくっきり</label>
+    </section>
+
+    <section class="box">
+      <h2>書き出し</h2>
+      <label class="field">
+        <span>ファイル名</span>
+        <input id="fileName" type="text" placeholder="dot">
+      </label>
+      <div class="actions">
+        <button type="button" class="btn btn--primary btn--block" id="savePng" disabled>PNG で保存</button>
+      </div>
+      <p class="info" id="outInfo"></p>
+      <p class="status status--ok" id="status" role="status"></p>
+    </section>
+  </div>
+  <button type="button" class="right-handle" id="rightHandle" aria-controls="rightDrawer" aria-expanded="false">✿ 詳細</button>
+  </aside>
+</main>
+
+<script src="ui/layer-drawer.js"></script>
+<script src="ui/util.js"></script>
+<script>
+"use strict";
+// ---------- 状態 ----------
+// 元の絵を「横 dots ドット」のブロックに分け、ブロックごとに平均の色で塗る。大きさは元の絵のまま
+const KEY = "dotconvert:v1";
+const MIN_DOTS = 16, MAX_DOTS = 256;
+const DOT_PRESETS = [32, 48, 64, 96, 128];
+const result = $("result");
+const rg = result.getContext("2d");
+
+// crispColor:ブロックで一番多い色で塗る(中間の色を作らない)。crispAlpha:半透明を作らない
+let { dots, crispColor, crispAlpha } = load();
+let src = null; // 読み込んだ絵 { w, h, data(RGBA の一覧) }
+let srcUrl = "";
+let queued = false;
+
+function load() {
+  const d = { dots: 64, crispColor: false, crispAlpha: false };
+  try {
+    const s = JSON.parse(sessionStorage.getItem(KEY)) ?? {};
+    if (+s.dots >= MIN_DOTS && +s.dots <= MAX_DOTS) d.dots = +s.dots;
+    d.crispColor = s.crispColor === true;
+    d.crispAlpha = s.crispAlpha === true;
+  } catch {}
+  return d;
+}
+function save() {
+  try { sessionStorage.setItem(KEY, JSON.stringify({ dots, crispColor, crispAlpha })); } catch {}
+}
+
+// n ブロックを total px に分ける整数の境目(割り切れなくても、ブロックが 1px ずつちがうだけで端に余りが出ない)
+function edges(n, total) {
+  const e = new Array(n + 1);
+  for (let i = 0; i <= n; i++) e[i] = Math.round((i * total) / n);
+  return e;
+}
+// 横・縦のドット数。縦は絵の縦横比から決める。元の絵の px より細かくはしない
+function gridSize() {
+  const cols = Math.min(dots, src.w);
+  const rows = Math.max(1, Math.min(src.h, Math.round((cols * src.h) / src.w)));
+  return [cols, rows];
+}
+
+// ---------- 変換 ----------
+function convert() {
+  const { w, h, data } = src;
+  const [cols, rows] = gridSize();
+  const xs = edges(cols, w), ys = edges(rows, h);
+  const colOf = new Uint32Array(w); // x → 何番目のブロックか
+  for (let c = 0; c < cols; c++) for (let x = xs[c]; x < xs[c + 1]; x++) colOf[x] = c;
+  const img = rg.createImageData(w, h);
+  const outPx = new Uint32Array(img.data.buffer);
+  const sum = new Float64Array(cols * 4);
+  const packed = new Uint32Array(cols);
+  for (let r = 0; r < rows; r++) {
+    if (crispColor) {
+      for (let c = 0; c < cols; c++) packed[c] = modeColor(data, w, xs[c], xs[c + 1], ys[r], ys[r + 1]);
+    } else {
+      averageRow(data, w, colOf, xs, ys[r], ys[r + 1], sum, packed);
+    }
+    for (let y = ys[r]; y < ys[r + 1]; y++) {
+      const row = y * w;
+      for (let x = 0; x < w; x++) outPx[row + x] = packed[colOf[x]];
+    }
+  }
+  rg.putImageData(img, 0, 0);
+  const cell = w / cols;
+  const cellText = Number.isInteger(cell) ? `${cell}` : `約${Math.round(cell * 10) / 10}`;
+  $("dotInfo").textContent = `${cols} × ${rows} ドット(1ドット ${cellText}px)`;
+}
+// 色と不透明度の合計(色は不透明度の重み付き)から、1ドットの色を ImageData の並び(リトルエンディアン)にする
+function pack(sr, sg, sb, A, n) {
+  if (!A) return 0;
+  const ca = crispAlpha ? (A / n >= 128 ? 255 : 0) : Math.round(A / n);
+  if (!ca) return 0;
+  const cr = Math.round(sr / A), cg = Math.round(sg / A), cb = Math.round(sb / A);
+  return (cr | (cg << 8) | (cb << 16) | (ca << 24)) >>> 0;
+}
+// 平均の色:ブロック1行ぶん(y0〜y1)をまとめて足し合わせる
+function averageRow(data, w, colOf, xs, y0, y1, sum, packed) {
+  sum.fill(0);
+  for (let y = y0; y < y1; y++) {
+    for (let x = 0, i = y * w * 4; x < w; x++, i += 4) {
+      // 透明なところの色がまざって黒っぽくならないよう、色は不透明度の重みで平均する
+      const a = data[i + 3], k = colOf[x] * 4;
+      sum[k] += data[i] * a;
+      sum[k + 1] += data[i + 1] * a;
+      sum[k + 2] += data[i + 2] * a;
+      sum[k + 3] += a;
+    }
+  }
+  const bh = y1 - y0;
+  for (let c = 0; c < packed.length; c++) {
+    const k = c * 4;
+    packed[c] = pack(sum[k], sum[k + 1], sum[k + 2], sum[k + 3], (xs[c + 1] - xs[c]) * bh);
+  }
+}
+// 色をくっきり:近い色(RGB を 32 段ずつ)の組に分けて数え、一番多い組の中の色の平均で塗る。
+// 数は不透明度の重み付き(透明なところは数えない)。
+// 組の数は、となりの組(RGB それぞれ ±1 段)も足して比べる(同じ色が組の境目で分かれて、少なく数えられないように)
+const BINS = 1 << 15;
+const binCount = new Float64Array(BINS), binSum = new Float64Array(BINS * 3);
+const touched = new Uint32Array(BINS); // 使った組(あとで 0 に戻す)
+function modeColor(data, w, x0, x1, y0, y1) {
+  let nTouched = 0, A = 0;
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0, i = (y * w + x0) * 4; x < x1; x++, i += 4) {
+      const a = data[i + 3];
+      if (!a) continue;
+      A += a;
+      const key = ((data[i] >> 3) << 10) | ((data[i + 1] >> 3) << 5) | (data[i + 2] >> 3);
+      if (!binCount[key]) touched[nTouched++] = key;
+      binCount[key] += a;
+      binSum[key * 3] += data[i] * a;
+      binSum[key * 3 + 1] += data[i + 1] * a;
+      binSum[key * 3 + 2] += data[i + 2] * a;
+    }
+  }
+  let best = -1, bestScore = -1;
+  for (let t = 0; t < nTouched; t++) {
+    const key = touched[t];
+    const r = key >> 10, g = (key >> 5) & 31, b = key & 31;
+    let score = 0;
+    for (let dr = -1; dr <= 1; dr++) {
+      const rr = r + dr;
+      if (rr < 0 || rr > 31) continue;
+      for (let dg = -1; dg <= 1; dg++) {
+        const gg = g + dg;
+        if (gg < 0 || gg > 31) continue;
+        for (let db = -1; db <= 1; db++) {
+          const bb = b + db;
+          if (bb >= 0 && bb <= 31) score += binCount[(rr << 10) | (gg << 5) | bb];
+        }
+      }
+    }
+    // 同じ数なら、その組そのものが多いほう
+    if (score > bestScore || (score === bestScore && binCount[key] > binCount[best])) { best = key; bestScore = score; }
+  }
+  let out = 0;
+  if (best >= 0) {
+    // 色は一番多い組の平均、不透明度はブロック全体の平均
+    const bc = binCount[best];
+    const n = (x1 - x0) * (y1 - y0);
+    out = pack((binSum[best * 3] / bc) * A, (binSum[best * 3 + 1] / bc) * A, (binSum[best * 3 + 2] / bc) * A, A, n);
+  }
+  for (let t = 0; t < nTouched; t++) {
+    const key = touched[t];
+    binCount[key] = 0;
+    binSum[key * 3] = binSum[key * 3 + 1] = binSum[key * 3 + 2] = 0;
+  }
+  return out;
+}
+// スライダーを動かしている間は、1コマに1回だけ変換する
+function requestConvert() {
+  if (!src || queued) return;
+  queued = true;
+  requestAnimationFrame(() => { queued = false; convert(); });
+}
+
+function setDots(n) {
+  dots = Math.min(MAX_DOTS, Math.max(MIN_DOTS, Math.round(n) || 64));
+  $("dotsRange").value = dots;
+  $("dotsNum").value = dots;
+  for (const b of $("dotChips").children) b.setAttribute("aria-pressed", String(+b.dataset.n === dots));
+  save();
+  requestConvert();
+}
+$("dotChips").replaceChildren(...DOT_PRESETS.map((n) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "chip";
+  b.dataset.n = n;
+  b.textContent = n;
+  b.addEventListener("click", () => setDots(n));
+  return b;
+}));
+$("dotsRange").addEventListener("input", (e) => setDots(+e.target.value));
+$("dotsNum").addEventListener("change", (e) => setDots(+e.target.value));
+$("crispColor").addEventListener("change", (e) => { crispColor = e.target.checked; save(); requestConvert(); });
+$("crispAlpha").addEventListener("change", (e) => { crispAlpha = e.target.checked; save(); requestConvert(); });
+
+// ---------- 読み込み ----------
+async function loadFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith("image/")) { $("status").textContent = "画像のファイルを選んでください"; return; }
+  const url = URL.createObjectURL(file);
+  const im = new Image();
+  im.src = url;
+  try {
+    await im.decode();
+  } catch {
+    URL.revokeObjectURL(url);
+    $("status").textContent = "この画像は読み込めませんでした";
+    return;
+  }
+  const c = document.createElement("canvas");
+  c.width = im.naturalWidth;
+  c.height = im.naturalHeight;
+  const g = c.getContext("2d");
+  g.drawImage(im, 0, 0);
+  src = { w: c.width, h: c.height, data: g.getImageData(0, 0, c.width, c.height).data };
+  if (srcUrl) URL.revokeObjectURL(srcUrl);
+  srcUrl = url;
+  $("original").src = url;
+  result.width = src.w;
+  result.height = src.h;
+  $("empty").hidden = true;
+  $("viewSwitch").hidden = false;
+  setView("result");
+  $("savePng").disabled = false;
+  $("fileName").value = `${file.name.replace(/\.[^.]*$/, "") || "image"}_dot`;
+  $("outInfo").textContent = `${src.w} × ${src.h} px`;
+  $("status").textContent = "";
+  convert();
+}
+// 枠に出す絵の切り替え("original" | "result")。読み込むたびにドットに戻す
+function setView(v) {
+  for (const b of $("viewSwitch").children) b.setAttribute("aria-pressed", String(b.dataset.view === v));
+  $("original").hidden = v !== "original";
+  $("result").hidden = v !== "result";
+}
+for (const b of $("viewSwitch").children) b.addEventListener("click", () => setView(b.dataset.view));
+for (const id of ["file", "emptyFile"]) {
+  $(id).addEventListener("change", (e) => { loadFile(e.target.files[0]); e.target.value = ""; });
+}
+const dropMark = (on) => $("frame").classList.toggle("on", on);
+document.addEventListener("dragover", (e) => { e.preventDefault(); dropMark(true); });
+document.addEventListener("dragleave", (e) => { if (!e.relatedTarget) dropMark(false); });
+document.addEventListener("drop", (e) => { e.preventDefault(); dropMark(false); loadFile(e.dataTransfer.files[0]); });
+document.addEventListener("paste", (e) => {
+  if (e.target.closest?.("input, textarea")) return;
+  const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith("image/"));
+  if (item) loadFile(item.getAsFile());
+});
+
+// ---------- 書き出し ----------
+$("savePng").addEventListener("click", () => {
+  if (!src) return;
+  const name = ($("fileName").value.trim() || "dot").replace(/[\\/:*?"<>|]/g, "_");
+  result.toBlob((blob) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${name}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    $("status").textContent = `保存しました(${result.width}×${result.height} px)`;
+  }, "image/png");
+});
+
+// ---------- はじめ ----------
+$("crispColor").checked = crispColor;
+$("crispAlpha").checked = crispAlpha;
+setDots(dots);
+</script>
+</body>
+</html>

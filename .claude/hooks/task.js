@@ -42,6 +42,7 @@ const DOC_MAP = [
   [/^ui\/layer-drawer\./, "docs/Tools.md"],
   [/^(ui-kit\.html|ui-maker\.html|ui\/)/, "docs/htmlParts.md"],
   [/^dot-maker\.html$/, "docs/dotMaker.md"],
+  [/^dot-convert\.html$/, "docs/dotConvert.md"],
   [/^layout-maker\.html$/, "docs/layoutMaker.md"],
   [/^download\//, "docs/Download.md"],
   [/^backlog\.html$/, "docs/BacklogView.md"],
