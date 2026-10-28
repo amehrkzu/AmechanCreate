@@ -1,0 +1,1580 @@
+<!doctype html>
+<html lang="ja" data-theme="budo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>なんちゃってレイドシュミレーター</title>
+<link rel="icon" type="image/png" href="Icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
+<link rel="stylesheet" href="ui/kit.css">
+<link rel="stylesheet" href="ui/layer-drawer.css">
+<link rel="stylesheet" href="ui/scrollbar.css">
+<style>
+/* このページだけの並べ方。部品の見た目は ui/kit.css */
+body { font-size: 14px; }
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  max-width: 1800px;
+  margin: 0 auto;
+}
+@media (min-width: 1000px) { .app { grid-template-columns: 260px minmax(0, 1fr) 320px; } }
+.grow { flex: 1; }
+.sub { margin: 10px 0 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.btn[aria-pressed="true"] { background: var(--lilac); }
+
+/* 左:追加・階層 */
+.add-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.add-list .btn { justify-content: flex-start; }
+.layer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.layer-list li {
+  display: flex; align-items: center; gap: 6px; padding: 3px 8px;
+  border: 2px solid var(--line); border-radius: 10px; background: #fff; cursor: pointer; font-size: 13px;
+}
+.layer-list .t { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); min-width: 3.4em; text-align: right; }
+.layer-list .ng { color: var(--danger); font-weight: 700; }
+.layer-list .line-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer-list .cnt { margin-left: auto; font-size: 12px; color: var(--muted); }
+.role {
+  display: inline-grid; place-items: center; min-width: 30px; height: 20px; padding: 0 4px;
+  border-radius: 6px; background: var(--c); color: #fff; font-size: 11px; font-weight: 700;
+}
+
+/* 真ん中:フィールドとタイムライン */
+.stage { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.board {
+  position: relative;
+  aspect-ratio: 1;
+  width: min(100%, max(260px, calc(100vh - 330px)));
+  width: min(100%, max(260px, calc(100dvh - 330px)));
+  margin: 0 auto;
+  background: #fff;
+  border: var(--border) solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 4px 0 var(--ink-soft);
+  overflow: hidden;
+}
+#canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
+.castbar {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  width: min(70%, 260px); padding: 3px 8px 5px; border-radius: 10px;
+  background: rgba(255, 255, 255, .88); border: 2px solid var(--ink); pointer-events: none; text-align: center;
+}
+.castbar span { display: block; font-size: 12px; font-weight: 700; }
+.castbar i { display: block; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.castbar b { display: block; height: 100%; background: var(--accent); }
+/* セリフ:フィールドの下の帯(名前 + セリフ) */
+.talk {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  width: min(calc(100% - 20px), 520px); padding: 6px 12px 8px; border-radius: 12px;
+  background: rgba(255, 255, 255, .93); border: 2px solid var(--ink); box-shadow: 0 3px 0 var(--ink-soft); pointer-events: none;
+}
+.talk b { display: block; font-size: 12px; color: var(--accent); }
+.talk span { display: block; font-size: 14px; font-weight: 700; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.tl-box { padding: 10px; }
+.tl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.tl-bar output { font-family: ui-monospace, monospace; font-weight: 700; min-width: 8.5em; }
+.tl { display: flex; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+.tl-labels { flex-shrink: 0; width: 52px; border-right: 2px solid var(--line); background: var(--tint); }
+.tl-labels div { display: flex; align-items: center; padding: 0 4px; font-size: 11px; font-weight: 700; color: var(--muted); overflow: hidden; white-space: nowrap; }
+.tl-labels div.on { color: var(--accent); }
+.tl-scroll { flex: 1; min-width: 0; overflow-x: auto; }
+.tl-inner { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
+.tl-row { position: absolute; left: 0; right: 0; border-bottom: 1px solid var(--line); }
+.tl-row.on { background: var(--tint); }
+.tl-tick { position: absolute; top: 0; height: 100%; border-left: 1px solid var(--line); font-size: 10px; color: var(--muted); padding-left: 2px; }
+.tl-mech {
+  position: absolute; height: 18px; border: 2px solid #e08a4a; border-radius: 6px; background: #ffe2c9;
+  font-size: 11px; font-weight: 700; line-height: 14px; padding: 0 4px; white-space: nowrap; overflow: hidden; color: var(--text);
+}
+.tl-mech::after { content: ""; position: absolute; right: -1px; top: -1px; bottom: -1px; width: 3px; background: #e08a4a; }
+.tl-mech.ng { border-color: var(--danger); background: var(--danger-bg); }
+.tl-mech.on { box-shadow: 0 0 0 2px var(--accent); }
+.tl-line { border-color: #7a9ad8; background: #e3ecff; }
+.tl-line::after { display: none; }
+.tl-key { position: absolute; width: 10px; height: 10px; margin: 3px 0 0 -5px; border-radius: 50%; background: var(--c); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--c); }
+.tl-span { position: absolute; height: 4px; border-radius: 2px; background: var(--c); opacity: .35; pointer-events: none; }
+.tl-aggro { position: absolute; width: 10px; height: 10px; margin: 3px 0 0 -5px; background: var(--c); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--c); transform: rotate(45deg) scale(.85); }
+.tl-head { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--accent); pointer-events: none; }
+
+/* 右:詳細・フィールド・結果 */
+.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel .field + .field, .panel .field + .actions, .panel .row2 + .field, .panel .field + .row2 { margin-top: 10px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.key-list .key-angle { width: 4.8em; flex-shrink: 0; padding: 3px 6px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.role-pick { display: flex; flex-wrap: wrap; gap: 5px; }
+.role-pick button { border: 2px solid var(--c); background: #fff; color: var(--c); border-radius: 8px; padding: 1px 6px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.role-pick button[aria-pressed="true"] { background: var(--c); color: #fff; }
+.key-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.key-list li { display: flex; align-items: center; gap: 6px; }
+.key-list .btn { flex: 1; justify-content: flex-start; font-family: ui-monospace, monospace; }
+.key-list .btn:last-child { flex: none; }
+.key-list li.on .btn { background: var(--lilac); }
+.result-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.result-list li { padding: 3px 8px; border-radius: 8px; background: var(--danger-bg); cursor: pointer; }
+.result-list li.ok { background: var(--tint); cursor: default; }
+.panel .actions { margin-top: 12px; }
+/* フィールドのマーカー:小さいプレビュー(ドラッグで動かす)と数字の欄 */
+.mark-map { margin-top: 8px; aspect-ratio: 1; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; }
+#markCanvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
+.mark-grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 6px; align-items: center; margin-top: 8px; }
+.mark-grid > span:not(.role) { font-size: 12px; font-weight: 700; color: var(--muted); }
+.mark-grid input { padding: 3px 6px; font-size: 13px; }
+.mark-grid .role { min-width: 22px; }
+
+@media (max-width: 999.98px) {
+  .board { width: min(100%, max(260px, calc(100dvh - 300px))); }
+  .panel input, .panel select, .mark-grid input { font-size: 16px; }
+}
+</style>
+<script src="ui/site-header.js" defer></script>
+</head>
+<body class="bg-dots">
+<header class="topbar top" data-site-bar>
+  <h1>なんちゃってレイドシュミレーター</h1>
+</header>
+
+<main class="app">
+  <!-- 左の列:上に「追加」(ギミックを足す)、下に「階層」(メンバーとギミックの一覧) -->
+  <aside class="layer-drawer" id="layerDrawer" aria-label="追加と階層">
+    <section class="box">
+      <h2>追加</h2>
+      <p class="sub">敵</p>
+      <div class="add-list" id="enemyAdd" role="group" aria-label="敵を足す"></div>
+      <p class="sub">ギミック</p>
+      <div class="add-list" id="addList" role="group" aria-label="ギミックを足す"></div>
+      <p class="sub">そのほか</p>
+      <div class="add-list"><button type="button" class="btn btn--small" id="lineAdd">💬 セリフ</button></div>
+      <h2 class="next">階層</h2>
+      <p class="sub">メンバー</p>
+      <ul class="layer-list" id="memberList"></ul>
+      <p class="sub">敵</p>
+      <ul class="layer-list" id="enemyList"></ul>
+      <p class="sub">ギミック</p>
+      <ul class="layer-list" id="mechList"></ul>
+      <p class="sub">セリフ</p>
+      <ul class="layer-list" id="lineList"></ul>
+    </section>
+    <button type="button" class="layer-handle" id="layerHandle" aria-controls="layerDrawer" aria-expanded="false">☂ レイヤー</button>
+  </aside>
+
+  <section class="stage">
+    <div class="board" id="board">
+      <canvas id="canvas"></canvas>
+      <div class="castbar" id="castbar" hidden><span id="castName"></span><i><b id="castFill"></b></i></div>
+      <div class="talk" id="talk" hidden><b id="talkWho"></b><span id="talkText"></span></div>
+    </div>
+    <section class="box tl-box">
+      <div class="tl-bar">
+        <button type="button" class="btn btn--small btn--primary" id="play">▶ 再生</button>
+        <button type="button" class="btn btn--small" id="toStart" title="はじめに戻る">⏮</button>
+        <output id="timeOut"></output>
+        <span class="grow"></span>
+        <div class="seg" id="speeds" role="group" aria-label="速さ"></div>
+      </div>
+      <div class="tl">
+        <div class="tl-labels" id="tlLabels"></div>
+        <div class="tl-scroll" id="tlScroll"><div class="tl-inner" id="tlInner"></div></div>
+      </div>
+    </section>
+  </section>
+
+  <aside class="right-drawer" id="rightDrawer" aria-label="詳細">
+  <div class="right-tabs" role="tablist" aria-label="詳細の切り替え"><button type="button" role="tab" data-tab="detail" style="--c:#dccbff">詳細</button><button type="button" role="tab" data-tab="field" style="--c:#bdeccd">フィールド</button><button type="button" role="tab" data-tab="result" style="--c:#ffc6dc">結果</button></div>
+  <div class="panel">
+    <section class="box" data-panel="detail">
+      <h2>詳細</h2>
+      <div id="detail"></div>
+    </section>
+
+    <section class="box" data-panel="field">
+      <h2>フィールド</h2>
+      <p class="sub">形</p>
+      <div class="seg" id="arenaShape"></div>
+      <div class="row2" style="margin-top:10px">
+        <label class="field"><span>大きさ(半径 m)</span><input id="arenaSize" type="number" min="5" max="60" step="1"></label>
+        <label class="field"><span>長さ(秒)</span><input id="duration" type="number" min="10" max="900" step="1"></label>
+      </div>
+      <p class="sub">マーカー</p>
+      <div class="seg">
+        <button type="button" class="switch" id="marksToggle" aria-pressed="true">表示</button>
+        <button type="button" class="btn btn--small" id="marksReset">元の場所に</button>
+      </div>
+      <div class="mark-map"><canvas id="markCanvas"></canvas></div>
+      <div class="mark-grid" id="markInputs"></div>
+      <div class="actions">
+        <button type="button" class="btn btn--small btn--danger" id="clearAll">ぜんぶ消す</button>
+      </div>
+    </section>
+
+    <section class="box" data-panel="result">
+      <h2>結果</h2>
+      <ul class="result-list" id="results"></ul>
+    </section>
+  </div>
+  <button type="button" class="right-handle" id="rightHandle" aria-controls="rightDrawer" aria-expanded="false">✿ 詳細</button>
+  </aside>
+</main>
+
+<script src="ui/layer-drawer.js"></script>
+<script src="ui/util.js"></script>
+<script>
+"use strict";
+// 位置の単位は m(FF14 のヤルム)。フィールドの真ん中が (0, 0)、北(上)が -y。向きは北が 0°、時計回り
+const KEY = "raidsim:v1";
+const KB_TIME = 0.5; // ノックバックで飛ばされている時間(秒)
+const FLASH = 0.8;   // 発動したあと、範囲や当たった人を光らせる時間(秒)
+const TANK = "#4a7bd8", HEALER = "#3a9d5d", DPS = "#d4505e";
+const ROLES = [
+  { id: "MT", c: TANK }, { id: "ST", c: TANK }, { id: "H1", c: HEALER }, { id: "H2", c: HEALER },
+  { id: "D1", c: DPS }, { id: "D2", c: DPS }, { id: "D3", c: DPS }, { id: "D4", c: DPS }
+];
+const ROLE_IDS = ROLES.map((r) => r.id);
+const roleColor = (id) => ROLES.find((r) => r.id === id).c;
+// 最初の立ち位置(動きの点が無いとき・最初の点より前)
+const SPAWN = { MT: [0, -5], ST: [0, 5], H1: [5, 0], H2: [-5, 0], D1: [3.5, -3.5], D2: [-3.5, -3.5], D3: [3.5, 3.5], D4: [-3.5, 3.5] };
+// フィールドマーカー(a = 置く向き。A が北、1 が北東…)
+const MARKS = [
+  { id: "A", c: "#e5566b", a: 0 }, { id: "1", c: "#e5566b", a: 45, sq: true },
+  { id: "B", c: "#e0a91c", a: 90 }, { id: "2", c: "#e0a91c", a: 135, sq: true },
+  { id: "C", c: "#3d8fe0", a: 180 }, { id: "3", c: "#3d8fe0", a: 225, sq: true },
+  { id: "D", c: "#9a6be0", a: 270 }, { id: "4", c: "#9a6be0", a: 315, sq: true }
+];
+// ギミックの種類。at = 出る場所(boss:ボス / point:地点 / players:メンバー)、aim = 対象のメンバーをねらえる
+const KINDS = {
+  circle: { name: "円範囲", icon: "⭕", at: ["boss", "point", "players"], nums: ["r"], def: { r: 8 } },
+  donut: { name: "ドーナツ", icon: "🍩", at: ["boss", "point", "players"], nums: ["inner", "r"], def: { inner: 8, r: 30 } },
+  line: { name: "直線", icon: "📏", at: ["boss", "point"], aim: true, angle: true, nums: ["w", "len"], def: {} },
+  cone: { name: "扇範囲", icon: "🍕", at: ["boss", "point"], aim: true, angle: true, nums: ["r", "deg"], def: { r: 40 } },
+  cross: { name: "十字", icon: "➕", at: ["boss", "point"], angle: true, nums: ["w", "len"], def: {} },
+  tower: { name: "塔", icon: "🗼", at: ["point"], nums: ["r", "need"], def: { at: "point", r: 3, need: 1, cast: 6 } },
+  stack: { name: "頭割り", icon: "🤝", at: ["players"], nums: ["r", "need"], def: { at: "players", roles: ["H1", "H2"], r: 6, need: 4 } },
+  spread: { name: "散開", icon: "💥", at: ["players"], nums: ["r"], def: { at: "players", roles: ROLE_IDS, r: 5 } },
+  knock: { name: "ノックバック", icon: "💨", at: ["boss", "point", "players"], nums: ["dist"], def: {} }
+};
+// 大きさの欄(メンバーから出るノックバックは、飛ばす範囲の半径も)
+const numsOf = (m) => m.kind === "knock" && m.at === "players" ? ["r", "dist"] : KINDS[m.kind].nums;
+// at が "boss" のギミックは、src の敵から出る(画面では「敵」)
+const AT_NAMES = { boss: "敵", point: "地点", players: "メンバー" };
+// 敵の種類(r = 大きさ m)
+const ENEMY_TYPES = { boss: { name: "ボス", icon: "👑", c: "#6c5594", r: 2.2 }, add: { name: "雑魚", icon: "👾", c: "#b0607a", r: 1.3 } };
+const DT = 0.1; // 敵の動きを調べる間かく(秒)
+const NUMS = {
+  r: ["半径", 0.5, 100], inner: ["内側の半径", 0, 100], w: ["幅", 0.5, 100], len: ["長さ", 0.5, 200],
+  deg: ["角度(°)", 5, 360], need: ["人数", 1, 8], dist: ["距離(マイナスで引き寄せ)", -60, 60]
+};
+const SPEEDS = [0.5, 1, 2];
+const round1 = (v) => Math.round(v * 10) / 10;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const byT = (a, b) => a.t - b.t;
+
+function defaultMarks(size) {
+  const d = size * 0.7;
+  return Object.fromEntries(MARKS.map((m) => {
+    const a = m.a * Math.PI / 180;
+    return [m.id, { x: round1(Math.sin(a) * d), y: round1(-Math.cos(a) * d) }];
+  }));
+}
+function blank() {
+  return {
+    shape: "circle", size: 20, dur: 60, marksOn: true, marks: defaultMarks(20),
+    players: Object.fromEntries(ROLE_IDS.map((id) => [id, []])), // 動きの点 { t, x, y }(t の順)
+    enemies: [newEnemy(1, "boss", 0)],
+    mechs: [], nextId: 2,
+    lines: [] // セリフ { id, t, text, who(敵の id。null なら name), name, dur, auto(長さを文字の数から決める) }
+  };
+}
+// 敵:x, y, a = 出てくる場所と向き。keys = 動きの点 { t, x, y, a }。aggro = ねらう人の切りかえ { t, role }(role が null なら動きの点で動く)
+function newEnemy(id, type, appear) {
+  return {
+    id, type, name: ENEMY_TYPES[type].name, appear, vanish: null,
+    x: 0, y: type === "boss" ? 0 : -10, a: 0, speed: 6, reach: 3, keys: [], aggro: []
+  };
+}
+
+let doc = load();
+let time = 0, playing = false, speed = 1, lastTs = 0;
+let sel = null; // { type: "player" | "mech", id }
+let cache = null; // 位置のずれ(ノックバック)・敵の動き・結果。doc が変わったら消す
+const getCache = () => cache || (cache = { pushes: null, tracks: null, results: null });
+
+function load() {
+  const base = blank();
+  try {
+    const s = JSON.parse(sessionStorage.getItem(KEY));
+    if (s) return { ...base, ...s, players: { ...base.players, ...s.players } };
+  } catch {}
+  return base;
+}
+function save() {
+  clearTimeout(save.timer);
+  save.timer = setTimeout(() => {
+    try { sessionStorage.setItem(KEY, JSON.stringify(doc)); } catch {}
+  }, 300);
+}
+// doc を変えたら呼ぶ(keepDetail:入力中の詳細の欄を作り直さない)
+function changed(keepDetail = false) {
+  cache = null;
+  save();
+  renderLists();
+  if (!keepDetail) renderDetail();
+  renderResults();
+  renderTimeline();
+  draw();
+  drawMarkMap();
+}
+const mechById = (id) => doc.mechs.find((m) => m.id === id);
+
+// ---------- 位置 ----------
+// 動きの点をつないだ位置(ノックバック前)
+function basePos(id, t) {
+  const keys = doc.players[id];
+  const s = SPAWN[id];
+  if (!keys.length) return { x: s[0], y: s[1] };
+  return along(keys[0].t > 0 ? [{ t: 0, x: s[0], y: s[1] }, ...keys] : keys, t);
+}
+// 点 { t, x, y } の列(t の順)を、まっすぐ歩いてつないだ位置
+function along(list, t) {
+  if (t <= list[0].t) return { x: list[0].x, y: list[0].y };
+  for (let i = 1; i < list.length; i++) {
+    const b = list[i];
+    if (t <= b.t) {
+      const a = list[i - 1];
+      const k = (t - a.t) / (b.t - a.t || 1);
+      return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k };
+    }
+  }
+  const z = list[list.length - 1];
+  return { x: z.x, y: z.y };
+}
+// ノックバックのずれ:飛ばされたあと、次の動きの点に向かって少しずつ戻る(次の点が無ければ、飛ばされた所にいる)
+function pushAmount(pu, t) {
+  if (t <= pu.t0) return 0;
+  const g = Math.min(1, (t - pu.t0) / KB_TIME);
+  const grow = 1 - (1 - g) ** 2;
+  if (pu.end === Infinity) return grow;
+  if (t >= pu.end) return 0;
+  const fadeStart = Math.min(pu.t0 + KB_TIME, pu.end);
+  return grow * (t <= fadeStart ? 1 : (pu.end - t) / (pu.end - fadeStart));
+}
+function posWith(id, t, pushes) {
+  const b = basePos(id, t);
+  let x = b.x, y = b.y;
+  for (const pu of pushes) {
+    const k = pushAmount(pu, t);
+    x += pu.vx * k;
+    y += pu.vy * k;
+  }
+  return { x, y };
+}
+// ---------- 敵の動き ----------
+// DT 秒ごとの位置と向き { x, y, a } を前から順に作る。追いかけるときは、ねらう人に向かって速さ speed で歩き、reach まで近づく。
+// 動きの点で動くときは、そうなった時の場所から次の点へ歩く(ワープしない)。向きは点の向きに、点の時間でぱっと変わる。
+// ねらう人の位置はノックバックのずれも入れる。ずれは時間の順に決まるので、allPushes の中で、ノックバックの時間まで少しずつ進める
+const aggroAt = (e, t) => {
+  let role = null;
+  for (const g of e.aggro) if (g.t <= t + 1e-6) role = g.role;
+  return role;
+};
+function runTrack(tr, upto, all) {
+  const e = tr.e;
+  // upto より後は、まだ決まっていないノックバックがあるので作らない
+  const last = Math.min(Math.floor(upto / DT + 1e-6), Math.ceil(doc.dur / DT));
+  const end = e.vanish == null ? Infinity : e.vanish;
+  const spawn = { x: e.x, y: e.y, a: e.a };
+  for (let i = tr.s.length; i <= last; i++) {
+    const t = i * DT;
+    const prev = tr.s[i - 1] || spawn;
+    let p;
+    if (t < e.appear - 1e-6) p = spawn;
+    else if (t > end + 1e-6) p = prev;
+    else {
+      const role = aggroAt(e, t);
+      if (role) {
+        tr.seg = null;
+        const q = posWith(role, t, all[role]);
+        const dx = q.x - prev.x, dy = q.y - prev.y, d = Math.hypot(dx, dy);
+        const step = d > e.reach ? Math.min(e.speed * DT, d - e.reach) : 0;
+        p = { x: prev.x + dx / (d || 1) * step, y: prev.y + dy / (d || 1) * step, a: d > 0.01 ? Math.atan2(dx, -dy) * 180 / Math.PI : prev.a };
+      } else {
+        if (!tr.seg) tr.seg = { t: Math.max(e.appear, t - DT), ...prev };
+        const s = tr.seg;
+        const keys = e.keys.filter((k) => k.t > s.t + 1e-6);
+        const q = along([s, ...keys], t);
+        const k = keys.filter((k) => k.t <= t + 1e-6).pop();
+        p = { x: q.x, y: q.y, a: k ? k.a : s.a };
+      }
+    }
+    tr.s.push(p);
+  }
+}
+function trackPos(tr, t) {
+  if (!tr || !tr.s.length) return { x: 0, y: 0, a: 0 };
+  const f = clamp(t / DT, 0, tr.s.length - 1);
+  const i0 = Math.floor(f), i1 = Math.min(i0 + 1, tr.s.length - 1), k = f - i0;
+  const a = tr.s[i0], b = tr.s[i1];
+  return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, a: (k < 0.5 ? a : b).a };
+}
+const enemyById = (id) => doc.enemies.find((e) => e.id === id);
+// ギミックを出す敵(消えていたら1体目。敵が1体もいなければ null)
+const enemyOf = (m) => enemyById(m.src) || doc.enemies[0] || null;
+function enemyPos(e, t) {
+  if (!e) return { x: 0, y: 0, a: 0 };
+  allPushes();
+  return trackPos(cache.tracks.get(e.id), t);
+}
+const enemyShown = (e, t) => t >= e.appear - 1e-6 && (e.vanish == null || t <= e.vanish + 1e-6);
+
+// メンバーごとのずれの一覧。メンバーから出るノックバックは、ほかの人の位置で決まるので、全員まとめて時間の順に調べる
+function allPushes() {
+  getCache();
+  if (cache.pushes) return cache.pushes;
+  const all = Object.fromEntries(ROLE_IDS.map((id) => [id, []]));
+  const tracks = new Map(doc.enemies.map((e) => [e.id, { e, s: [], seg: null }]));
+  const upto = (t) => tracks.forEach((tr) => runTrack(tr, t, all));
+  for (const m of doc.mechs.filter((k) => k.kind === "knock").sort(byT)) {
+    upto(m.t);
+    const ps = Object.fromEntries(ROLE_IDS.map((id) => [id, posWith(id, m.t, all[id])]));
+    const eo = enemyOf(m);
+    const origins = m.at === "players" ? m.roles.map((id) => ({ ...ps[id], owner: id }))
+      : [m.at === "boss" ? (eo ? trackPos(tracks.get(eo.id), m.t) : { x: 0, y: 0 }) : { x: m.x, y: m.y }];
+    for (const id of ROLE_IDS) {
+      let vx = 0, vy = 0, hit = false;
+      // 中心の人は飛ばされない。2人以上から押されたら、押す力を足す
+      for (const o of origins) {
+        if (o.owner === id) continue;
+        let dx = ps[id].x - o.x, dy = ps[id].y - o.y;
+        const d = Math.hypot(dx, dy);
+        if (m.at === "players" && d > m.r) continue;
+        if (d < 0.01) { dx = 0; dy = -1; } else { dx /= d; dy /= d; }
+        vx += dx * m.dist;
+        vy += dy * m.dist;
+        hit = true;
+      }
+      if (!hit) continue;
+      const next = doc.players[id].find((k) => k.t > m.t + 1e-6);
+      all[id].push({ t0: m.t, vx, vy, end: next ? next.t : Infinity });
+    }
+  }
+  upto(doc.dur + DT);
+  cache.pushes = all;
+  cache.tracks = tracks;
+  return all;
+}
+const pos = (id, t) => posWith(id, t, allPushes()[id]);
+const inArena = (p) => doc.shape === "circle" ? Math.hypot(p.x, p.y) <= doc.size : Math.max(Math.abs(p.x), Math.abs(p.y)) <= doc.size;
+
+// 動きの点を置く(同じ時間の点があれば動かす)
+function setKey(id, t, x, y) {
+  const keys = doc.players[id];
+  t = round1(clamp(t, 0, doc.dur));
+  const k = keys.find((q) => Math.abs(q.t - t) < 0.05);
+  if (k) { k.x = round1(x); k.y = round1(y); return k; }
+  const nk = { t, x: round1(x), y: round1(y) };
+  keys.push(nk);
+  keys.sort(byT);
+  return nk;
+}
+
+// ---------- ギミックの形と当たり ----------
+// 範囲1つぶん { x, y, ang(ラジアン), owner(メンバー) } の一覧
+function instances(m, t) {
+  const a = (m.angle || 0) * Math.PI / 180;
+  if (m.at === "players") return m.roles.map((id) => ({ ...pos(id, t), ang: a, owner: id }));
+  // 敵から出るときは、敵の正面が 0°
+  const o = m.at === "boss" ? enemyPos(enemyOf(m), t) : { x: m.x, y: m.y, a: 0 };
+  if (KINDS[m.kind].aim && m.roles.length) {
+    return m.roles.map((id) => {
+      const p = pos(id, t);
+      return { x: o.x, y: o.y, ang: Math.atan2(p.x - o.x, -(p.y - o.y)), owner: id };
+    });
+  }
+  return [{ x: o.x, y: o.y, ang: a + (m.at === "boss" ? o.a * Math.PI / 180 : 0), owner: null }];
+}
+function inside(m, s, p) {
+  const dx = p.x - s.x, dy = p.y - s.y;
+  const f = dx * Math.sin(s.ang) - dy * Math.cos(s.ang); // 前
+  const r = dx * Math.cos(s.ang) + dy * Math.sin(s.ang); // 右
+  const d = Math.hypot(dx, dy);
+  switch (m.kind) {
+    case "donut": return d >= m.inner && d <= m.r;
+    case "line": return f >= 0 && f <= m.len && Math.abs(r) <= m.w / 2;
+    case "cone": return d <= m.r && Math.abs(Math.atan2(r, f)) <= m.deg * Math.PI / 360;
+    case "cross": return (Math.abs(f) <= m.len && Math.abs(r) <= m.w / 2) || (Math.abs(r) <= m.len && Math.abs(f) <= m.w / 2);
+    case "knock": return false;
+    default: return d <= m.r;
+  }
+}
+// 発動の瞬間の当たりを調べる → { m, ok, hit(当たった人), text }
+function evaluate(m) {
+  const ps = ROLE_IDS.map((id) => ({ id, ...pos(id, m.t) }));
+  const ins = instances(m, m.t);
+  const name = m.name || KINDS[m.kind].name;
+  if (m.kind === "knock") {
+    const out = ROLE_IDS.filter((id) => !inArena(pos(id, m.t + KB_TIME)));
+    return { m, ok: !out.length, hit: out, text: out.length ? `${name}:${out.join("・")} が場外` : "" };
+  }
+  if (m.kind === "tower" || m.kind === "stack") {
+    const counts = ins.map((s) => ps.filter((p) => inside(m, s, p)).map((p) => p.id));
+    const short = counts.map((c) => c.length).filter((n) => n < m.need);
+    // 頭割りが2つ重なった人は、2回当たる
+    const dbl = m.kind === "stack" ? ROLE_IDS.filter((id) => counts.filter((c) => c.includes(id)).length > 1) : [];
+    const msg = [];
+    if (short.length) msg.push(`${name}:人数が足りない(${counts.map((c) => c.length).join("・")}/${m.need})`);
+    if (dbl.length) msg.push(`${name}:${dbl.join("・")} が重なって当たる`);
+    return { m, ok: !msg.length, hit: dbl, short: counts.map((c) => c.length < m.need), text: msg.join(" / ") };
+  }
+  // 散開は、自分の円には当たらない(ほかの人の円に入ったら当たる)
+  const hit = ps.filter((p) => ins.some((s) => !(m.kind === "spread" && s.owner === p.id) && inside(m, s, p))).map((p) => p.id);
+  return { m, ok: !hit.length, hit, text: hit.length ? `${name}:${hit.join("・")} に当たる` : "" };
+}
+function results() {
+  getCache();
+  if (!cache.results) cache.results = [...doc.mechs].sort(byT).map(evaluate);
+  return cache.results;
+}
+const resultOf = (m) => results().find((r) => r.m === m);
+
+// ---------- ギミックを足す・消す ----------
+function addMech(kind) {
+  const k = KINDS[kind];
+  const m = {
+    id: doc.nextId++, kind, name: k.name, t: 0, cast: 4, at: "boss", x: 0, y: -8, angle: 0, roles: [],
+    r: 8, inner: 8, w: 8, len: 40, deg: 90, need: 1, dist: 15, ...k.def
+  };
+  m.roles = [...m.roles];
+  // 敵を選んでいたら、その敵から出す
+  const se = sel && sel.type === "enemy" ? enemyById(sel.id) : null;
+  m.src = (se || doc.enemies[0] || {}).id;
+  m.t = round1(clamp(time + m.cast, 0, doc.dur));
+  doc.mechs.push(m);
+  sel = { type: "mech", id: m.id };
+  changed();
+}
+function deleteMech(id) {
+  doc.mechs = doc.mechs.filter((m) => m.id !== id);
+  if (sel && sel.type === "mech" && sel.id === id) sel = null;
+  changed();
+}
+// ---------- セリフ ----------
+const lineById = (id) => doc.lines.find((l) => l.id === id);
+// 話す人の名前(敵が消されていたら、書いた名前)
+const lineWho = (l) => (l.who != null && enemyById(l.who) ? enemyById(l.who).name : l.name) || "";
+// 文字の数から決める長さ(秒)
+const autoDur = (text) => round1(clamp(2 + [...text].length * 0.15, 2, 10));
+function addLine() {
+  const se = sel && sel.type === "enemy" ? enemyById(sel.id) : doc.enemies[0];
+  const text = "セリフ";
+  const l = { id: doc.nextId++, t: round1(time), text, who: se ? se.id : null, name: "", dur: autoDur(text), auto: true };
+  doc.lines.push(l);
+  sel = { type: "line", id: l.id };
+  changed();
+}
+function deleteLine(id) {
+  doc.lines = doc.lines.filter((l) => l.id !== id);
+  if (sel && sel.type === "line" && sel.id === id) sel = null;
+  changed();
+}
+
+// 敵を足す(今の時間に出てきて、最後までいる)
+function addEnemy(type) {
+  const e = newEnemy(doc.nextId++, type, round1(time));
+  const n = doc.enemies.filter((q) => q.type === type).length;
+  if (n) e.name += n + 1;
+  doc.enemies.push(e);
+  sel = { type: "enemy", id: e.id };
+  changed();
+}
+function deleteEnemy(id) {
+  doc.enemies = doc.enemies.filter((e) => e.id !== id);
+  if (sel && sel.type === "enemy" && sel.id === id) sel = null;
+  changed();
+}
+// 敵の動きの点を置く。出てくる時間より前なら、出てくる場所を動かす
+function setEnemyKey(e, t, x, y, a) {
+  t = round1(clamp(t, 0, doc.dur));
+  if (t <= e.appear + 0.05) { e.x = round1(x); e.y = round1(y); e.a = a; return; }
+  const k = e.keys.find((q) => Math.abs(q.t - t) < 0.05);
+  if (k) { k.x = round1(x); k.y = round1(y); k.a = a; return; }
+  e.keys.push({ t, x: round1(x), y: round1(y), a });
+  e.keys.sort(byT);
+}
+// ねらう人を、時間 t から role にする(null なら動きの点で動く)
+function setAggro(e, t, role) {
+  t = round1(clamp(t, e.appear, doc.dur));
+  e.aggro = e.aggro.filter((g) => Math.abs(g.t - t) >= 0.05);
+  e.aggro.push({ t, role });
+  e.aggro.sort(byT);
+}
+
+// ---------- 再生 ----------
+function setTime(t) {
+  time = clamp(t, 0, doc.dur);
+  $("timeOut").textContent = `${time.toFixed(1)} / ${doc.dur.toFixed(1)} 秒`;
+  moveHead();
+  if (sel && sel.type === "player") markKeyRow();
+  renderAggroNow();
+  draw();
+}
+function play() {
+  if (time >= doc.dur) setTime(0);
+  playing = true;
+  $("play").textContent = "⏸ 止める";
+  lastTs = performance.now();
+  requestAnimationFrame(tick);
+}
+function stop() {
+  playing = false;
+  $("play").textContent = "▶ 再生";
+}
+function tick(ts) {
+  if (!playing) return;
+  const dt = (ts - lastTs) / 1000;
+  lastTs = ts;
+  setTime(time + dt * speed);
+  if (time >= doc.dur) stop();
+  else requestAnimationFrame(tick);
+}
+
+// ---------- フィールドを描く ----------
+const canvas = $("canvas");
+const ctx = canvas.getContext("2d");
+let view = { cx: 0, cy: 0, sc: 1 }; // 画面の px = cx + m × sc
+
+function resizeCanvas() {
+  const r = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(r.width * dpr));
+  canvas.height = Math.max(1, Math.round(r.height * dpr));
+  draw();
+}
+function toWorld(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left - view.cx) / view.sc, y: (e.clientY - r.top - view.cy) / view.sc };
+}
+// 形の道すじ(m 単位の座標で)
+function shapePath(m, s) {
+  ctx.beginPath();
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(s.ang);
+  switch (m.kind) {
+    case "donut":
+      ctx.arc(0, 0, m.r, 0, Math.PI * 2);
+      ctx.moveTo(m.inner, 0);
+      ctx.arc(0, 0, m.inner, 0, Math.PI * 2, true);
+      break;
+    case "line": ctx.rect(-m.w / 2, -m.len, m.w, m.len); break;
+    case "cone": {
+      const h = m.deg * Math.PI / 360;
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, m.r, -Math.PI / 2 - h, -Math.PI / 2 + h);
+      ctx.closePath();
+      break;
+    }
+    case "cross":
+      ctx.rect(-m.w / 2, -m.len, m.w, m.len * 2);
+      ctx.rect(-m.len, -m.w / 2, m.len * 2, m.w);
+      break;
+    default: ctx.arc(0, 0, m.r, 0, Math.PI * 2);
+  }
+  ctx.restore();
+}
+const COLORS = { stack: [255, 196, 60], spread: [170, 110, 230], tower: [80, 150, 230], knock: [110, 110, 210] };
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+function drawArrows(s, dist, a, px) {
+  ctx.strokeStyle = rgba(COLORS.knock, a);
+  ctx.lineWidth = 3 * px;
+  const len = clamp(Math.abs(dist), 2, 8) * Math.sign(dist || 1);
+  for (let i = 0; i < 8; i++) {
+    const g = i * Math.PI / 4;
+    const ux = Math.sin(g), uy = -Math.cos(g);
+    const r0 = 3, r1 = 3 + Math.abs(len);
+    const [from, to] = dist >= 0 ? [r0, r1] : [r1, r0];
+    const tx = s.x + ux * to, ty = s.y + uy * to;
+    ctx.beginPath();
+    ctx.moveTo(s.x + ux * from, s.y + uy * from);
+    ctx.lineTo(tx, ty);
+    ctx.moveTo(tx - (ux * 1.2 - uy * 0.8) * Math.sign(to - from), ty - (uy * 1.2 + ux * 0.8) * Math.sign(to - from));
+    ctx.lineTo(tx, ty);
+    ctx.lineTo(tx - (ux * 1.2 + uy * 0.8) * Math.sign(to - from), ty - (uy * 1.2 - ux * 0.8) * Math.sign(to - from));
+    ctx.stroke();
+  }
+}
+// ギミック1つを描く(phase:"cast" 詠唱中 / "flash" 発動 / "ghost" 選んでいるだけ)
+function drawMech(m, phase, k, px) {
+  const res = resultOf(m);
+  const ins = instances(m, Math.min(time, m.t));
+  const base = COLORS[m.kind] || [255, 128, 40];
+  ins.forEach((s, i) => {
+    if (m.kind === "knock") {
+      const a = phase === "flash" ? 1 - k : phase === "ghost" ? 0.5 : 0.35 + 0.4 * k;
+      if (phase === "ghost") ctx.setLineDash([4 * px, 4 * px]);
+      // メンバーから出るときは、飛ばす範囲の円も描く
+      if (m.at === "players") {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, m.r, 0, Math.PI * 2);
+        ctx.strokeStyle = rgba(COLORS.knock, a * 0.7);
+        ctx.lineWidth = 2 * px;
+        ctx.stroke();
+      }
+      drawArrows(s, m.dist, a, px);
+      ctx.setLineDash([]);
+      return;
+    }
+    const fail = m.kind === "tower" && phase === "flash" && res.short && res.short[i];
+    const c = fail ? [224, 86, 122] : base;
+    shapePath(m, s);
+    if (phase === "ghost") {
+      ctx.setLineDash([5 * px, 4 * px]);
+      ctx.strokeStyle = rgba(c, 0.8);
+      ctx.lineWidth = 2 * px;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else {
+      ctx.fillStyle = rgba(c, phase === "flash" ? 0.55 * (1 - k) : 0.16 + 0.16 * k);
+      ctx.fill("evenodd");
+      ctx.strokeStyle = rgba(c, phase === "flash" ? 1 - k : 0.9);
+      ctx.lineWidth = 2 * px;
+      ctx.stroke();
+    }
+    // 塔の人数
+    if (m.kind === "tower" || m.kind === "stack") {
+      const n = ROLE_IDS.filter((id) => inside(m, s, pos(id, Math.min(time, m.t)))).length;
+      ctx.fillStyle = rgba(c, 1);
+      ctx.font = `700 ${13 * px}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`${n}/${m.need}`, s.x, s.y + (m.kind === "stack" ? m.r + 8 * px : 0));
+    }
+  });
+}
+function drawMark(g, mk, p, px) {
+  const r = 1.4;
+  g.fillStyle = mk.c + "33";
+  g.strokeStyle = mk.c;
+  g.lineWidth = 2.5 * px;
+  g.beginPath();
+  if (mk.sq) g.rect(p.x - r, p.y - r, r * 2, r * 2);
+  else g.arc(p.x, p.y, r, 0, Math.PI * 2);
+  g.fill();
+  g.stroke();
+  g.fillStyle = mk.c;
+  g.font = `700 ${Math.min(13 * px, r * 1.3)}px sans-serif`; // 小さいプレビューでは、印からはみ出さない大きさに
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillText(mk.id, p.x, p.y);
+}
+// 背景・床・方眼(5m ごと)を描いて、m の座標にする。返すのは { cx, cy, sc }(画面の px = cx + m × sc)
+function drawArena(cv, g) {
+  const W = cv.width, H = cv.height;
+  const dpr = window.devicePixelRatio || 1;
+  const R = doc.size;
+  const v = { cx: W / dpr / 2, cy: H / dpr / 2, sc: Math.min(W, H) / dpr / 2 / (R * 1.12) };
+  const px = 1 / v.sc;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.fillStyle = "#ebe3f7";
+  g.fillRect(0, 0, W, H);
+  g.setTransform(dpr * v.sc, 0, 0, dpr * v.sc, dpr * v.cx, dpr * v.cy);
+  g.beginPath();
+  if (doc.shape === "circle") g.arc(0, 0, R, 0, Math.PI * 2);
+  else g.rect(-R, -R, R * 2, R * 2);
+  g.fillStyle = "#fbf9ff";
+  g.fill();
+  g.save();
+  g.clip();
+  g.strokeStyle = "#ece4f8";
+  g.lineWidth = px;
+  g.beginPath();
+  for (let t = -Math.floor(R / 5) * 5; t <= R; t += 5) {
+    g.moveTo(t, -R); g.lineTo(t, R);
+    g.moveTo(-R, t); g.lineTo(R, t);
+  }
+  g.stroke();
+  g.restore();
+  g.beginPath();
+  if (doc.shape === "circle") g.arc(0, 0, R, 0, Math.PI * 2);
+  else g.rect(-R, -R, R * 2, R * 2);
+  g.strokeStyle = "#8a72b0";
+  g.lineWidth = 3 * px;
+  g.stroke();
+  return v;
+}
+// 敵1体(p = { x, y, a }。三角が正面)
+function drawEnemy(g, e, p, px, on) {
+  const ty = ENEMY_TYPES[e.type];
+  const r = ty.r;
+  g.save();
+  g.translate(p.x, p.y);
+  g.rotate(p.a * Math.PI / 180);
+  g.beginPath();
+  g.arc(0, 0, r, 0, Math.PI * 2);
+  g.fillStyle = ty.c;
+  g.fill();
+  if (on) {
+    g.strokeStyle = "#9a6be0";
+    g.lineWidth = 3 * px;
+    g.beginPath();
+    g.arc(0, 0, r + 3 * px, 0, Math.PI * 2);
+    g.stroke();
+  }
+  g.beginPath();
+  g.moveTo(0, -r * 1.55); g.lineTo(-r * 0.45, -r * 1.05); g.lineTo(r * 0.45, -r * 1.05); g.closePath();
+  g.fillStyle = ty.c;
+  g.fill();
+  g.restore();
+  g.fillStyle = "#fff";
+  g.font = `700 ${Math.min(12 * px, r * 0.7)}px sans-serif`;
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillText(e.name.slice(0, 3), p.x, p.y);
+}
+function draw() {
+  view = drawArena(canvas, ctx);
+  const px = 1 / view.sc; // 画面の 1px は何 m か
+  if (doc.marksOn) MARKS.forEach((mk) => drawMark(ctx, mk, doc.marks[mk.id], px));
+
+  // ギミック:詠唱中 → 発動(光る)。選んでいて見えていないものは点線
+  let casting = null;
+  for (const m of [...doc.mechs].sort(byT)) {
+    const start = m.t - m.cast;
+    if (time >= start && time < m.t) {
+      drawMech(m, "cast", m.cast ? (time - start) / m.cast : 1, px);
+      if (!casting || start > casting.t - casting.cast) casting = m;
+    } else if (time >= m.t && time < m.t + FLASH) {
+      drawMech(m, "flash", (time - m.t) / FLASH, px);
+    } else if (sel && sel.type === "mech" && sel.id === m.id) {
+      drawMech(m, "ghost", 0, px);
+    }
+  }
+  const cb = $("castbar");
+  cb.hidden = !casting;
+  if (casting) {
+    $("castName").textContent = casting.name || KINDS[casting.kind].name;
+    $("castFill").style.width = `${casting.cast ? (time - casting.t + casting.cast) / casting.cast * 100 : 100}%`;
+  }
+  // セリフ(重なったら、あとから出たもの)
+  const talk = doc.lines.filter((l) => time >= l.t && time < l.t + l.dur).sort(byT).pop();
+  $("talk").hidden = !talk;
+  if (talk) {
+    $("talkWho").textContent = lineWho(talk);
+    $("talkText").textContent = talk.text;
+  }
+
+  // 地点のギミックを選んでいるときは、つまむ所
+  const sm = sel && sel.type === "mech" ? mechById(sel.id) : null;
+  if (sm && sm.at === "point") {
+    ctx.beginPath();
+    ctx.arc(sm.x, sm.y, 6 * px, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.strokeStyle = "#9a6be0";
+    ctx.lineWidth = 2.5 * px;
+    ctx.stroke();
+  }
+
+  // 敵(出ている間だけ)
+  for (const e of doc.enemies) {
+    if (enemyShown(e, time)) drawEnemy(ctx, e, enemyPos(e, time), px, sel && sel.type === "enemy" && sel.id === e.id);
+  }
+
+  // 選んでいるメンバーの道すじ
+  if (sel && sel.type === "player") {
+    const keys = doc.players[sel.id];
+    const c = roleColor(sel.id);
+    if (keys.length) {
+      ctx.setLineDash([4 * px, 4 * px]);
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 2 * px;
+      ctx.beginPath();
+      const s0 = basePos(sel.id, 0);
+      ctx.moveTo(s0.x, s0.y);
+      keys.forEach((k) => ctx.lineTo(k.x, k.y));
+      ctx.stroke();
+      ctx.setLineDash([]);
+      keys.forEach((k) => {
+        ctx.beginPath();
+        ctx.arc(k.x, k.y, 3.5 * px, 0, Math.PI * 2);
+        ctx.fillStyle = Math.abs(k.t - time) < 0.05 ? c : "#fff";
+        ctx.fill();
+        ctx.strokeStyle = c;
+        ctx.stroke();
+      });
+    }
+  }
+
+  // メンバー(当たった人は赤く光る)
+  const hitNow = new Set();
+  for (const r of results()) {
+    if (time >= r.m.t && time < r.m.t + FLASH * 1.5) r.hit.forEach((id) => hitNow.add(id));
+  }
+  const pr = Math.max(1, 11 * px);
+  for (const ro of ROLES) {
+    const p = pos(ro.id, time);
+    if (hitNow.has(ro.id)) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, pr + 5 * px, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(224,86,122,.45)";
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
+    ctx.fillStyle = ro.c;
+    ctx.fill();
+    ctx.lineWidth = 2 * px;
+    ctx.strokeStyle = "#fff";
+    ctx.stroke();
+    if (sel && sel.type === "player" && sel.id === ro.id) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, pr + 3 * px, 0, Math.PI * 2);
+      ctx.strokeStyle = "#9a6be0";
+      ctx.lineWidth = 3 * px;
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#fff";
+    ctx.font = `700 ${pr * 0.85}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(ro.id, p.x, p.y + 0.5 * px);
+  }
+}
+
+// フィールドの操作:メンバーをドラッグ → 今の時間に動きの点 / 地点のギミックを動かす(マーカーは右のプレビューで動かす)
+let drag = null;
+canvas.addEventListener("pointerdown", (e) => {
+  const w = toWorld(e);
+  const near = (p, rpx) => Math.hypot(p.x - w.x, p.y - w.y) <= rpx / view.sc;
+  stop();
+  const pl = [...ROLES].reverse().find((ro) => near(pos(ro.id, time), 14));
+  const en = [...doc.enemies].reverse().find((q) => enemyShown(q, time) && near(enemyPos(q, time), ENEMY_TYPES[q.type].r * view.sc + 4));
+  if (pl) {
+    sel = { type: "player", id: pl.id };
+    drag = { type: "player", id: pl.id, moved: false };
+  } else if (en) {
+    // 追いかけている間は、選ぶだけ(動かせない)
+    sel = { type: "enemy", id: en.id };
+    if (!aggroAt(en, time) || time <= en.appear + 0.05) drag = { type: "enemy", e: en };
+  } else {
+    const shown = doc.mechs.filter((m) => m.at === "point" &&
+      ((sel && sel.type === "mech" && sel.id === m.id) || (time >= m.t - m.cast && time < m.t + FLASH)));
+    const mm = shown.reverse().find((m) => near(m, 14));
+    if (mm) {
+      sel = { type: "mech", id: mm.id };
+      drag = { type: "mech", m: mm };
+    } else {
+      sel = null;
+    }
+  }
+  if (drag) canvas.setPointerCapture(e.pointerId);
+  renderLists();
+  renderDetail();
+  renderTimeline();
+  draw();
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const w = toWorld(e);
+  if (drag.type === "player") {
+    // ノックバックでずれている分を引いて、見た目の位置がつまんだ所になるように
+    const p = pos(drag.id, time), b = basePos(drag.id, time);
+    setKey(drag.id, time, w.x - (p.x - b.x), w.y - (p.y - b.y));
+    drag.moved = true;
+  } else if (drag.type === "enemy") {
+    setEnemyKey(drag.e, time, w.x, w.y, enemyPos(drag.e, time).a);
+  } else {
+    drag.m.x = round1(w.x);
+    drag.m.y = round1(w.y);
+  }
+  cache = null;
+  draw();
+});
+const endDrag = () => {
+  if (!drag) return;
+  drag = null;
+  changed();
+};
+canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointercancel", endDrag);
+
+// ---------- タイムライン ----------
+const TL = { ruler: 20, lane: 22, row: 16, pad: 10 };
+let tlScale = 10; // 1秒の px
+const tx = (t) => TL.pad + t * tlScale;
+// 帯(start 〜 end 秒)が重ならないように段に分ける
+function laneOf(items, start, end) {
+  const lanes = [];
+  const out = new Map();
+  for (const m of [...items].sort((a, b) => start(a) - start(b))) {
+    const l0 = tx(start(m)), l1 = Math.max(tx(end(m)), l0 + 70);
+    let i = lanes.findIndex((e) => e <= l0);
+    if (i < 0) { i = lanes.length; lanes.push(0); }
+    lanes[i] = l1 + 2;
+    out.set(m.id, i);
+  }
+  return { lanes: Math.max(1, lanes.length), out };
+}
+function renderTimeline() {
+  const scroll = $("tlScroll");
+  tlScale = Math.max(8, (scroll.clientWidth - TL.pad * 2) / doc.dur);
+  const { lanes, out } = laneOf(doc.mechs, (m) => m.t - m.cast, (m) => m.t);
+  const lineLanes = laneOf(doc.lines, (l) => l.t, (l) => l.t + l.dur);
+  const mechH = lanes * TL.lane + 4;
+  const lineH = lineLanes.lanes * TL.lane + 4;
+  const top = { mech: TL.ruler, lines: TL.ruler + mechH, enemies: TL.ruler + mechH + lineH };
+  top.players = top.enemies + doc.enemies.length * TL.row;
+  const H = top.players + ROLES.length * TL.row;
+  const W = tx(doc.dur) + TL.pad;
+  const results_ = results();
+  let h = "";
+  const step = tlScale >= 20 ? 5 : tlScale >= 9 ? 10 : 30;
+  for (let t = 0; t <= doc.dur; t += step) h += `<div class="tl-tick" style="left:${tx(t)}px">${t}</div>`;
+  h += `<div class="tl-row" style="top:${TL.ruler - 1}px;height:1px"></div>`;
+  for (const m of doc.mechs) {
+    const r = results_.find((q) => q.m === m);
+    const on = sel && sel.type === "mech" && sel.id === m.id;
+    const l = tx(Math.max(0, m.t - m.cast));
+    h += `<div class="tl-mech${r && !r.ok ? " ng" : ""}${on ? " on" : ""}" data-mech="${m.id}" style="left:${l}px;width:${Math.max(8, tx(m.t) - l)}px;top:${top.mech + 2 + out.get(m.id) * TL.lane}px" title="${esc(m.name)}">${esc(m.name)}</div>`;
+  }
+  for (const ln of doc.lines) {
+    const on = sel && sel.type === "line" && sel.id === ln.id;
+    const label = `${lineWho(ln)}「${ln.text}」`;
+    h += `<div class="tl-mech tl-line${on ? " on" : ""}" data-line="${ln.id}" style="left:${tx(ln.t)}px;width:${Math.max(8, tx(ln.t + ln.dur) - tx(ln.t))}px;top:${top.lines + 2 + lineLanes.out.get(ln.id) * TL.lane}px" title="${esc(label)}">${esc(label)}</div>`;
+  }
+  // 敵:出ている間の帯・動きの点・ねらう人の切りかえ(◆)
+  doc.enemies.forEach((en, i) => {
+    const y = top.enemies + i * TL.row;
+    const on = sel && sel.type === "enemy" && sel.id === en.id;
+    const c = ENEMY_TYPES[en.type].c;
+    const l = tx(en.appear);
+    h += `<div class="tl-row${on ? " on" : ""}" data-erow="${en.id}" style="top:${y}px;height:${TL.row}px"></div>`;
+    h += `<div class="tl-span" style="left:${l}px;width:${tx(en.vanish == null ? doc.dur : en.vanish) - l}px;top:${y + 6}px;--c:${c}"></div>`;
+    en.keys.forEach((k, j) => {
+      h += `<div class="tl-key" data-ekey="${en.id}:${j}" style="left:${tx(k.t)}px;top:${y}px;--c:${c}"></div>`;
+    });
+    en.aggro.forEach((g, j) => {
+      h += `<div class="tl-aggro" data-eaggro="${en.id}:${j}" style="left:${tx(g.t)}px;top:${y}px;--c:${g.role ? roleColor(g.role) : "#9a8fb0"}" title="${g.t.toFixed(1)} 秒から ${g.role || "動きの点"}"></div>`;
+    });
+  });
+  ROLES.forEach((ro, i) => {
+    const y = top.players + i * TL.row;
+    const on = sel && sel.type === "player" && sel.id === ro.id;
+    h += `<div class="tl-row${on ? " on" : ""}" data-row="${ro.id}" style="top:${y}px;height:${TL.row}px"></div>`;
+    doc.players[ro.id].forEach((k, j) => {
+      h += `<div class="tl-key" data-key="${ro.id}:${j}" style="left:${tx(k.t)}px;top:${y}px;--c:${ro.c}"></div>`;
+    });
+  });
+  h += `<div class="tl-head" id="tlHead"></div>`;
+  const inner = $("tlInner");
+  inner.style.width = `${W}px`;
+  inner.style.height = `${H}px`;
+  inner.innerHTML = h;
+  // 左の名前
+  let lb = `<div style="height:${TL.ruler}px">秒</div><div style="height:${mechH}px">ギミック</div><div style="height:${lineH}px">セリフ</div>`;
+  doc.enemies.forEach((en) => {
+    const on = sel && sel.type === "enemy" && sel.id === en.id;
+    lb += `<div class="${on ? "on" : ""}" style="height:${TL.row}px" title="${esc(en.name)}">${esc(en.name)}</div>`;
+  });
+  ROLES.forEach((ro) => {
+    const on = sel && sel.type === "player" && sel.id === ro.id;
+    lb += `<div class="${on ? "on" : ""}" style="height:${TL.row}px">${ro.id}</div>`;
+  });
+  $("tlLabels").innerHTML = lb;
+  moveHead();
+}
+function moveHead() {
+  const head = $("tlHead");
+  if (head) head.style.left = `${tx(time)}px`;
+}
+let tlDrag = null;
+const tlTime = (e) => {
+  const r = $("tlInner").getBoundingClientRect();
+  return clamp((e.clientX - r.left - TL.pad) / tlScale, 0, doc.dur);
+};
+$("tlInner").addEventListener("pointerdown", (e) => {
+  stop();
+  const mEl = e.target.closest("[data-mech]");
+  const kEl = e.target.closest("[data-key]");
+  const ekEl = e.target.closest("[data-ekey], [data-eaggro]");
+  const lEl = e.target.closest("[data-line]");
+  if (lEl) {
+    const ln = lineById(Number(lEl.dataset.line));
+    sel = { type: "line", id: ln.id };
+    tlDrag = { type: "line", k: ln, x0: e.clientX, t0: ln.t, moved: false };
+    renderLists();
+    renderDetail();
+  } else if (ekEl) {
+    // 敵の動きの点・ねらう人の切りかえ
+    const isKey = !!ekEl.dataset.ekey;
+    const [id, j] = (ekEl.dataset.ekey || ekEl.dataset.eaggro).split(":").map(Number);
+    const en = enemyById(id);
+    const item = (isKey ? en.keys : en.aggro)[j];
+    sel = { type: "enemy", id };
+    tlDrag = { type: isKey ? "ekey" : "eaggro", e: en, k: item, x0: e.clientX, t0: item.t, moved: false };
+    renderLists();
+    renderDetail();
+    setTime(item.t);
+  } else if (mEl) {
+    const m = mechById(Number(mEl.dataset.mech));
+    sel = { type: "mech", id: m.id };
+    tlDrag = { type: "mech", m, x0: e.clientX, t0: m.t, moved: false };
+    renderLists();
+    renderDetail();
+  } else if (kEl) {
+    const [id, j] = kEl.dataset.key.split(":");
+    const k = doc.players[id][Number(j)];
+    sel = { type: "player", id };
+    tlDrag = { type: "key", id, k, x0: e.clientX, t0: k.t, moved: false };
+    renderLists();
+    renderDetail();
+    setTime(k.t);
+  } else {
+    const row = e.target.closest("[data-row]");
+    const erow = e.target.closest("[data-erow]");
+    if (row) { sel = { type: "player", id: row.dataset.row }; renderLists(); renderDetail(); }
+    else if (erow) { sel = { type: "enemy", id: Number(erow.dataset.erow) }; renderLists(); renderDetail(); }
+    tlDrag = { type: "scrub" };
+    setTime(tlTime(e));
+  }
+  $("tlInner").setPointerCapture(e.pointerId);
+  renderTimeline();
+  draw();
+});
+$("tlInner").addEventListener("pointermove", (e) => {
+  if (!tlDrag) return;
+  if (tlDrag.type === "scrub") { setTime(tlTime(e)); return; }
+  const t = round1(tlDrag.t0 + (e.clientX - tlDrag.x0) / tlScale);
+  if (tlDrag.type === "mech") {
+    tlDrag.m.t = clamp(t, 0, doc.dur);
+  } else if (tlDrag.type === "line") {
+    tlDrag.k.t = clamp(t, 0, doc.dur);
+  } else if (tlDrag.type === "ekey" || tlDrag.type === "eaggro") {
+    const en = tlDrag.e;
+    tlDrag.k.t = clamp(t, en.appear, doc.dur);
+    (tlDrag.type === "ekey" ? en.keys : en.aggro).sort(byT);
+    setTime(tlDrag.k.t);
+  } else {
+    tlDrag.k.t = clamp(t, 0, doc.dur);
+    doc.players[tlDrag.id].sort(byT);
+    setTime(tlDrag.k.t);
+  }
+  tlDrag.moved = true;
+  cache = null;
+  renderTimeline();
+  draw();
+});
+const endTl = () => {
+  if (!tlDrag) return;
+  const moved = tlDrag.moved;
+  tlDrag = null;
+  if (moved) changed();
+};
+$("tlInner").addEventListener("pointerup", endTl);
+$("tlInner").addEventListener("pointercancel", endTl);
+
+// ---------- 左の一覧 ----------
+function renderLists() {
+  $("memberList").innerHTML = ROLES.map((ro) => {
+    const on = sel && sel.type === "player" && sel.id === ro.id;
+    return `<li data-member="${ro.id}" class="${on ? "on" : ""}"><span class="role" style="--c:${ro.c}">${ro.id}</span><span class="cnt">点 ${doc.players[ro.id].length}</span></li>`;
+  }).join("");
+  $("enemyList").innerHTML = doc.enemies.map((en) => {
+    const on = sel && sel.type === "enemy" && sel.id === en.id;
+    const span = `${en.appear.toFixed(0)}〜${en.vanish == null ? "" : en.vanish.toFixed(0)}`;
+    return `<li data-enemy="${en.id}" class="${on ? "on" : ""}">${ENEMY_TYPES[en.type].icon} ${esc(en.name)}<span class="cnt">${span}</span></li>`;
+  }).join("");
+  $("lineList").innerHTML = [...doc.lines].sort(byT).map((l) => {
+    const on = sel && sel.type === "line" && sel.id === l.id;
+    return `<li data-line="${l.id}" class="${on ? "on" : ""}"><span class="t">${l.t.toFixed(1)}</span><span class="line-text">${esc(lineWho(l))}「${esc(l.text)}」</span></li>`;
+  }).join("");
+  $("mechList").innerHTML = results().map((r) => {
+    const on = sel && sel.type === "mech" && sel.id === r.m.id;
+    return `<li data-mech="${r.m.id}" class="${on ? "on" : ""}"><span class="t">${r.m.t.toFixed(1)}</span>${KINDS[r.m.kind].icon} ${esc(r.m.name)}${r.ok ? "" : ' <span class="ng">×</span>'}</li>`;
+  }).join("");
+}
+$("memberList").addEventListener("click", (e) => {
+  const li = e.target.closest("[data-member]");
+  if (!li) return;
+  sel = { type: "player", id: li.dataset.member };
+  renderLists(); renderDetail(); renderTimeline(); draw();
+});
+$("enemyList").addEventListener("click", (e) => {
+  const li = e.target.closest("[data-enemy]");
+  if (!li) return;
+  sel = { type: "enemy", id: Number(li.dataset.enemy) };
+  renderLists(); renderDetail(); renderTimeline(); draw();
+});
+$("lineList").addEventListener("click", (e) => {
+  const li = e.target.closest("[data-line]");
+  if (!li) return;
+  const l = lineById(Number(li.dataset.line));
+  sel = { type: "line", id: l.id };
+  renderLists(); renderDetail(); renderTimeline();
+  setTime(l.t);
+});
+$("lineAdd").addEventListener("click", addLine);
+$("enemyAdd").innerHTML = Object.entries(ENEMY_TYPES).map(([k, v]) =>
+  `<button type="button" class="btn btn--small" data-etype="${k}">${v.icon} ${v.name}</button>`).join("");
+$("enemyAdd").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-etype]");
+  if (b) addEnemy(b.dataset.etype);
+});
+$("mechList").addEventListener("click", (e) => {
+  const li = e.target.closest("[data-mech]");
+  if (!li) return;
+  const m = mechById(Number(li.dataset.mech));
+  sel = { type: "mech", id: m.id };
+  renderLists(); renderDetail(); renderTimeline();
+  setTime(Math.max(0, m.t - m.cast));
+});
+$("addList").innerHTML = Object.entries(KINDS).map(([k, v]) =>
+  `<button type="button" class="btn btn--small" data-kind="${k}">${v.icon} ${v.name}</button>`).join("");
+$("addList").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-kind]");
+  if (b) addMech(b.dataset.kind);
+});
+
+// ---------- 右:詳細 ----------
+const num = (key, label, v, min, max, step = 0.1) =>
+  `<label class="field"><span>${label}</span><input type="number" data-num="${key}" value="${v}" min="${min}" max="${max}" step="${step}"></label>`;
+const rolePick = (roles) => `<div class="role-pick">${ROLES.map((ro) =>
+  `<button type="button" data-role="${ro.id}" style="--c:${ro.c}" aria-pressed="${roles.includes(ro.id)}">${ro.id}</button>`).join("")}</div>`;
+function renderDetail() {
+  const box = $("detail");
+  if (!sel) { box.innerHTML = ""; return; }
+  if (sel.type === "player") {
+    const keys = doc.players[sel.id];
+    box.innerHTML = `<p><span class="role" style="--c:${roleColor(sel.id)}">${sel.id}</span></p>
+      <p class="sub">動きの点</p>
+      <ul class="key-list" id="keyList">${keys.map((k, i) =>
+        `<li data-i="${i}"><button type="button" class="btn btn--small" data-go="${i}">${k.t.toFixed(1)} 秒 (${k.x}, ${k.y})</button><button type="button" class="btn btn--small" data-del="${i}" title="この点を消す">✕</button></li>`).join("")}</ul>
+      <div class="actions">
+        <button type="button" class="btn btn--small btn--primary" id="keyHere">今の場所に点を打つ</button>
+        <button type="button" class="btn btn--small btn--danger" id="keyClear">点をぜんぶ消す</button>
+      </div>`;
+    markKeyRow();
+    return;
+  }
+  if (sel.type === "enemy") { renderEnemyDetail(box, enemyById(sel.id)); return; }
+  if (sel.type === "line") { renderLineDetail(box, lineById(sel.id)); return; }
+  const m = mechById(sel.id);
+  const k = KINDS[m.kind];
+  let h = `<label class="field"><span>名前</span><input type="text" data-text="name" value="${esc(m.name)}"></label>
+    <div class="row2">${num("t", "発動(秒)", m.t, 0, doc.dur)}${num("cast", "詠唱(秒)", m.cast, 0, 60)}</div>`;
+  if (k.at.length > 1) {
+    h += `<p class="sub">出る場所</p><div class="seg">${k.at.map((a) =>
+      `<button type="button" class="btn btn--small" data-at="${a}" aria-pressed="${m.at === a}">${AT_NAMES[a]}</button>`).join("")}</div>`;
+  }
+  if (m.at === "point") h += `<div class="row2" style="margin-top:10px">${num("x", "東西(m)", m.x, -100, 100, 0.5)}${num("y", "南北(m)", m.y, -100, 100, 0.5)}</div>`;
+  if (m.at === "boss" && doc.enemies.length > 1) {
+    const cur = enemyOf(m);
+    h += `<p class="sub">出す敵</p><div class="seg">${doc.enemies.map((en) =>
+      `<button type="button" class="btn btn--small" data-src="${en.id}" aria-pressed="${en === cur}">${esc(en.name)}</button>`).join("")}</div>`;
+  }
+  if (m.at === "players") h += `<p class="sub">対象</p>${rolePick(m.roles)}`;
+  else if (k.aim) h += `<p class="sub">ねらう人</p>${rolePick(m.roles)}`;
+  if (k.angle && !(k.aim && m.roles.length)) {
+    h += num("angle", m.at === "boss" ? "向き(°。敵の正面が0、時計回り)" : "向き(°。北が0、時計回り)", m.angle, -360, 360, 15);
+  }
+  h += `<div class="row2" style="margin-top:10px">${numsOf(m).map((n) => num(n, NUMS[n][0], m[n], NUMS[n][1], NUMS[n][2], n === "need" ? 1 : 0.5)).join("")}</div>
+    <div class="actions"><button type="button" class="btn btn--small btn--danger" id="mechDelete">このギミックを消す</button></div>`;
+  box.innerHTML = h;
+}
+function renderEnemyDetail(box, en) {
+  const btn = (attr, i, label, cls = "") => `<button type="button" class="btn btn--small${cls}" ${attr}="${i}">${label}</button>`;
+  box.innerHTML = `<label class="field"><span>名前</span><input type="text" data-text="name" value="${esc(en.name)}"></label>
+    <p class="sub">種類</p><div class="seg">${Object.entries(ENEMY_TYPES).map(([k, v]) =>
+      `<button type="button" class="btn btn--small" data-etype="${k}" aria-pressed="${en.type === k}">${v.icon} ${v.name}</button>`).join("")}</div>
+    <div class="row2" style="margin-top:10px">${num("appear", "出る(秒)", en.appear, 0, doc.dur)}
+      <label class="field"><span>消える(秒。空なら最後まで)</span><input type="number" data-num="vanish" value="${en.vanish == null ? "" : en.vanish}" min="0" max="${doc.dur}" step="0.1"></label></div>
+    <div class="row2" style="margin-top:10px">${num("speed", "歩く速さ(m/秒)", en.speed, 0.5, 50, 0.5)}${num("reach", "止まる距離(m)", en.reach, 0, 50, 0.5)}</div>
+    <p class="sub">出てくる場所と向き</p>
+    <div class="row3">${num("x", "東西(m)", en.x, -100, 100, 0.5)}${num("y", "南北(m)", en.y, -100, 100, 0.5)}${num("a", "向き(°)", en.a, -360, 360, 15)}</div>
+    <p class="sub" id="aggroNowLabel"></p>
+    <div class="role-pick" id="aggroNow"></div>
+    <p class="sub">ねらう人の切りかえ</p>
+    <ul class="key-list">${en.aggro.map((g, i) =>
+      `<li>${btn("data-ago", i, `${g.t.toFixed(1)} 秒から ${g.role || "動きの点"}`)}${btn("data-adel", i, "✕")}</li>`).join("")}</ul>
+    <p class="sub">動きの点(数字は向き °)</p>
+    <ul class="key-list">${en.keys.map((k, i) =>
+      `<li>${btn("data-ego", i, `${k.t.toFixed(1)} 秒 (${k.x}, ${k.y})`)}<input type="number" class="key-angle" data-kangle="${i}" value="${k.a}" min="-360" max="360" step="15" aria-label="向き(°)">${btn("data-edel", i, "✕")}</li>`).join("")}</ul>
+    <div class="actions">
+      <button type="button" class="btn btn--small btn--primary" id="ekeyHere">今の場所に点を打つ</button>
+      <button type="button" class="btn btn--small btn--danger" id="enemyDelete">この敵を消す</button>
+    </div>`;
+  renderAggroNow();
+}
+function renderLineDetail(box, l) {
+  const free = l.who == null || !enemyById(l.who);
+  box.innerHTML = `<label class="field"><span>セリフ</span><textarea data-text="text" rows="3">${esc(l.text)}</textarea></label>
+    <p class="sub">話す人</p><div class="seg">${doc.enemies.map((en) =>
+      `<button type="button" class="btn btn--small" data-who="${en.id}" aria-pressed="${l.who === en.id}">${esc(en.name)}</button>`).join("")}<button type="button" class="btn btn--small" data-who="" aria-pressed="${free}">名前を書く</button></div>
+    ${free ? `<label class="field" style="margin-top:10px"><span>名前</span><input type="text" data-text="name" value="${esc(l.name)}"></label>` : ""}
+    <div class="row2" style="margin-top:10px">${num("t", "出る(秒)", l.t, 0, doc.dur)}${num("dur", "長さ(秒)", l.dur, 0.5, 60, 0.5)}</div>
+    <div class="actions">
+      <button type="button" class="switch" id="lineAuto" aria-pressed="${l.auto}">長さを文字の数から決める</button>
+      <button type="button" class="btn btn--small btn--danger" id="lineDelete">このセリフを消す</button>
+    </div>`;
+}
+// 今の時間の「ねらう人」(時間を動かすたびに描き直す)
+function renderAggroNow() {
+  const el = $("aggroNow");
+  if (!el || !sel || sel.type !== "enemy") return;
+  const cur = aggroAt(enemyById(sel.id), time);
+  $("aggroNowLabel").textContent = `${time.toFixed(1)} 秒から ねらう人`;
+  el.innerHTML = `<button type="button" data-aggro="" style="--c:#9a8fb0" aria-pressed="${!cur}">動きの点</button>` + ROLES.map((ro) =>
+    `<button type="button" data-aggro="${ro.id}" style="--c:${ro.c}" aria-pressed="${cur === ro.id}">${ro.id}</button>`).join("");
+}
+function markKeyRow() {
+  document.querySelectorAll("#keyList li").forEach((li) => {
+    const k = doc.players[sel.id][Number(li.dataset.i)];
+    li.classList.toggle("on", !!k && Math.abs(k.t - time) < 0.05);
+  });
+}
+$("detail").addEventListener("input", (e) => {
+  if (!sel || sel.type === "player") return;
+  const m = sel.type === "enemy" ? enemyById(sel.id) : sel.type === "line" ? lineById(sel.id) : mechById(sel.id);
+  const el = e.target;
+  if (el.dataset.text) m[el.dataset.text] = el.value;
+  else if (el.dataset.kangle) {
+    const v = parseFloat(el.value);
+    if (!Number.isFinite(v)) return;
+    m.keys[Number(el.dataset.kangle)].a = clamp(v, -360, 360);
+  } else if (el.dataset.num === "vanish" && el.value.trim() === "") m.vanish = null;
+  else if (el.dataset.num) {
+    const v = parseFloat(el.value);
+    if (!Number.isFinite(v)) return;
+    m[el.dataset.num] = Number(el.min) <= v && v <= Number(el.max) ? v : clamp(v, Number(el.min), Number(el.max));
+  } else return;
+  // セリフ:文字を変えたら長さも決め直す。長さを書いたら、自動はやめる
+  if (sel.type === "line") {
+    if (el.dataset.text === "text" && m.auto) {
+      m.dur = autoDur(m.text);
+      $("detail").querySelector('[data-num="dur"]').value = m.dur;
+    }
+    if (el.dataset.num === "dur") {
+      m.auto = false;
+      $("lineAuto").setAttribute("aria-pressed", "false");
+    }
+  }
+  changed(true);
+});
+$("detail").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b || !sel) return;
+  if (sel.type === "player") {
+    const keys = doc.players[sel.id];
+    if (b.dataset.go) setTime(keys[Number(b.dataset.go)].t);
+    else if (b.dataset.del) { keys.splice(Number(b.dataset.del), 1); changed(); }
+    else if (b.id === "keyHere") { const p = basePos(sel.id, time); setKey(sel.id, time, p.x, p.y); changed(); }
+    else if (b.id === "keyClear") { doc.players[sel.id] = []; changed(); }
+    return;
+  }
+  if (sel.type === "line") {
+    const l = lineById(sel.id);
+    if (b.dataset.who !== undefined) l.who = b.dataset.who ? Number(b.dataset.who) : null;
+    else if (b.id === "lineAuto") { l.auto = !l.auto; if (l.auto) l.dur = autoDur(l.text); }
+    else if (b.id === "lineDelete") { deleteLine(l.id); return; }
+    else return;
+    changed();
+    return;
+  }
+  if (sel.type === "enemy") {
+    const en = enemyById(sel.id);
+    if (b.dataset.etype) en.type = b.dataset.etype;
+    else if (b.dataset.aggro !== undefined) setAggro(en, time, b.dataset.aggro || null);
+    else if (b.dataset.ago) { setTime(en.aggro[Number(b.dataset.ago)].t); return; }
+    else if (b.dataset.adel) en.aggro.splice(Number(b.dataset.adel), 1);
+    else if (b.dataset.ego) { setTime(en.keys[Number(b.dataset.ego)].t); return; }
+    else if (b.dataset.edel) en.keys.splice(Number(b.dataset.edel), 1);
+    else if (b.id === "ekeyHere") { const p = enemyPos(en, time); setEnemyKey(en, time, p.x, p.y, Math.round(p.a)); }
+    else if (b.id === "enemyDelete") { deleteEnemy(en.id); return; }
+    else return;
+    changed();
+    return;
+  }
+  const m = mechById(sel.id);
+  if (b.dataset.at) m.at = b.dataset.at;
+  else if (b.dataset.src) m.src = Number(b.dataset.src);
+  else if (b.dataset.role) {
+    const id = b.dataset.role;
+    m.roles = m.roles.includes(id) ? m.roles.filter((r) => r !== id) : ROLE_IDS.filter((r) => r === id || m.roles.includes(r));
+  } else if (b.id === "mechDelete") { deleteMech(m.id); return; }
+  else return;
+  changed();
+});
+
+// ---------- 右:フィールド・結果 ----------
+function renderField() {
+  $("arenaShape").innerHTML = [["circle", "⚪ 丸"], ["square", "⬜ 四角"]].map(([v, l]) =>
+    `<button type="button" class="btn btn--small" data-shape="${v}" aria-pressed="${doc.shape === v}">${l}</button>`).join("");
+  $("arenaSize").value = doc.size;
+  $("duration").value = doc.dur;
+  $("marksToggle").setAttribute("aria-pressed", String(doc.marksOn));
+  renderMarkInputs();
+}
+$("arenaShape").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-shape]");
+  if (!b) return;
+  doc.shape = b.dataset.shape;
+  renderField();
+  changed();
+});
+$("arenaSize").addEventListener("change", (e) => {
+  const v = parseFloat(e.target.value);
+  if (Number.isFinite(v)) doc.size = clamp(v, 5, 60);
+  renderField();
+  changed();
+});
+$("duration").addEventListener("change", (e) => {
+  const v = parseFloat(e.target.value);
+  if (Number.isFinite(v)) doc.dur = clamp(Math.round(v), 10, 900);
+  renderField();
+  changed();
+  setTime(time);
+});
+$("marksToggle").addEventListener("click", () => {
+  doc.marksOn = !doc.marksOn;
+  renderField();
+  changed();
+});
+$("marksReset").addEventListener("click", () => {
+  doc.marks = defaultMarks(doc.size);
+  renderField();
+  changed();
+});
+
+// マーカーの小さいプレビュー(ドラッグで動かす)と数字の欄。戦闘中は動かないので、真ん中のフィールドでは動かさない
+const markCanvas = $("markCanvas");
+const markCtx = markCanvas.getContext("2d");
+let markView = { cx: 0, cy: 0, sc: 1 };
+let markDrag = null;
+function drawMarkMap() {
+  const r = markCanvas.getBoundingClientRect();
+  if (!r.width) return; // 狭い画面で、ほかのタブを開いているとき
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
+  if (markCanvas.width !== w || markCanvas.height !== h) { markCanvas.width = w; markCanvas.height = h; }
+  markView = drawArena(markCanvas, markCtx);
+  const px = 1 / markView.sc;
+  doc.enemies.filter((e) => enemyShown(e, 0)).forEach((e) => drawEnemy(markCtx, e, { x: e.x, y: e.y, a: e.a }, px, false));
+  MARKS.forEach((mk) => drawMark(markCtx, mk, doc.marks[mk.id], px));
+}
+function renderMarkInputs() {
+  const input = (mk, axis, name) => `<input type="number" data-mark="${mk.id}" data-axis="${axis}" min="-60" max="60" step="0.5" value="${doc.marks[mk.id][axis]}" aria-label="${mk.id} の${name}">`;
+  $("markInputs").innerHTML = "<span></span><span>東西(m)</span><span>南北(m)</span>" + MARKS.map((mk) =>
+    `<span class="role" style="--c:${mk.c}">${mk.id}</span>${input(mk, "x", "東西")}${input(mk, "y", "南北")}`).join("");
+}
+$("markInputs").addEventListener("input", (e) => {
+  const el = e.target.closest("[data-mark]");
+  if (!el) return;
+  const v = parseFloat(el.value);
+  if (!Number.isFinite(v)) return;
+  doc.marks[el.dataset.mark][el.dataset.axis] = round1(clamp(v, -60, 60));
+  changed(true);
+});
+function markAt(e) {
+  const r = markCanvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left - markView.cx) / markView.sc, y: (e.clientY - r.top - markView.cy) / markView.sc };
+}
+markCanvas.addEventListener("pointerdown", (e) => {
+  const w = markAt(e);
+  const mk = [...MARKS].reverse().find((k) => Math.hypot(doc.marks[k.id].x - w.x, doc.marks[k.id].y - w.y) <= 16 / markView.sc);
+  if (!mk) return;
+  markDrag = mk.id;
+  markCanvas.setPointerCapture(e.pointerId);
+});
+markCanvas.addEventListener("pointermove", (e) => {
+  if (!markDrag) return;
+  const w = markAt(e);
+  const p = { x: round1(clamp(w.x, -60, 60)), y: round1(clamp(w.y, -60, 60)) };
+  doc.marks[markDrag] = p;
+  document.querySelectorAll(`#markInputs [data-mark="${markDrag}"]`).forEach((el) => { el.value = p[el.dataset.axis]; });
+  draw();
+  drawMarkMap();
+});
+const endMarkDrag = () => {
+  if (!markDrag) return;
+  markDrag = null;
+  changed(true);
+};
+markCanvas.addEventListener("pointerup", endMarkDrag);
+markCanvas.addEventListener("pointercancel", endMarkDrag);
+$("clearAll").addEventListener("click", () => {
+  if (!confirm("ギミックと動きを、ぜんぶ消しますか?")) return;
+  doc = blank();
+  sel = null;
+  renderField();
+  changed();
+  setTime(0);
+});
+function renderResults() {
+  const ng = results().filter((r) => !r.ok);
+  $("results").innerHTML = !doc.mechs.length ? "" : ng.length
+    ? ng.map((r) => `<li data-mech="${r.m.id}"><b>${r.m.t.toFixed(1)}</b> ${esc(r.text)}</li>`).join("")
+    : '<li class="ok">ぜんぶ成功 ✓</li>';
+}
+$("results").addEventListener("click", (e) => {
+  const li = e.target.closest("[data-mech]");
+  if (!li) return;
+  const m = mechById(Number(li.dataset.mech));
+  sel = { type: "mech", id: m.id };
+  renderLists(); renderDetail(); renderTimeline();
+  setTime(m.t);
+});
+
+// ---------- 再生のボタン・キー ----------
+$("play").addEventListener("click", () => (playing ? stop() : play()));
+$("toStart").addEventListener("click", () => { stop(); setTime(0); });
+function renderSpeeds() {
+  $("speeds").innerHTML = SPEEDS.map((s) =>
+    `<button type="button" class="btn btn--small" data-speed="${s}" aria-pressed="${s === speed}">×${s}</button>`).join("");
+}
+$("speeds").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-speed]");
+  if (!b) return;
+  speed = Number(b.dataset.speed);
+  renderSpeeds();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest("input, textarea, select")) return;
+  if (e.key === " ") {
+    e.preventDefault();
+    if (playing) stop(); else play();
+  } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    e.preventDefault();
+    stop();
+    setTime(round1(time + (e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 1 : 0.1)));
+  } else if (e.key === "Delete" || e.key === "Backspace") {
+    if (!sel) return;
+    if (sel.type === "mech") deleteMech(sel.id);
+    else if (sel.type === "line") deleteLine(sel.id);
+    else if (sel.type === "enemy") {
+      // 敵は、今の時間の動きの点を消す(敵ごと消すのは詳細のボタン)
+      const en = enemyById(sel.id);
+      const i = en.keys.findIndex((k) => Math.abs(k.t - time) < 0.05);
+      if (i >= 0) { en.keys.splice(i, 1); changed(); }
+    } else {
+      const keys = doc.players[sel.id];
+      const i = keys.findIndex((k) => Math.abs(k.t - time) < 0.05);
+      if (i >= 0) { keys.splice(i, 1); changed(); }
+    }
+  }
+});
+
+new ResizeObserver(() => { resizeCanvas(); renderTimeline(); }).observe($("board"));
+new ResizeObserver(() => renderTimeline()).observe($("tlScroll"));
+new ResizeObserver(() => drawMarkMap()).observe(markCanvas);
+renderSpeeds();
+renderField();
+changed();
+setTime(0);
+</script>
+</body>
+</html>

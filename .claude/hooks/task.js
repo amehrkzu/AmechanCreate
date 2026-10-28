@@ -44,6 +44,7 @@ const DOC_MAP = [
   [/^dot-maker\.html$/, "docs/dotMaker.md"],
   [/^dot-convert\.html$/, "docs/dotConvert.md"],
   [/^layout-maker\.html$/, "docs/layoutMaker.md"],
+  [/^raid-sim\.html$/, "docs/raidSim.md"],
   [/^download\//, "docs/Download.md"],
   [/^backlog\.html$/, "docs/BacklogView.md"],
   [/^(index|test|tshirt-designer)\.html$/, "docs/Base.md"]

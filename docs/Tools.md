@@ -1,6 +1,6 @@
 # ツール系(基盤)— このサイトのツールに共通
 
-最終更新:2026-10-27
+最終更新:2026-10-28
 
 ## ツール一覧
 | ツール | ファイル | 詳しい md |
@@ -11,10 +11,11 @@
 | ドット絵メーカー | `dot-maker.html` | [dotMaker.md](dotMaker.md) |
 | ドット変換 | `dot-convert.html` | [dotConvert.md](dotConvert.md) |
 | レイアウトメーカー | `layout-maker.html` | [layoutMaker.md](layoutMaker.md) |
+| なんちゃってレイドシュミレーター | `raid-sim.html` | [raidSim.md](raidSim.md) |
 | アプリダウンロード | `download/` | [Download.md](Download.md) |
 
 ## 共通の決まり
-- テーマは「みかん」(オレンジ。アクセント #ff8a3d、枠線 #a8714a、背景 #fff6ee)。キャラカ本体はタブごとに色が変わる([CharacterCard.md](CharacterCard.md))
+- テーマは「みかん」(オレンジ。アクセント #ff8a3d、枠線 #a8714a、背景 #fff6ee)。キャラカ本体はタブごとに色が変わる([CharacterCard.md](CharacterCard.md))。なんちゃってレイドシュミレーターは「ぶどう」(ユーザーの希望)
 - 作りかけのデータは、そのタブを開いている間だけ(sessionStorage)。ずっと覚えておくのは、本当に必要なものだけ(例:キャラカのロードストーン ID、オリジナル枠・シンボル、パーツメーカーの保存した形)
 - スクロールバーは共通の見た目(`ui/scrollbar.css`。[Base.md](Base.md))。ツールはみかんなので、画面全体はオレンジ
 

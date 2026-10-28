@@ -19,6 +19,7 @@
   - ドット絵メーカー(dot-maker.html):[docs/dotMaker.md](docs/dotMaker.md)
   - ドット変換(dot-convert.html):[docs/dotConvert.md](docs/dotConvert.md)
   - レイアウトメーカー(layout-maker.html):[docs/layoutMaker.md](docs/layoutMaker.md)
+  - なんちゃってレイドシュミレーター(raid-sim.html):[docs/raidSim.md](docs/raidSim.md)
   - アプリダウンロード(download/):[docs/Download.md](docs/Download.md)
 - その他
   - バックログの見える化(backlog.html):[docs/BacklogView.md](docs/BacklogView.md)
