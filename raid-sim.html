@@ -27,18 +27,9 @@ body { font-size: 14px; }
 .sub { margin: 10px 0 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
 .btn[aria-pressed="true"] { background: var(--lilac); }
 
-/* 左:追加・階層 */
+/* 左:追加 */
 .add-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .add-list .btn { justify-content: flex-start; }
-.layer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.layer-list li {
-  display: flex; align-items: center; gap: 6px; padding: 3px 8px;
-  border: 2px solid var(--line); border-radius: 10px; background: #fff; cursor: pointer; font-size: 13px;
-}
-.layer-list .t { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); min-width: 3.4em; text-align: right; }
-.layer-list .ng { color: var(--danger); font-weight: 700; }
-.layer-list .line-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.layer-list .cnt { margin-left: auto; font-size: 12px; color: var(--muted); }
 .role {
   display: inline-grid; place-items: center; min-width: 30px; height: 20px; padding: 0 4px;
   border-radius: 6px; background: var(--c); color: #fff; font-size: 11px; font-weight: 700;
@@ -46,12 +37,18 @@ body { font-size: 14px; }
 
 /* 真ん中:フィールドとタイムライン */
 .stage { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+/* 元に戻す・やり直す:フィールドの枠の外の右上(枠と同じ幅の行に、右寄せ) */
+.board, .undo-bar {
+  width: min(100%, max(260px, calc(100vh - 370px)));
+  width: min(100%, max(260px, calc(100dvh - 370px)));
+  margin: 0 auto;
+}
+.undo-bar { display: flex; justify-content: flex-end; gap: 4px; margin-bottom: -4px; }
+.undo-bar .btn { min-width: 32px; justify-content: center; font-size: 16px; }
+.undo-bar .btn:disabled { opacity: .45; cursor: default; }
 .board {
   position: relative;
   aspect-ratio: 1;
-  width: min(100%, max(260px, calc(100vh - 330px)));
-  width: min(100%, max(260px, calc(100dvh - 330px)));
-  margin: 0 auto;
   background: #fff;
   border: var(--border) solid var(--ink);
   border-radius: 12px;
@@ -78,12 +75,24 @@ body { font-size: 14px; }
 
 .tl-box { padding: 10px; }
 .tl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
-.tl-bar output { font-family: ui-monospace, monospace; font-weight: 700; min-width: 8.5em; }
+.player { display: flex; gap: 4px; }
+.player .btn { min-width: 34px; justify-content: center; font-family: "Segoe UI Symbol", ui-sans-serif, sans-serif; }
+.enemy-img { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.enemy-img img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line); }
+.tl-clock { font-family: ui-monospace, monospace; font-weight: 700; min-width: 11em; }
+.tl-clock output { display: inline-block; min-width: 3.2em; text-align: right; }
+.dur-btn { font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px dashed var(--muted); padding: 0 1px; cursor: pointer; }
+.dur-btn:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.tl-clock input { width: 5em; font: inherit; padding: 0 4px; }
 .tl { display: flex; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
 .tl-labels { flex-shrink: 0; width: 52px; border-right: 2px solid var(--line); background: var(--tint); }
 .tl-labels div { display: flex; align-items: center; padding: 0 4px; font-size: 11px; font-weight: 700; color: var(--muted); overflow: hidden; white-space: nowrap; }
 .tl-labels div.on { color: var(--accent); }
 .tl-scroll { flex: 1; min-width: 0; overflow-x: auto; }
+.tl-part { position: relative; }
+.tl-part + .tl-part { margin-top: 8px; }
+/* 最小化ボタン:タイムラインの右上(秒の目もりの行の右はし)に重ねる */
+.tl-fold { position: absolute; top: 3px; right: 4px; z-index: 1; min-width: 22px; height: 18px; padding: 0; justify-content: center; font-size: 12px; line-height: 1; }
 .tl-inner { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
 .tl-row { position: absolute; left: 0; right: 0; border-bottom: 1px solid var(--line); }
 .tl-row.on { background: var(--tint); }
@@ -93,16 +102,20 @@ body { font-size: 14px; }
   font-size: 11px; font-weight: 700; line-height: 14px; padding: 0 4px; white-space: nowrap; overflow: hidden; color: var(--text);
 }
 .tl-mech::after { content: ""; position: absolute; right: -1px; top: -1px; bottom: -1px; width: 3px; background: #e08a4a; }
-.tl-mech.ng { border-color: var(--danger); background: var(--danger-bg); }
 .tl-mech.on { box-shadow: 0 0 0 2px var(--accent); }
+.tl-edge { position: absolute; top: -2px; bottom: -2px; width: 7px; z-index: 1; cursor: ew-resize; }
+.tl-edge[data-edge="l"] { left: -2px; }
+.tl-edge[data-edge="r"] { right: -2px; }
 .tl-line { border-color: #7a9ad8; background: #e3ecff; }
 .tl-line::after { display: none; }
 .tl-key { position: absolute; width: 10px; height: 10px; margin: 3px 0 0 -5px; border-radius: 50%; background: var(--c); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--c); }
-.tl-span { position: absolute; height: 4px; border-radius: 2px; background: var(--c); opacity: .35; pointer-events: none; }
+.tl-span { position: absolute; height: 14px; }
+.tl-span::before { content: ""; position: absolute; left: 0; right: 0; top: 5px; height: 4px; border-radius: 2px; background: var(--c); opacity: .35; }
+.tl-span.on::before { opacity: .7; }
 .tl-aggro { position: absolute; width: 10px; height: 10px; margin: 3px 0 0 -5px; background: var(--c); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--c); transform: rotate(45deg) scale(.85); }
 .tl-head { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--accent); pointer-events: none; }
 
-/* 右:詳細・フィールド・結果 */
+/* 右:詳細・フィールド */
 .panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .panel .field + .field, .panel .field + .actions, .panel .row2 + .field, .panel .field + .row2 { margin-top: 10px; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -117,9 +130,6 @@ body { font-size: 14px; }
 .key-list .btn { flex: 1; justify-content: flex-start; font-family: ui-monospace, monospace; }
 .key-list .btn:last-child { flex: none; }
 .key-list li.on .btn { background: var(--lilac); }
-.result-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-.result-list li { padding: 3px 8px; border-radius: 8px; background: var(--danger-bg); cursor: pointer; }
-.result-list li.ok { background: var(--tint); cursor: default; }
 .panel .actions { margin-top: 12px; }
 /* フィールドのマーカー:小さいプレビュー(ドラッグで動かす)と数字の欄 */
 .mark-map { margin-top: 8px; aspect-ratio: 1; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; }
@@ -130,7 +140,7 @@ body { font-size: 14px; }
 .mark-grid .role { min-width: 22px; }
 
 @media (max-width: 999.98px) {
-  .board { width: min(100%, max(260px, calc(100dvh - 300px))); }
+  .board, .undo-bar { width: min(100%, max(260px, calc(100dvh - 340px))); }
   .panel input, .panel select, .mark-grid input { font-size: 16px; }
 }
 </style>
@@ -139,11 +149,12 @@ body { font-size: 14px; }
 <body class="bg-dots">
 <header class="topbar top" data-site-bar>
   <h1>なんちゃってレイドシュミレーター</h1>
+  <button type="button" class="btn btn--small" id="videoBtn" title="0 秒から最後までを ×1 で録って保存する">🎬 動画で保存</button>
 </header>
 
 <main class="app">
-  <!-- 左の列:上に「追加」(ギミックを足す)、下に「階層」(メンバーとギミックの一覧) -->
-  <aside class="layer-drawer" id="layerDrawer" aria-label="追加と階層">
+  <!-- 左の列:「追加」だけ(このツールは階層を置かない。選ぶのはフィールド・タイムラインから) -->
+  <aside class="layer-drawer" id="layerDrawer" aria-label="オブジェクト追加">
     <section class="box">
       <h2>追加</h2>
       <p class="sub">敵</p>
@@ -152,20 +163,16 @@ body { font-size: 14px; }
       <div class="add-list" id="addList" role="group" aria-label="ギミックを足す"></div>
       <p class="sub">そのほか</p>
       <div class="add-list"><button type="button" class="btn btn--small" id="lineAdd">💬 セリフ</button></div>
-      <h2 class="next">階層</h2>
-      <p class="sub">メンバー</p>
-      <ul class="layer-list" id="memberList"></ul>
-      <p class="sub">敵</p>
-      <ul class="layer-list" id="enemyList"></ul>
-      <p class="sub">ギミック</p>
-      <ul class="layer-list" id="mechList"></ul>
-      <p class="sub">セリフ</p>
-      <ul class="layer-list" id="lineList"></ul>
     </section>
-    <button type="button" class="layer-handle" id="layerHandle" aria-controls="layerDrawer" aria-expanded="false">☂ レイヤー</button>
+    <button type="button" class="layer-handle" id="layerHandle" aria-controls="layerDrawer" aria-expanded="false">☂ オブジェクト追加</button>
   </aside>
 
   <section class="stage">
+    <!-- 元に戻す・やり直す(フィールドの枠の外の右上) -->
+    <div class="undo-bar" role="group" aria-label="元に戻す">
+      <button type="button" class="btn btn--small" id="undoBtn" title="元に戻す(Ctrl+Z)" disabled>↶</button>
+      <button type="button" class="btn btn--small" id="redoBtn" title="やり直す(Ctrl+Y・Ctrl+Shift+Z)" disabled>↷</button>
+    </div>
     <div class="board" id="board">
       <canvas id="canvas"></canvas>
       <div class="castbar" id="castbar" hidden><span id="castName"></span><i><b id="castFill"></b></i></div>
@@ -173,21 +180,39 @@ body { font-size: 14px; }
     </div>
     <section class="box tl-box">
       <div class="tl-bar">
-        <button type="button" class="btn btn--small btn--primary" id="play">▶ 再生</button>
-        <button type="button" class="btn btn--small" id="toStart" title="はじめに戻る">⏮</button>
-        <output id="timeOut"></output>
+        <div class="player" role="group" aria-label="再生">
+          <button type="button" class="btn btn--small" id="toStart" title="はじめに戻る">⏮&#xFE0E;</button>
+          <button type="button" class="btn btn--small" id="back" title="5 秒戻る">⏪&#xFE0E;</button>
+          <button type="button" class="btn btn--small btn--primary" id="play" title="再生">▶&#xFE0E;</button>
+          <button type="button" class="btn btn--small" id="fwd" title="5 秒進む">⏩&#xFE0E;</button>
+          <button type="button" class="btn btn--small" id="toEnd" title="最後にとぶ">⏭&#xFE0E;</button>
+        </div>
+        <!-- 長さの数字を押すと、その場で入力できる -->
+        <span class="tl-clock"><output id="timeOut"></output> / <button type="button" class="dur-btn" id="durBtn" title="押すと長さ(秒)を変えられる"></button><input id="duration" type="number" min="10" max="900" step="1" aria-label="長さ(秒)" hidden> 秒</span>
         <span class="grow"></span>
         <div class="seg" id="speeds" role="group" aria-label="速さ"></div>
       </div>
-      <div class="tl">
-        <div class="tl-labels" id="tlLabels"></div>
-        <div class="tl-scroll" id="tlScroll"><div class="tl-inner" id="tlInner"></div></div>
+      <!-- 上:ギミック・セリフ・敵 / 下:PT(MT〜D4)。時間・横スクロールは2つでそろえる -->
+      <!-- 最小化ボタンはタイムラインの右上。たたむと、秒の目もりの行だけになる(左の欄に名前 data-name) -->
+      <div class="tl-part open" id="tlPartA" data-name="ギミック">
+        <button type="button" class="btn btn--small tl-fold" aria-expanded="true"></button>
+        <div class="tl">
+          <div class="tl-labels" id="tlLabelsA"></div>
+          <div class="tl-scroll" id="tlScrollA"><div class="tl-inner" id="tlInnerA"></div></div>
+        </div>
+      </div>
+      <div class="tl-part open" id="tlPartB" data-name="PT">
+        <button type="button" class="btn btn--small tl-fold" aria-expanded="true"></button>
+        <div class="tl">
+          <div class="tl-labels" id="tlLabelsB"></div>
+          <div class="tl-scroll" id="tlScrollB"><div class="tl-inner" id="tlInnerB"></div></div>
+        </div>
       </div>
     </section>
   </section>
 
   <aside class="right-drawer" id="rightDrawer" aria-label="詳細">
-  <div class="right-tabs" role="tablist" aria-label="詳細の切り替え"><button type="button" role="tab" data-tab="detail" style="--c:#dccbff">詳細</button><button type="button" role="tab" data-tab="field" style="--c:#bdeccd">フィールド</button><button type="button" role="tab" data-tab="result" style="--c:#ffc6dc">結果</button></div>
+  <div class="right-tabs" role="tablist" aria-label="詳細の切り替え"><button type="button" role="tab" data-tab="detail" style="--c:#dccbff">詳細</button><button type="button" role="tab" data-tab="field" style="--c:#bdeccd">フィールド</button></div>
   <div class="panel">
     <section class="box" data-panel="detail">
       <h2>詳細</h2>
@@ -200,7 +225,6 @@ body { font-size: 14px; }
       <div class="seg" id="arenaShape"></div>
       <div class="row2" style="margin-top:10px">
         <label class="field"><span>大きさ(半径 m)</span><input id="arenaSize" type="number" min="5" max="60" step="1"></label>
-        <label class="field"><span>長さ(秒)</span><input id="duration" type="number" min="10" max="900" step="1"></label>
       </div>
       <p class="sub">マーカー</p>
       <div class="seg">
@@ -212,11 +236,6 @@ body { font-size: 14px; }
       <div class="actions">
         <button type="button" class="btn btn--small btn--danger" id="clearAll">ぜんぶ消す</button>
       </div>
-    </section>
-
-    <section class="box" data-panel="result">
-      <h2>結果</h2>
-      <ul class="result-list" id="results"></ul>
     </section>
   </div>
   <button type="button" class="right-handle" id="rightHandle" aria-controls="rightDrawer" aria-expanded="false">✿ 詳細</button>
@@ -292,9 +311,10 @@ function blank() {
   };
 }
 // 敵:x, y, a = 出てくる場所と向き。keys = 動きの点 { t, x, y, a }。aggro = ねらう人の切りかえ { t, role }(role が null なら動きの点で動く)
+// img = アイコンの画像(縮めた data URL。null なら色の丸に名前)
 function newEnemy(id, type, appear) {
   return {
-    id, type, name: ENEMY_TYPES[type].name, appear, vanish: null,
+    id, type, name: ENEMY_TYPES[type].name, appear, vanish: null, img: null,
     x: 0, y: type === "boss" ? 0 : -10, a: 0, speed: 6, reach: 3, keys: [], aggro: []
   };
 }
@@ -302,8 +322,8 @@ function newEnemy(id, type, appear) {
 let doc = load();
 let time = 0, playing = false, speed = 1, lastTs = 0;
 let sel = null; // { type: "player" | "mech", id }
-let cache = null; // 位置のずれ(ノックバック)・敵の動き・結果。doc が変わったら消す
-const getCache = () => cache || (cache = { pushes: null, tracks: null, results: null });
+let cache = null; // 位置のずれ(ノックバック)・敵の動き。doc が変わったら消す
+const getCache = () => cache || (cache = { pushes: null, tracks: null });
 
 function load() {
   const base = blank();
@@ -323,12 +343,53 @@ function save() {
 function changed(keepDetail = false) {
   cache = null;
   save();
-  renderLists();
+  clearTimeout(hist.timer);
+  hist.timer = setTimeout(remember, 400);
   if (!keepDetail) renderDetail();
-  renderResults();
   renderTimeline();
   draw();
   drawMarkMap();
+}
+
+// ---------- 元に戻す・やり直す ----------
+// changed() のあと少し待って、doc の形(JSON)を覚える。ドラッグ1回・続けての入力が、ひとまとまりになる
+// last = 今の形。undo / redo = 前・あとの形(UNDO_MAX 回まで。読み込み直すと消える)
+const UNDO_MAX = 15;
+const hist = { undo: [], redo: [], last: JSON.stringify(doc), timer: 0 };
+function remember() {
+  clearTimeout(hist.timer);
+  const now = JSON.stringify(doc);
+  if (now === hist.last) return;
+  hist.undo.push(hist.last);
+  if (hist.undo.length > UNDO_MAX) hist.undo.shift();
+  hist.redo = [];
+  hist.last = now;
+  renderUndo();
+}
+// from から1つ取り出して doc にする(今の形は to へ)
+function restore(from, to) {
+  remember();
+  if (!from.length) return;
+  to.push(hist.last);
+  hist.last = from.pop();
+  doc = JSON.parse(hist.last);
+  if (sel && !selExists()) sel = null;
+  renderField();
+  changed();
+  setTime(Math.min(time, doc.dur));
+  renderUndo();
+}
+const undo = () => restore(hist.undo, hist.redo);
+const redo = () => restore(hist.redo, hist.undo);
+function selExists() {
+  if (sel.type === "mech") return !!mechById(sel.id);
+  if (sel.type === "line") return !!lineById(sel.id);
+  if (sel.type === "enemy") return !!enemyById(sel.id);
+  return true;
+}
+function renderUndo() {
+  $("undoBtn").disabled = !hist.undo.length;
+  $("redoBtn").disabled = !hist.redo.length;
 }
 const mechById = (id) => doc.mechs.find((m) => m.id === id);
 
@@ -469,7 +530,6 @@ function allPushes() {
   return all;
 }
 const pos = (id, t) => posWith(id, t, allPushes()[id]);
-const inArena = (p) => doc.shape === "circle" ? Math.hypot(p.x, p.y) <= doc.size : Math.max(Math.abs(p.x), Math.abs(p.y)) <= doc.size;
 
 // 動きの点を置く(同じ時間の点があれば動かす)
 function setKey(id, t, x, y) {
@@ -512,35 +572,6 @@ function inside(m, s, p) {
     default: return d <= m.r;
   }
 }
-// 発動の瞬間の当たりを調べる → { m, ok, hit(当たった人), text }
-function evaluate(m) {
-  const ps = ROLE_IDS.map((id) => ({ id, ...pos(id, m.t) }));
-  const ins = instances(m, m.t);
-  const name = m.name || KINDS[m.kind].name;
-  if (m.kind === "knock") {
-    const out = ROLE_IDS.filter((id) => !inArena(pos(id, m.t + KB_TIME)));
-    return { m, ok: !out.length, hit: out, text: out.length ? `${name}:${out.join("・")} が場外` : "" };
-  }
-  if (m.kind === "tower" || m.kind === "stack") {
-    const counts = ins.map((s) => ps.filter((p) => inside(m, s, p)).map((p) => p.id));
-    const short = counts.map((c) => c.length).filter((n) => n < m.need);
-    // 頭割りが2つ重なった人は、2回当たる
-    const dbl = m.kind === "stack" ? ROLE_IDS.filter((id) => counts.filter((c) => c.includes(id)).length > 1) : [];
-    const msg = [];
-    if (short.length) msg.push(`${name}:人数が足りない(${counts.map((c) => c.length).join("・")}/${m.need})`);
-    if (dbl.length) msg.push(`${name}:${dbl.join("・")} が重なって当たる`);
-    return { m, ok: !msg.length, hit: dbl, short: counts.map((c) => c.length < m.need), text: msg.join(" / ") };
-  }
-  // 散開は、自分の円には当たらない(ほかの人の円に入ったら当たる)
-  const hit = ps.filter((p) => ins.some((s) => !(m.kind === "spread" && s.owner === p.id) && inside(m, s, p))).map((p) => p.id);
-  return { m, ok: !hit.length, hit, text: hit.length ? `${name}:${hit.join("・")} に当たる` : "" };
-}
-function results() {
-  getCache();
-  if (!cache.results) cache.results = [...doc.mechs].sort(byT).map(evaluate);
-  return cache.results;
-}
-const resultOf = (m) => results().find((r) => r.m === m);
 
 // ---------- ギミックを足す・消す ----------
 function addMech(kind) {
@@ -617,7 +648,8 @@ function setAggro(e, t, role) {
 // ---------- 再生 ----------
 function setTime(t) {
   time = clamp(t, 0, doc.dur);
-  $("timeOut").textContent = `${time.toFixed(1)} / ${doc.dur.toFixed(1)} 秒`;
+  $("timeOut").textContent = time.toFixed(1);
+  $("durBtn").textContent = doc.dur.toFixed(1);
   moveHead();
   if (sel && sel.type === "player") markKeyRow();
   renderAggroNow();
@@ -626,13 +658,15 @@ function setTime(t) {
 function play() {
   if (time >= doc.dur) setTime(0);
   playing = true;
-  $("play").textContent = "⏸ 止める";
+  $("play").textContent = "⏸︎";
+  $("play").title = "止める";
   lastTs = performance.now();
   requestAnimationFrame(tick);
 }
 function stop() {
   playing = false;
-  $("play").textContent = "▶ 再生";
+  $("play").textContent = "▶︎";
+  $("play").title = "再生";
 }
 function tick(ts) {
   if (!playing) return;
@@ -642,6 +676,131 @@ function tick(ts) {
   if (time >= doc.dur) stop();
   else requestAnimationFrame(tick);
 }
+
+// ---------- 動画で保存 ----------
+// フィールドの絵に、詠唱のバーとセリフの帯(画面の上の見た目のまま)を描き足して、0 秒から最後まで ×1 で録る
+const VIDEO_TYPES = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"];
+const VIDEO_FPS = 30;
+let rec = null; // 録画中 { cancel }
+// 文字を幅で折り返す(1文字ずつはかる)
+function wrapText(g, text, w) {
+  const out = [];
+  for (const para of text.split("\n")) {
+    let line = "";
+    for (const ch of para) {
+      if (line && g.measureText(line + ch).width > w) { out.push(line); line = ch; }
+      else line += ch;
+    }
+    out.push(line);
+  }
+  return out;
+}
+// 画面の上の箱(el)を、board からの位置のまま描く。k = 画面の 1px は動画の何 px か
+function drawOverlays(g, k) {
+  const b = $("board").getBoundingClientRect();
+  const rect = (el) => {
+    const e = el.getBoundingClientRect();
+    return { x: (e.left - b.left) * k, y: (e.top - b.top) * k, w: e.width * k, h: e.height * k };
+  };
+  const box = (el, r) => {
+    const s = getComputedStyle(el);
+    const p = rect(el);
+    g.beginPath();
+    g.roundRect(p.x, p.y, p.w, p.h, r * k);
+    g.fillStyle = s.backgroundColor;
+    g.fill();
+    if (parseFloat(s.borderTopWidth)) {
+      g.lineWidth = parseFloat(s.borderTopWidth) * k;
+      g.strokeStyle = s.borderTopColor;
+      g.stroke();
+    }
+  };
+  const text = (el, align) => {
+    const s = getComputedStyle(el);
+    const p = rect(el);
+    const size = parseFloat(s.fontSize) * k;
+    const lh = (parseFloat(s.lineHeight) || parseFloat(s.fontSize) * 1.5) * k;
+    g.font = `${s.fontWeight} ${size}px ${s.fontFamily}`;
+    g.fillStyle = s.color;
+    g.textAlign = align;
+    g.textBaseline = "middle";
+    wrapText(g, el.textContent, p.w).forEach((ln, i) =>
+      g.fillText(ln, align === "center" ? p.x + p.w / 2 : p.x, p.y + lh * (i + 0.5)));
+  };
+  if (!$("castbar").hidden) {
+    box($("castbar"), 10);
+    text($("castName"), "center");
+    box(document.querySelector("#castbar i"), 3);
+    if ($("castFill").getBoundingClientRect().width) box($("castFill"), 3);
+  }
+  if (!$("talk").hidden) {
+    box($("talk"), 12);
+    text($("talkWho"), "left");
+    text($("talkText"), "left");
+  }
+}
+async function recordVideo() {
+  const type = VIDEO_TYPES.find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t));
+  if (!type) { alert("このブラウザでは動画を作れません"); return; }
+  stop();
+  const keep = { sel, time };
+  sel = null;
+  renderDetail();
+  renderTimeline();
+  const k = canvas.width / canvas.getBoundingClientRect().width;
+  const out = document.createElement("canvas");
+  out.width = canvas.width & ~1; // MP4 は縦横が偶数
+  out.height = canvas.height & ~1;
+  const g = out.getContext("2d");
+  const frame = (t) => {
+    setTime(t);
+    g.fillStyle = getComputedStyle($("board")).backgroundColor; // canvas のすき通った所
+    g.fillRect(0, 0, out.width, out.height);
+    g.drawImage(canvas, 0, 0);
+    drawOverlays(g, k);
+  };
+  const recorder = new MediaRecorder(out.captureStream(VIDEO_FPS), { mimeType: type, videoBitsPerSecond: 6e6 });
+  const chunks = [];
+  recorder.addEventListener("dataavailable", (e) => { if (e.data.size) chunks.push(e.data); });
+  const done = new Promise((r) => recorder.addEventListener("stop", r));
+  // 録っている間は、ほかの操作を止める
+  rec = { cancel: false };
+  document.querySelector("main.app").style.pointerEvents = "none";
+  const btn = $("videoBtn");
+  btn.title = "押すと録画をやめる";
+  frame(0);
+  recorder.start();
+  const t0 = performance.now();
+  const step = (ts) => {
+    if (rec.cancel) { recorder.stop(); return; }
+    const t = Math.min((ts - t0) / 1000, doc.dur);
+    frame(t);
+    btn.textContent = `⏹ 録画中 ${Math.floor(t)} / ${doc.dur} 秒`;
+    if (t >= doc.dur) setTimeout(() => recorder.stop(), 300); // 最後の絵を少し残す
+    else requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+  await done;
+  const canceled = rec.cancel;
+  rec = null;
+  document.querySelector("main.app").style.pointerEvents = "";
+  btn.textContent = "🎬 動画で保存";
+  btn.title = "0 秒から最後までを ×1 で録って保存する";
+  sel = keep.sel;
+  renderDetail();
+  renderTimeline();
+  setTime(keep.time);
+  if (canceled) return;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(chunks, { type: type.split(";")[0] }));
+  a.download = `raid-sim.${type.startsWith("video/mp4") ? "mp4" : "webm"}`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$("videoBtn").addEventListener("click", () => {
+  if (rec) rec.cancel = true;
+  else recordVideo();
+});
 
 // ---------- フィールドを描く ----------
 const canvas = $("canvas");
@@ -710,10 +869,9 @@ function drawArrows(s, dist, a, px) {
 }
 // ギミック1つを描く(phase:"cast" 詠唱中 / "flash" 発動 / "ghost" 選んでいるだけ)
 function drawMech(m, phase, k, px) {
-  const res = resultOf(m);
   const ins = instances(m, Math.min(time, m.t));
-  const base = COLORS[m.kind] || [255, 128, 40];
-  ins.forEach((s, i) => {
+  const c = COLORS[m.kind] || [255, 128, 40];
+  ins.forEach((s) => {
     if (m.kind === "knock") {
       const a = phase === "flash" ? 1 - k : phase === "ghost" ? 0.5 : 0.35 + 0.4 * k;
       if (phase === "ghost") ctx.setLineDash([4 * px, 4 * px]);
@@ -729,8 +887,6 @@ function drawMech(m, phase, k, px) {
       ctx.setLineDash([]);
       return;
     }
-    const fail = m.kind === "tower" && phase === "flash" && res.short && res.short[i];
-    const c = fail ? [224, 86, 122] : base;
     shapePath(m, s);
     if (phase === "ghost") {
       ctx.setLineDash([5 * px, 4 * px]);
@@ -830,11 +986,52 @@ function drawEnemy(g, e, p, px, on) {
   g.fillStyle = ty.c;
   g.fill();
   g.restore();
+  // 画像があれば丸く切り抜いて、名前の代わりに出す(画像は向きで回さない)
+  const im = e.img && enemyImage(e.img);
+  if (im) {
+    g.save();
+    g.beginPath();
+    g.arc(p.x, p.y, r - 1.5 * px, 0, Math.PI * 2);
+    g.clip();
+    g.drawImage(im, p.x - r, p.y - r, r * 2, r * 2);
+    g.restore();
+    return;
+  }
   g.fillStyle = "#fff";
   g.font = `700 ${Math.min(12 * px, r * 0.7)}px sans-serif`;
   g.textAlign = "center";
   g.textBaseline = "middle";
   g.fillText(e.name.slice(0, 3), p.x, p.y);
+}
+// 敵の画像:data URL ごとに読みこんでおく。読めたら描き直す
+const enemyImages = new Map();
+function enemyImage(src) {
+  let im = enemyImages.get(src);
+  if (!im) {
+    im = new Image();
+    im.addEventListener("load", () => { draw(); drawMarkMap(); });
+    im.src = src;
+    enemyImages.set(src, im);
+  }
+  return im.complete && im.naturalWidth ? im : null;
+}
+// 選んだ画像を、まん中の正方形で切り取って ICON_PX に縮める
+const ICON_PX = 128;
+function shrinkImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.addEventListener("load", () => {
+      const s = Math.min(im.naturalWidth, im.naturalHeight);
+      const cv = document.createElement("canvas");
+      cv.width = cv.height = ICON_PX;
+      cv.getContext("2d").drawImage(im, (im.naturalWidth - s) / 2, (im.naturalHeight - s) / 2, s, s, 0, 0, ICON_PX, ICON_PX);
+      URL.revokeObjectURL(url);
+      resolve(cv.toDataURL("image/webp", 0.85));
+    });
+    im.addEventListener("error", () => { URL.revokeObjectURL(url); reject(); });
+    im.src = url;
+  });
 }
 function draw() {
   view = drawArena(canvas, ctx);
@@ -910,20 +1107,10 @@ function draw() {
     }
   }
 
-  // メンバー(当たった人は赤く光る)
-  const hitNow = new Set();
-  for (const r of results()) {
-    if (time >= r.m.t && time < r.m.t + FLASH * 1.5) r.hit.forEach((id) => hitNow.add(id));
-  }
+  // メンバー
   const pr = Math.max(1, 11 * px);
   for (const ro of ROLES) {
     const p = pos(ro.id, time);
-    if (hitNow.has(ro.id)) {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, pr + 5 * px, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(224,86,122,.45)";
-      ctx.fill();
-    }
     ctx.beginPath();
     ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
     ctx.fillStyle = ro.c;
@@ -973,7 +1160,6 @@ canvas.addEventListener("pointerdown", (e) => {
     }
   }
   if (drag) canvas.setPointerCapture(e.pointerId);
-  renderLists();
   renderDetail();
   renderTimeline();
   draw();
@@ -1020,32 +1206,36 @@ function laneOf(items, start, end) {
   }
   return { lanes: Math.max(1, lanes.length), out };
 }
+// 帯の両はし(つかむと長さが変わる)。細い帯では小さくして、真ん中をつかめるように残す
+const edges = (w) => {
+  const s = `width:${Math.min(7, Math.max(2, w / 4))}px`;
+  return `<span class="tl-edge" data-edge="l" style="${s}"></span><span class="tl-edge" data-edge="r" style="${s}"></span>`;
+};
+// 上(ギミック・セリフ・敵)と下(PT)の2つを描く。どちらも秒の目もりと今の時間の線を持つ
 function renderTimeline() {
-  const scroll = $("tlScroll");
-  tlScale = Math.max(8, (scroll.clientWidth - TL.pad * 2) / doc.dur);
+  tlScale = Math.max(8, ($("tlScrollA").clientWidth - TL.pad * 2) / doc.dur);
   const { lanes, out } = laneOf(doc.mechs, (m) => m.t - m.cast, (m) => m.t);
   const lineLanes = laneOf(doc.lines, (l) => l.t, (l) => l.t + l.dur);
   const mechH = lanes * TL.lane + 4;
   const lineH = lineLanes.lanes * TL.lane + 4;
-  const top = { mech: TL.ruler, lines: TL.ruler + mechH, enemies: TL.ruler + mechH + lineH };
-  top.players = top.enemies + doc.enemies.length * TL.row;
-  const H = top.players + ROLES.length * TL.row;
+  const top = { mech: TL.ruler, lines: TL.ruler + mechH, enemies: TL.ruler + mechH + lineH, players: TL.ruler };
   const W = tx(doc.dur) + TL.pad;
-  const results_ = results();
-  let h = "";
   const step = tlScale >= 20 ? 5 : tlScale >= 9 ? 10 : 30;
-  for (let t = 0; t <= doc.dur; t += step) h += `<div class="tl-tick" style="left:${tx(t)}px">${t}</div>`;
-  h += `<div class="tl-row" style="top:${TL.ruler - 1}px;height:1px"></div>`;
+  let ruler = "";
+  for (let t = 0; t <= doc.dur; t += step) ruler += `<div class="tl-tick" style="left:${tx(t)}px">${t}</div>`;
+  ruler += `<div class="tl-row" style="top:${TL.ruler - 1}px;height:1px"></div>`;
+  let h = ruler;
   for (const m of doc.mechs) {
-    const r = results_.find((q) => q.m === m);
     const on = sel && sel.type === "mech" && sel.id === m.id;
     const l = tx(Math.max(0, m.t - m.cast));
-    h += `<div class="tl-mech${r && !r.ok ? " ng" : ""}${on ? " on" : ""}" data-mech="${m.id}" style="left:${l}px;width:${Math.max(8, tx(m.t) - l)}px;top:${top.mech + 2 + out.get(m.id) * TL.lane}px" title="${esc(m.name)}">${esc(m.name)}</div>`;
+    const w = Math.max(8, tx(m.t) - l);
+    h += `<div class="tl-mech${on ? " on" : ""}" data-mech="${m.id}" style="left:${l}px;width:${w}px;top:${top.mech + 2 + out.get(m.id) * TL.lane}px" title="${esc(m.name)}">${esc(m.name)}${edges(w)}</div>`;
   }
   for (const ln of doc.lines) {
     const on = sel && sel.type === "line" && sel.id === ln.id;
     const label = `${lineWho(ln)}「${ln.text}」`;
-    h += `<div class="tl-mech tl-line${on ? " on" : ""}" data-line="${ln.id}" style="left:${tx(ln.t)}px;width:${Math.max(8, tx(ln.t + ln.dur) - tx(ln.t))}px;top:${top.lines + 2 + lineLanes.out.get(ln.id) * TL.lane}px" title="${esc(label)}">${esc(label)}</div>`;
+    const w = Math.max(8, tx(ln.t + ln.dur) - tx(ln.t));
+    h += `<div class="tl-mech tl-line${on ? " on" : ""}" data-line="${ln.id}" style="left:${tx(ln.t)}px;width:${w}px;top:${top.lines + 2 + lineLanes.out.get(ln.id) * TL.lane}px" title="${esc(label)}">${esc(label)}${edges(w)}</div>`;
   }
   // 敵:出ている間の帯・動きの点・ねらう人の切りかえ(◆)
   doc.enemies.forEach((en, i) => {
@@ -1054,7 +1244,8 @@ function renderTimeline() {
     const c = ENEMY_TYPES[en.type].c;
     const l = tx(en.appear);
     h += `<div class="tl-row${on ? " on" : ""}" data-erow="${en.id}" style="top:${y}px;height:${TL.row}px"></div>`;
-    h += `<div class="tl-span" style="left:${l}px;width:${tx(en.vanish == null ? doc.dur : en.vanish) - l}px;top:${y + 6}px;--c:${c}"></div>`;
+    const w = tx(en.vanish == null ? doc.dur : en.vanish) - l;
+    h += `<div class="tl-span${on ? " on" : ""}" data-espan="${en.id}" style="left:${l}px;width:${w}px;top:${y + 1}px;--c:${c}">${edges(w)}</div>`;
     en.keys.forEach((k, j) => {
       h += `<div class="tl-key" data-ekey="${en.id}:${j}" style="left:${tx(k.t)}px;top:${y}px;--c:${c}"></div>`;
     });
@@ -1062,52 +1253,90 @@ function renderTimeline() {
       h += `<div class="tl-aggro" data-eaggro="${en.id}:${j}" style="left:${tx(g.t)}px;top:${y}px;--c:${g.role ? roleColor(g.role) : "#9a8fb0"}" title="${g.t.toFixed(1)} 秒から ${g.role || "動きの点"}"></div>`;
     });
   });
+  h += `<div class="tl-head"></div>`;
+  let hp = ruler;
   ROLES.forEach((ro, i) => {
     const y = top.players + i * TL.row;
     const on = sel && sel.type === "player" && sel.id === ro.id;
-    h += `<div class="tl-row${on ? " on" : ""}" data-row="${ro.id}" style="top:${y}px;height:${TL.row}px"></div>`;
+    hp += `<div class="tl-row${on ? " on" : ""}" data-row="${ro.id}" style="top:${y}px;height:${TL.row}px"></div>`;
     doc.players[ro.id].forEach((k, j) => {
-      h += `<div class="tl-key" data-key="${ro.id}:${j}" style="left:${tx(k.t)}px;top:${y}px;--c:${ro.c}"></div>`;
+      hp += `<div class="tl-key" data-key="${ro.id}:${j}" style="left:${tx(k.t)}px;top:${y}px;--c:${ro.c}"></div>`;
     });
   });
-  h += `<div class="tl-head" id="tlHead"></div>`;
-  const inner = $("tlInner");
-  inner.style.width = `${W}px`;
-  inner.style.height = `${H}px`;
-  inner.innerHTML = h;
+  hp += `<div class="tl-head"></div>`;
+  const put = (id, html, height) => {
+    const inner = $(id);
+    inner.style.width = `${W}px`;
+    inner.style.height = `${height}px`;
+    inner.innerHTML = html;
+  };
   // 左の名前
   let lb = `<div style="height:${TL.ruler}px">秒</div><div style="height:${mechH}px">ギミック</div><div style="height:${lineH}px">セリフ</div>`;
   doc.enemies.forEach((en) => {
     const on = sel && sel.type === "enemy" && sel.id === en.id;
     lb += `<div class="${on ? "on" : ""}" style="height:${TL.row}px" title="${esc(en.name)}">${esc(en.name)}</div>`;
   });
+  let lp = `<div style="height:${TL.ruler}px">秒</div>`;
   ROLES.forEach((ro) => {
     const on = sel && sel.type === "player" && sel.id === ro.id;
-    lb += `<div class="${on ? "on" : ""}" style="height:${TL.row}px">${ro.id}</div>`;
+    lp += `<div class="${on ? "on" : ""}" style="height:${TL.row}px">${ro.id}</div>`;
   });
-  $("tlLabels").innerHTML = lb;
+  // たたんでいるほうは、秒の目もりの行だけ(左の欄は名前)
+  const fill = (k, html, height, labels) => {
+    const part = $(`tlPart${k}`);
+    const open = part.classList.contains("open");
+    put(`tlInner${k}`, open ? html : ruler + `<div class="tl-head"></div>`, open ? height : TL.ruler);
+    $(`tlLabels${k}`).innerHTML = open ? labels : `<div style="height:${TL.ruler}px">${part.dataset.name}</div>`;
+  };
+  fill("A", h, top.enemies + doc.enemies.length * TL.row, lb);
+  fill("B", hp, top.players + ROLES.length * TL.row, lp);
   moveHead();
 }
 function moveHead() {
-  const head = $("tlHead");
-  if (head) head.style.left = `${tx(time)}px`;
+  document.querySelectorAll(".tl-head").forEach((head) => { head.style.left = `${tx(time)}px`; });
 }
 let tlDrag = null;
 const tlTime = (e) => {
-  const r = $("tlInner").getBoundingClientRect();
+  const r = e.currentTarget.getBoundingClientRect();
   return clamp((e.clientX - r.left - TL.pad) / tlScale, 0, doc.dur);
 };
-$("tlInner").addEventListener("pointerdown", (e) => {
+// 横スクロールを2つでそろえる
+["A", "B"].forEach((k, i, all) => {
+  $(`tlScroll${k}`).addEventListener("scroll", (e) => {
+    const other = $(`tlScroll${all[1 - i]}`);
+    if (other.scrollLeft !== e.currentTarget.scrollLeft) other.scrollLeft = e.currentTarget.scrollLeft;
+  });
+});
+// 最小化ボタン(開いているかは覚えない)
+function renderFold(part) {
+  const open = part.classList.contains("open");
+  const b = part.querySelector(".tl-fold");
+  b.textContent = open ? "−" : "+";
+  b.title = open ? "最小化" : "元に戻す";
+  b.setAttribute("aria-expanded", String(open));
+}
+document.querySelectorAll(".tl-part").forEach((part) => {
+  renderFold(part);
+  part.querySelector(".tl-fold").addEventListener("click", () => {
+    part.classList.toggle("open");
+    renderFold(part);
+    renderTimeline();
+  });
+});
+const tlInners = [$("tlInnerA"), $("tlInnerB")];
+const LINE_MIN = 0.5;
+const edgeOf = (e) => e.target.closest("[data-edge]")?.dataset.edge || null;
+tlInners.forEach((el) => el.addEventListener("pointerdown", (e) => {
   stop();
   const mEl = e.target.closest("[data-mech]");
   const kEl = e.target.closest("[data-key]");
   const ekEl = e.target.closest("[data-ekey], [data-eaggro]");
   const lEl = e.target.closest("[data-line]");
+  const sEl = e.target.closest("[data-espan]");
   if (lEl) {
     const ln = lineById(Number(lEl.dataset.line));
     sel = { type: "line", id: ln.id };
-    tlDrag = { type: "line", k: ln, x0: e.clientX, t0: ln.t, moved: false };
-    renderLists();
+    tlDrag = { type: "line", k: ln, edge: edgeOf(e), x0: e.clientX, t0: ln.t, end0: ln.t + ln.dur, moved: false };
     renderDetail();
   } else if (ekEl) {
     // 敵の動きの点・ねらう人の切りかえ
@@ -1117,43 +1346,96 @@ $("tlInner").addEventListener("pointerdown", (e) => {
     const item = (isKey ? en.keys : en.aggro)[j];
     sel = { type: "enemy", id };
     tlDrag = { type: isKey ? "ekey" : "eaggro", e: en, k: item, x0: e.clientX, t0: item.t, moved: false };
-    renderLists();
     renderDetail();
     setTime(item.t);
+  } else if (sEl) {
+    // 敵の出ている間の帯
+    const en = enemyById(Number(sEl.dataset.espan));
+    sel = { type: "enemy", id: en.id };
+    tlDrag = {
+      type: "espan", e: en, edge: edgeOf(e), x0: e.clientX, moved: false,
+      appear0: en.appear, vanish0: en.vanish, keys0: en.keys.map((k) => k.t), aggro0: en.aggro.map((g) => g.t),
+    };
+    renderDetail();
   } else if (mEl) {
     const m = mechById(Number(mEl.dataset.mech));
     sel = { type: "mech", id: m.id };
-    tlDrag = { type: "mech", m, x0: e.clientX, t0: m.t, moved: false };
-    renderLists();
+    tlDrag = { type: "mech", m, edge: edgeOf(e), x0: e.clientX, t0: m.t, start0: m.t - m.cast, moved: false };
     renderDetail();
   } else if (kEl) {
     const [id, j] = kEl.dataset.key.split(":");
     const k = doc.players[id][Number(j)];
     sel = { type: "player", id };
     tlDrag = { type: "key", id, k, x0: e.clientX, t0: k.t, moved: false };
-    renderLists();
     renderDetail();
     setTime(k.t);
   } else {
     const row = e.target.closest("[data-row]");
     const erow = e.target.closest("[data-erow]");
-    if (row) { sel = { type: "player", id: row.dataset.row }; renderLists(); renderDetail(); }
-    else if (erow) { sel = { type: "enemy", id: Number(erow.dataset.erow) }; renderLists(); renderDetail(); }
+    if (row) { sel = { type: "player", id: row.dataset.row }; renderDetail(); }
+    else if (erow) { sel = { type: "enemy", id: Number(erow.dataset.erow) }; renderDetail(); }
     tlDrag = { type: "scrub" };
     setTime(tlTime(e));
   }
-  $("tlInner").setPointerCapture(e.pointerId);
+  e.currentTarget.setPointerCapture(e.pointerId);
   renderTimeline();
   draw();
-});
-$("tlInner").addEventListener("pointermove", (e) => {
+}));
+tlInners.forEach((el) => el.addEventListener("pointermove", (e) => {
   if (!tlDrag) return;
   if (tlDrag.type === "scrub") { setTime(tlTime(e)); return; }
-  const t = round1(tlDrag.t0 + (e.clientX - tlDrag.x0) / tlScale);
+  const dt = (e.clientX - tlDrag.x0) / tlScale;
+  const t = round1(tlDrag.t0 + dt);
   if (tlDrag.type === "mech") {
-    tlDrag.m.t = clamp(t, 0, doc.dur);
+    // 左はし:詠唱の始まり(発動はそのまま) / 右はし:発動(始まりはそのまま) / 真ん中:全体
+    const m = tlDrag.m;
+    if (tlDrag.edge === "l") {
+      const start = clamp(round1(tlDrag.start0 + dt), 0, m.t);
+      m.cast = round1(m.t - start);
+      setTime(start);
+    } else if (tlDrag.edge === "r") {
+      const start = Math.max(0, tlDrag.start0);
+      m.t = clamp(t, start, doc.dur);
+      m.cast = round1(m.t - tlDrag.start0);
+      setTime(m.t);
+    } else {
+      m.t = clamp(t, 0, doc.dur);
+      setTime(m.t);
+    }
   } else if (tlDrag.type === "line") {
-    tlDrag.k.t = clamp(t, 0, doc.dur);
+    // セリフ:はしを動かしたら、長さは文字の数から決めない
+    const ln = tlDrag.k;
+    if (tlDrag.edge === "l") {
+      ln.t = clamp(t, 0, round1(tlDrag.end0 - LINE_MIN));
+      ln.dur = round1(tlDrag.end0 - ln.t);
+      ln.auto = false;
+    } else if (tlDrag.edge === "r") {
+      ln.dur = round1(clamp(tlDrag.end0 + dt, ln.t + LINE_MIN, doc.dur) - ln.t);
+      ln.auto = false;
+    } else {
+      ln.t = clamp(t, 0, doc.dur);
+    }
+    setTime(tlDrag.edge === "r" ? ln.t + ln.dur : ln.t);
+  } else if (tlDrag.type === "espan") {
+    // 敵:左はし = 出てくる / 右はし = 消える(最後まで引くと「消えない」) / 真ん中 = 点・◆ごとずらす
+    const en = tlDrag.e;
+    const d = tlDrag;
+    if (d.edge === "l") {
+      en.appear = clamp(round1(d.appear0 + dt), 0, round1((d.vanish0 == null ? doc.dur : d.vanish0) - LINE_MIN));
+      setTime(en.appear);
+    } else if (d.edge === "r") {
+      const v = clamp(round1((d.vanish0 == null ? doc.dur : d.vanish0) + dt), round1(d.appear0 + LINE_MIN), doc.dur);
+      en.vanish = v >= doc.dur ? null : v;
+      setTime(v);
+    } else {
+      const last = Math.max(d.appear0, d.vanish0 == null ? 0 : d.vanish0, ...d.keys0, ...d.aggro0);
+      const s = round1(clamp(dt, -d.appear0, doc.dur - last));
+      en.appear = round1(d.appear0 + s);
+      if (d.vanish0 != null) en.vanish = round1(d.vanish0 + s);
+      en.keys.forEach((k, j) => { k.t = round1(d.keys0[j] + s); });
+      en.aggro.forEach((g, j) => { g.t = round1(d.aggro0[j] + s); });
+      setTime(en.appear);
+    }
   } else if (tlDrag.type === "ekey" || tlDrag.type === "eaggro") {
     const en = tlDrag.e;
     tlDrag.k.t = clamp(t, en.appear, doc.dur);
@@ -1168,70 +1450,25 @@ $("tlInner").addEventListener("pointermove", (e) => {
   cache = null;
   renderTimeline();
   draw();
-});
+}));
 const endTl = () => {
   if (!tlDrag) return;
   const moved = tlDrag.moved;
   tlDrag = null;
-  if (moved) changed();
+  if (moved) { changed(); renderDetail(); }
 };
-$("tlInner").addEventListener("pointerup", endTl);
-$("tlInner").addEventListener("pointercancel", endTl);
+tlInners.forEach((el) => {
+  el.addEventListener("pointerup", endTl);
+  el.addEventListener("pointercancel", endTl);
+});
 
-// ---------- 左の一覧 ----------
-function renderLists() {
-  $("memberList").innerHTML = ROLES.map((ro) => {
-    const on = sel && sel.type === "player" && sel.id === ro.id;
-    return `<li data-member="${ro.id}" class="${on ? "on" : ""}"><span class="role" style="--c:${ro.c}">${ro.id}</span><span class="cnt">点 ${doc.players[ro.id].length}</span></li>`;
-  }).join("");
-  $("enemyList").innerHTML = doc.enemies.map((en) => {
-    const on = sel && sel.type === "enemy" && sel.id === en.id;
-    const span = `${en.appear.toFixed(0)}〜${en.vanish == null ? "" : en.vanish.toFixed(0)}`;
-    return `<li data-enemy="${en.id}" class="${on ? "on" : ""}">${ENEMY_TYPES[en.type].icon} ${esc(en.name)}<span class="cnt">${span}</span></li>`;
-  }).join("");
-  $("lineList").innerHTML = [...doc.lines].sort(byT).map((l) => {
-    const on = sel && sel.type === "line" && sel.id === l.id;
-    return `<li data-line="${l.id}" class="${on ? "on" : ""}"><span class="t">${l.t.toFixed(1)}</span><span class="line-text">${esc(lineWho(l))}「${esc(l.text)}」</span></li>`;
-  }).join("");
-  $("mechList").innerHTML = results().map((r) => {
-    const on = sel && sel.type === "mech" && sel.id === r.m.id;
-    return `<li data-mech="${r.m.id}" class="${on ? "on" : ""}"><span class="t">${r.m.t.toFixed(1)}</span>${KINDS[r.m.kind].icon} ${esc(r.m.name)}${r.ok ? "" : ' <span class="ng">×</span>'}</li>`;
-  }).join("");
-}
-$("memberList").addEventListener("click", (e) => {
-  const li = e.target.closest("[data-member]");
-  if (!li) return;
-  sel = { type: "player", id: li.dataset.member };
-  renderLists(); renderDetail(); renderTimeline(); draw();
-});
-$("enemyList").addEventListener("click", (e) => {
-  const li = e.target.closest("[data-enemy]");
-  if (!li) return;
-  sel = { type: "enemy", id: Number(li.dataset.enemy) };
-  renderLists(); renderDetail(); renderTimeline(); draw();
-});
-$("lineList").addEventListener("click", (e) => {
-  const li = e.target.closest("[data-line]");
-  if (!li) return;
-  const l = lineById(Number(li.dataset.line));
-  sel = { type: "line", id: l.id };
-  renderLists(); renderDetail(); renderTimeline();
-  setTime(l.t);
-});
+// ---------- 左:追加 ----------
 $("lineAdd").addEventListener("click", addLine);
 $("enemyAdd").innerHTML = Object.entries(ENEMY_TYPES).map(([k, v]) =>
   `<button type="button" class="btn btn--small" data-etype="${k}">${v.icon} ${v.name}</button>`).join("");
 $("enemyAdd").addEventListener("click", (e) => {
   const b = e.target.closest("[data-etype]");
   if (b) addEnemy(b.dataset.etype);
-});
-$("mechList").addEventListener("click", (e) => {
-  const li = e.target.closest("[data-mech]");
-  if (!li) return;
-  const m = mechById(Number(li.dataset.mech));
-  sel = { type: "mech", id: m.id };
-  renderLists(); renderDetail(); renderTimeline();
-  setTime(Math.max(0, m.t - m.cast));
 });
 $("addList").innerHTML = Object.entries(KINDS).map(([k, v]) =>
   `<button type="button" class="btn btn--small" data-kind="${k}">${v.icon} ${v.name}</button>`).join("");
@@ -1291,6 +1528,13 @@ function renderEnemyDetail(box, en) {
   box.innerHTML = `<label class="field"><span>名前</span><input type="text" data-text="name" value="${esc(en.name)}"></label>
     <p class="sub">種類</p><div class="seg">${Object.entries(ENEMY_TYPES).map(([k, v]) =>
       `<button type="button" class="btn btn--small" data-etype="${k}" aria-pressed="${en.type === k}">${v.icon} ${v.name}</button>`).join("")}</div>
+    <p class="sub">アイコンの画像</p>
+    <div class="enemy-img">
+      ${en.img ? `<img src="${en.img}" alt="">` : ""}
+      <button type="button" class="btn btn--small" id="enemyImgPick">画像を選ぶ</button>
+      ${en.img ? `<button type="button" class="btn btn--small" id="enemyImgClear">画像を外す</button>` : ""}
+      <input type="file" id="enemyImgFile" accept="image/*" hidden>
+    </div>
     <div class="row2" style="margin-top:10px">${num("appear", "出る(秒)", en.appear, 0, doc.dur)}
       <label class="field"><span>消える(秒。空なら最後まで)</span><input type="number" data-num="vanish" value="${en.vanish == null ? "" : en.vanish}" min="0" max="${doc.dur}" step="0.1"></label></div>
     <div class="row2" style="margin-top:10px">${num("speed", "歩く速さ(m/秒)", en.speed, 0.5, 50, 0.5)}${num("reach", "止まる距離(m)", en.reach, 0, 50, 0.5)}</div>
@@ -1365,6 +1609,15 @@ $("detail").addEventListener("input", (e) => {
   }
   changed(true);
 });
+// 敵の画像を選んだら、縮めてから入れる
+$("detail").addEventListener("change", async (e) => {
+  if (e.target.id !== "enemyImgFile" || !sel || sel.type !== "enemy") return;
+  const file = e.target.files[0];
+  if (!file) return;
+  const en = enemyById(sel.id);
+  try { en.img = await shrinkImage(file); } catch { return; }
+  changed();
+});
 $("detail").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b || !sel) return;
@@ -1395,6 +1648,8 @@ $("detail").addEventListener("click", (e) => {
     else if (b.dataset.edel) en.keys.splice(Number(b.dataset.edel), 1);
     else if (b.id === "ekeyHere") { const p = enemyPos(en, time); setEnemyKey(en, time, p.x, p.y, Math.round(p.a)); }
     else if (b.id === "enemyDelete") { deleteEnemy(en.id); return; }
+    else if (b.id === "enemyImgPick") { $("enemyImgFile").click(); return; }
+    else if (b.id === "enemyImgClear") en.img = null;
     else return;
     changed();
     return;
@@ -1410,12 +1665,11 @@ $("detail").addEventListener("click", (e) => {
   changed();
 });
 
-// ---------- 右:フィールド・結果 ----------
+// ---------- 右:フィールド ----------
 function renderField() {
   $("arenaShape").innerHTML = [["circle", "⚪ 丸"], ["square", "⬜ 四角"]].map(([v, l]) =>
     `<button type="button" class="btn btn--small" data-shape="${v}" aria-pressed="${doc.shape === v}">${l}</button>`).join("");
   $("arenaSize").value = doc.size;
-  $("duration").value = doc.dur;
   $("marksToggle").setAttribute("aria-pressed", String(doc.marksOn));
   renderMarkInputs();
 }
@@ -1432,12 +1686,23 @@ $("arenaSize").addEventListener("change", (e) => {
   renderField();
   changed();
 });
+// 長さ(秒):タイムラインの上の数字を押すと入力欄に変わる。Enter・外を押す で決める、Esc でやめる
+const durEdit = (on) => {
+  $("durBtn").hidden = on;
+  $("duration").hidden = !on;
+  if (on) { $("duration").value = doc.dur; $("duration").focus(); $("duration").select(); }
+};
+$("durBtn").addEventListener("click", () => durEdit(true));
 $("duration").addEventListener("change", (e) => {
   const v = parseFloat(e.target.value);
   if (Number.isFinite(v)) doc.dur = clamp(Math.round(v), 10, 900);
-  renderField();
   changed();
-  setTime(time);
+  setTime(Math.min(time, doc.dur));
+});
+$("duration").addEventListener("blur", () => durEdit(false));
+$("duration").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") $("duration").blur();
+  else if (e.key === "Escape") { $("duration").value = doc.dur; $("duration").blur(); }
 });
 $("marksToggle").addEventListener("click", () => {
   doc.marksOn = !doc.marksOn;
@@ -1514,24 +1779,17 @@ $("clearAll").addEventListener("click", () => {
   changed();
   setTime(0);
 });
-function renderResults() {
-  const ng = results().filter((r) => !r.ok);
-  $("results").innerHTML = !doc.mechs.length ? "" : ng.length
-    ? ng.map((r) => `<li data-mech="${r.m.id}"><b>${r.m.t.toFixed(1)}</b> ${esc(r.text)}</li>`).join("")
-    : '<li class="ok">ぜんぶ成功 ✓</li>';
-}
-$("results").addEventListener("click", (e) => {
-  const li = e.target.closest("[data-mech]");
-  if (!li) return;
-  const m = mechById(Number(li.dataset.mech));
-  sel = { type: "mech", id: m.id };
-  renderLists(); renderDetail(); renderTimeline();
-  setTime(m.t);
-});
 
 // ---------- 再生のボタン・キー ----------
 $("play").addEventListener("click", () => (playing ? stop() : play()));
 $("toStart").addEventListener("click", () => { stop(); setTime(0); });
+$("undoBtn").addEventListener("click", undo);
+$("redoBtn").addEventListener("click", redo);
+$("toEnd").addEventListener("click", () => { stop(); setTime(doc.dur); });
+// 5 秒戻る・進む(再生中はそのまま再生を続ける)
+const SKIP = 5;
+$("back").addEventListener("click", () => setTime(clamp(round1(time - SKIP), 0, doc.dur)));
+$("fwd").addEventListener("click", () => setTime(clamp(round1(time + SKIP), 0, doc.dur)));
 function renderSpeeds() {
   $("speeds").innerHTML = SPEEDS.map((s) =>
     `<button type="button" class="btn btn--small" data-speed="${s}" aria-pressed="${s === speed}">×${s}</button>`).join("");
@@ -1543,7 +1801,13 @@ $("speeds").addEventListener("click", (e) => {
   renderSpeeds();
 });
 document.addEventListener("keydown", (e) => {
-  if (e.target.closest("input, textarea, select")) return;
+  if (rec || e.target.closest("input, textarea, select")) return;
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && (k === "z" || k === "y")) {
+    e.preventDefault();
+    if (k === "y" || e.shiftKey) redo(); else undo();
+    return;
+  }
   if (e.key === " ") {
     e.preventDefault();
     if (playing) stop(); else play();
@@ -1569,7 +1833,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 new ResizeObserver(() => { resizeCanvas(); renderTimeline(); }).observe($("board"));
-new ResizeObserver(() => renderTimeline()).observe($("tlScroll"));
+new ResizeObserver(() => renderTimeline()).observe($("tlScrollA"));
 new ResizeObserver(() => drawMarkMap()).observe(markCanvas);
 renderSpeeds();
 renderField();
