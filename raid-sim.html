@@ -79,6 +79,29 @@ body { font-size: 14px; }
 .player .btn { min-width: 34px; justify-content: center; font-family: "Segoe UI Symbol", ui-sans-serif, sans-serif; }
 .enemy-img { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .enemy-img img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line); }
+/* 配置プリセットの引き出し:右から出る(ui/layer-drawer.css の右の引き出しと同じ動き)。つまみは「✿ 詳細」の下 */
+.preset-drawer {
+  position: fixed; z-index: 21; right: 0; top: var(--top-h, 49px); bottom: 0;
+  width: min(340px, 88vw); display: flex; flex-direction: column;
+  padding: 10px max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) 10px;
+  background: var(--bg); box-shadow: -4px 0 0 var(--ink-soft);
+  transform: translateX(100%); transition: transform .25s cubic-bezier(.3, 1.2, .5, 1);
+  pointer-events: none; /* 閉じているときは、つまみ以外は下の操作をじゃましない */
+}
+.preset-drawer.open { transform: none; pointer-events: auto; }
+.preset-drawer > .box { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.preset-handle {
+  position: absolute; top: calc(18% + 96px); right: 100%; pointer-events: auto;
+  writing-mode: vertical-rl; letter-spacing: .15em; padding: 12px 5px;
+  background: #ffd9b8; color: var(--text); border: 0; border-radius: 12px 0 0 12px;
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; touch-action: manipulation;
+}
+@media (prefers-reduced-motion: reduce) { .preset-drawer { transition: none; } }
+.preset-add { display: flex; gap: 6px; }
+.preset-add input { flex: 1; min-width: 0; }
+#presetList .btn:first-child { flex: 1; min-width: 0; justify-content: flex-start; }
+/* 名前が1行に収まらないときは「…」(全部は title で見える) */
+#presetList .btn span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tl-clock { font-family: ui-monospace, monospace; font-weight: 700; min-width: 11em; }
 .tl-clock output { display: inline-block; min-width: 3.2em; text-align: right; }
 .dur-btn { font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px dashed var(--muted); padding: 0 1px; cursor: pointer; }
@@ -240,6 +263,21 @@ body { font-size: 14px; }
   </div>
   <button type="button" class="right-handle" id="rightHandle" aria-controls="rightDrawer" aria-expanded="false">✿ 詳細</button>
   </aside>
+
+  <!-- 配置プリセット:右はしの「✿ 詳細」の下のつまみから出る、別の引き出し(画面の幅にかかわらず引き出し) -->
+  <aside class="preset-drawer" id="presetDrawer" aria-label="配置プリセット">
+    <section class="box">
+      <h2>配置プリセット</h2>
+      <p class="sub">押すと、今の時間に 8 人の動きの点を置く</p>
+      <ul class="key-list" id="presetList"></ul>
+      <p class="sub">今の並びを足す</p>
+      <div class="preset-add">
+        <input type="text" id="presetName" maxlength="20" placeholder="名前" aria-label="プリセットの名前">
+        <button type="button" class="btn btn--small btn--primary" id="presetAdd">足す</button>
+      </div>
+    </section>
+    <button type="button" class="preset-handle" id="presetHandle" aria-controls="presetDrawer" aria-expanded="false" title="配置プリセットを出す">✿ 配置プリセット</button>
+  </aside>
 </main>
 
 <script src="ui/layer-drawer.js"></script>
@@ -257,8 +295,11 @@ const ROLES = [
 ];
 const ROLE_IDS = ROLES.map((r) => r.id);
 const roleColor = (id) => ROLES.find((r) => r.id === id).c;
-// 最初の立ち位置(動きの点が無いとき・最初の点より前)
-const SPAWN = { MT: [0, -5], ST: [0, 5], H1: [5, 0], H2: [-5, 0], D1: [3.5, -3.5], D2: [-3.5, -3.5], D3: [3.5, 3.5], D4: [-3.5, 3.5] };
+// 最初の立ち位置(動きの点が無いとき・最初の点より前)。レイド開始は全員が南で、北寄りのボスと向き合う
+// 前の列(南へ 8m)= D2 MT ST D1、後ろの列(南へ 11m)= H2 D4 D3 H1(東西は担当の向きに合わせる)
+const SPAWN = { MT: [-1.5, 8], ST: [1.5, 8], D1: [4.5, 8], D2: [-4.5, 8], H1: [4.5, 11], H2: [-4.5, 11], D3: [1.5, 11], D4: [-1.5, 11] };
+// ボスの最初の場所と向き(北へ 3m・南向き)
+const BOSS_SPAWN = { x: 0, y: -3, a: 180 };
 // フィールドマーカー(a = 置く向き。A が北、1 が北東…)
 const MARKS = [
   { id: "A", c: "#e5566b", a: 0 }, { id: "1", c: "#e5566b", a: 45, sq: true },
@@ -307,6 +348,7 @@ function blank() {
     players: Object.fromEntries(ROLE_IDS.map((id) => [id, []])), // 動きの点 { t, x, y }(t の順)
     enemies: [newEnemy(1, "boss", 0)],
     mechs: [], nextId: 2,
+    presets: [], // 自分で作った配置プリセット { name, pos: { MT: [x, y], … } }
     lines: [] // セリフ { id, t, text, who(敵の id。null なら name), name, dur, auto(長さを文字の数から決める) }
   };
 }
@@ -315,7 +357,7 @@ function blank() {
 function newEnemy(id, type, appear) {
   return {
     id, type, name: ENEMY_TYPES[type].name, appear, vanish: null, img: null,
-    x: 0, y: type === "boss" ? 0 : -10, a: 0, speed: 6, reach: 3, keys: [], aggro: []
+    ...(type === "boss" ? BOSS_SPAWN : { x: 0, y: -10, a: 0 }), speed: 6, reach: 3, keys: [], aggro: []
   };
 }
 
@@ -329,7 +371,13 @@ function load() {
   const base = blank();
   try {
     const s = JSON.parse(sessionStorage.getItem(KEY));
-    if (s) return { ...base, ...s, players: { ...base.players, ...s.players } };
+    if (s) {
+      // 前の開始の形(ボスが中央で北向き)のまま動きの点が無いボスは、今の開始の形に直す
+      (s.enemies || []).forEach((e) => {
+        if (e.type === "boss" && !e.x && !e.y && !e.a && !(e.keys || []).length) Object.assign(e, BOSS_SPAWN);
+      });
+      return { ...base, ...s, players: { ...base.players, ...s.players } };
+    }
   } catch {}
   return base;
 }
@@ -349,6 +397,7 @@ function changed(keepDetail = false) {
   renderTimeline();
   draw();
   drawMarkMap();
+  renderPresets();
 }
 
 // ---------- 元に戻す・やり直す ----------
@@ -542,6 +591,76 @@ function setKey(id, t, x, y) {
   keys.sort(byT);
   return nk;
 }
+
+// ---------- 配置プリセット ----------
+// pos() = { MT: [x, y], … }。散開の距離はフィールドの半径の 0.75 倍
+const spread = () => doc.size * 0.75;
+// 8 方向散開の向き(北が 0°、時計回り)
+const DIR8 = { MT: 0, D1: 45, H1: 90, D3: 135, ST: 180, D4: 225, H2: 270, D2: 315 };
+// 4 人の小さな四角(重ならないように少しずらす)
+const SQ4 = [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]];
+const PRESETS = [
+  { name: "初めの並び", pos: () => SPAWN },
+  {
+    // ボスの南 5m(中央から南へ 2m)に、輪にしてずらして集まる
+    name: "全員集合",
+    pos: () => Object.fromEntries(ROLE_IDS.map((id, i) =>
+      [id, [Math.sin(i * Math.PI / 4) * 0.8, 2 - Math.cos(i * Math.PI / 4) * 0.8]])),
+  },
+  {
+    // MT・H1・D1・D3 が東、ST・H2・D2・D4 が西(散開の距離の半分)
+    name: "ライトパーティ",
+    pos: () => {
+      const d = spread() / 2;
+      const out = {};
+      [["MT", "H1", "D1", "D3"], ["ST", "H2", "D2", "D4"]].forEach((g, side) =>
+        g.forEach((id, i) => { out[id] = [(side ? -d : d) + SQ4[i][0], SQ4[i][1]]; }));
+      return out;
+    },
+  },
+  {
+    name: "8 方向散開",
+    pos: () => Object.fromEntries(ROLE_IDS.map((id) => {
+      const a = DIR8[id] * Math.PI / 180;
+      return [id, [Math.sin(a) * spread(), -Math.cos(a) * spread()]];
+    })),
+  },
+];
+function applyPreset(pos) {
+  ROLE_IDS.forEach((id) => setKey(id, time, pos[id][0], pos[id][1]));
+  changed();
+}
+function renderPresets() {
+  const row = (attr, i, name, del) => `<li><button type="button" class="btn btn--small" ${attr}="${i}" title="${esc(name)}"><span>${esc(name)}</span></button>${del ? `<button type="button" class="btn btn--small" data-pdel="${i}" title="このプリセットを消す">✕</button>` : ""}</li>`;
+  $("presetList").innerHTML = PRESETS.map((p, i) => row("data-preset", i, p.name, false)).join("") +
+    doc.presets.map((p, i) => row("data-mypreset", i, p.name, true)).join("");
+}
+// 引き出しの出し入れ。狭い画面では「✿ 詳細」の引き出しと重なるので、片方を開いたらもう片方はしまう
+function setPresetOpen(open) {
+  $("presetDrawer").classList.toggle("open", open);
+  $("presetHandle").setAttribute("aria-expanded", String(open));
+  $("presetHandle").title = open ? "配置プリセットをしまう" : "配置プリセットを出す";
+  if (open && $("rightDrawer").classList.contains("open")) $("rightHandle").click();
+}
+$("presetHandle").addEventListener("click", () => setPresetOpen(!$("presetDrawer").classList.contains("open")));
+$("rightHandle").addEventListener("click", () => {
+  if ($("rightDrawer").classList.contains("open")) setPresetOpen(false);
+});
+$("presetList").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.preset) applyPreset(PRESETS[Number(b.dataset.preset)].pos());
+  else if (b.dataset.mypreset) applyPreset(doc.presets[Number(b.dataset.mypreset)].pos);
+  else if (b.dataset.pdel) { doc.presets.splice(Number(b.dataset.pdel), 1); changed(); }
+});
+// 今の時間の 8 人の場所(ノックバックのあと)を、名前を付けて足す
+$("presetAdd").addEventListener("click", () => {
+  const name = $("presetName").value.trim() || `プリセット ${doc.presets.length + 1}`;
+  const at = Object.fromEntries(ROLE_IDS.map((id) => { const p = pos(id, time); return [id, [round1(p.x), round1(p.y)]]; }));
+  doc.presets.push({ name, pos: at });
+  $("presetName").value = "";
+  changed();
+});
 
 // ---------- ギミックの形と当たり ----------
 // 範囲1つぶん { x, y, ang(ラジアン), owner(メンバー) } の一覧

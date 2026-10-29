@@ -94,6 +94,7 @@
   - 確認は見えないブラウザで:`C:/Program Files/Google/Chrome/Application/chrome.exe` を `--headless=new --remote-debugging-port=… --user-data-dir=一時フォルダー` で立て、Node の WebSocket(CDP)で動かす。写真も撮れる。拡大率のずれは deviceScaleFactor で再現
   - 確認用のサーバーは、自分で Node の小さなサーバーをポート **8765** に立てて、そのプロセスだけを止める。**ポート 8000 はユーザーが `npx http-server C:/Users/kikuchi/Documents/AmechanCreate -p 8000 -c-1` で使う**ので、さわらない
   - このPCの `python` は動かない(Microsoft Store の案内だけ)
+  - **画面の場所がはっきりしないとき**:見えないブラウザで画面の写真を撮り、候補の場所に番号を付けた画像を見せる。ユーザーには「3 番」のように番号で答えてもらう
 - **ファイルの書き換え**
   - 手元の改行はファイルでちがう(CRLF:`index.html`・`tshirt-designer.html`・`dot-maker.html`・`characa/` の app.js・frames.js・style.css・worker.js・job-icons.js・templates の .json、`docs/dotMaker.md`。`coupling.html` は CRLF と LF がまざる。ほかは LF)。今の状態は `git ls-files --eol` の `w/…` で見る。node のスクリプトで、いったん LF にして直し、元の改行に戻す。`sed -i` は使わない(CRLF が消える)
   - bash のヒアドキュメントの中に JS の正規表現(`\/` など)を書くと、`\` が消えることがある。正規表現を含むスクリプトは Write ツールで書く(String.raw を使う)
