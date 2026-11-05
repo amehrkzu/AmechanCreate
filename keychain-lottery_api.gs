@@ -14,9 +14,10 @@
  *   引く:在庫数で重みを付けて選ぶ(残りが多い種類ほど当たりやすい)。在庫は減らさず、シートにも書かない
  *         当たりはコードごとにスクリプトのプロパティに覚える(ページで書きかえられないように)
  *         いっしょに入れたほかのコードの当たりは、在庫から引いて考える(まとめて引いても在庫より多く当たらない)
- *         送る前なら、何回でも引き直せる(タブを閉じたら、何も起きなかったことになる)
+ *         一度引いたコードの当たりは固定(もう一度引いても、タブを閉じても同じ当たり。リセマラできない)
  *   送る:コードをまとめて「応募」に書き、当たった種類の在庫を減らす。そのコードはもう使えない
  *         引いてから送るまでに在庫が足りなくなっていたら "gone"(何も書かない。ページは引く画面に戻る)
+ *         このときだけ、足りなかった種類のコードの当たりを消して、引き直せるようにする
  *   住所・氏名はシートに書くだけで、ページからは読めない
  */
 
@@ -69,23 +70,27 @@ function draw(codes, targets) {
   if (targets.length === 0) return { error: "code" };
   const props = PropertiesService.getScriptProperties();
   const prizes = readPrizes();
-  // ほかのコードで当たっている分を、在庫から引いておく
-  codes.filter(c => !targets.includes(c)).forEach(c => {
-    const p = prizes.find(x => x.name === props.getProperty(DRAW_KEY + c));
+  // もう当たりがあるコードは、その当たりのまま(固定)。その分は在庫から引いて考える
+  const fixed = {};
+  codes.forEach(c => {
+    const prize = props.getProperty(DRAW_KEY + c);
+    if (!prize) return;
+    if (targets.includes(c)) fixed[c] = prize;
+    const p = prizes.find(x => x.name === prize);
     if (p) p.stock--;
   });
-  const results = [];
-  for (const code of targets) {
+  const fresh = {};
+  for (const code of targets.filter(c => !fixed[c])) {
     const left = prizes.filter(p => p.stock > 0);
     const total = left.reduce((s, p) => s + p.stock, 0);
     if (total === 0) return { error: "empty" };
     let r = Math.random() * total;
     const hit = left.find(p => (r -= p.stock) < 0) || left[left.length - 1];
     hit.stock--;
-    results.push({ code, result: hit.name });
+    fresh[code] = hit.name;
   }
-  results.forEach(x => props.setProperty(DRAW_KEY + x.code, x.result));
-  return { results };
+  Object.keys(fresh).forEach(c => props.setProperty(DRAW_KEY + c, fresh[c]));
+  return { results: targets.map(code => ({ code, result: fixed[code] || fresh[code] })) };
 }
 
 function send(codes, name, address) {
@@ -96,13 +101,16 @@ function send(codes, name, address) {
 
   // 在庫が全部足りるか先に確かめる(足りなければ何も書かない)
   const prizes = readPrizes();
+  const short = [];
   for (const x of results) {
     const p = prizes.find(q => q.name === x.result);
-    if (!p || p.stock < 1) {
-      codes.forEach(c => props.deleteProperty(DRAW_KEY + c));
-      return { error: "gone" };
-    }
-    p.stock--;
+    if (!p || p.stock < 1) short.push(x.code);
+    else p.stock--;
+  }
+  if (short.length) {
+    // 足りなかったコードだけ当たりを消す(ほかのコードの当たりは固定のまま)
+    short.forEach(c => props.deleteProperty(DRAW_KEY + c));
+    return { error: "gone", codes: short };
   }
   const prizeSheet = sheet(PRIZE_SHEET);
   prizes.forEach(p => prizeSheet.getRange(p.row, 2).setValue(p.stock));

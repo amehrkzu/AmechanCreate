@@ -78,15 +78,25 @@ textarea { resize: vertical; }
 
   <!-- 2. 結果と送り先 -->
   <section class="box step" id="stepSend" hidden>
-    <p class="sub">当たり</p>
+    <p class="sub" id="hitLabel" hidden>当たり</p>
     <div class="drawing" id="drawing"><div class="ball"></div></div>
     <ul class="hits" id="hits"></ul>
     <div class="step" id="sendForm" hidden>
       <button type="button" class="btn btn--small reuse" id="reuseBtn" hidden>前回使用した住所を使用</button>
       <div class="fields">
         <label class="field field--wide">氏名<input type="text" id="name" autocomplete="name"></label>
-        <label class="field field--wide">住所<textarea id="address" rows="3" autocomplete="street-address" placeholder="〒"></textarea></label>
+        <div class="field">郵便番号
+          <div class="row">
+            <input type="text" id="zip" inputmode="numeric" autocomplete="postal-code" placeholder="123-4567" maxlength="8" aria-label="郵便番号">
+            <button type="button" class="btn btn--small" id="zipBtn">住所検索</button>
+          </div>
+        </div>
+        <label class="field field--wide">都道府県<input type="text" id="pref" autocomplete="address-level1"></label>
+        <label class="field field--wide">市区町村・町名<input type="text" id="city" autocomplete="address-level2"></label>
+        <label class="field field--wide">番地<input type="text" id="street" autocomplete="address-line1"></label>
+        <label class="field field--wide">建物名・部屋番号<input type="text" id="building" autocomplete="address-line2"></label>
       </div>
+      <p class="hint" id="zipMsg" hidden></p>
       <button type="button" class="btn btn--primary btn--block" id="sendBtn">送る</button>
     </div>
     <p class="status status--error" id="sendErr" hidden></p>
@@ -96,16 +106,24 @@ textarea { resize: vertical; }
   <section class="box step" id="stepDone" hidden>
     <p class="sub">受け付けました</p>
     <ul class="hits small" id="doneHits"></ul>
+    <button type="button" class="btn btn--primary btn--block" id="againBtn">続けて引く</button>
   </section>
 </main>
 <script src="ui/util.js"></script>
 <script src="ui/site-header.js" defer></script>
 <script>
 // keychain-lottery_api.gs をデプロイしたウェブアプリの URL
-const API_URL = "https://script.google.com/macros/s/AKfycbxUWpZ6YaiUv3dVtQxEVlPN01MUs6e3teiTGC3hasPQUUWXuD45odNw4yPFZ7XC98DdEw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwQ4mvRi7Qz9fDhLS52IUuDyyVuhFyo3gws0eN-tZNe8GB5DlPTfJdonlLqT0ppG-mUfw/exec";
 // 前に送った氏名・住所(このブラウザの中だけ)
 const SAVE_KEY = "keychain-lottery:address";
+// これまでに送った当たり(このブラウザの中だけ)
+const HISTORY_KEY = "keychain-lottery:history";
 const SHAKE_MS = 1400;
+// 郵便番号 → 住所(zipcloud。送るのは郵便番号だけ)
+const ZIP_API = "https://zipcloud.ibsnet.co.jp/api/search?zipcode=";
+// 送り先の欄(建物名・部屋番号だけ空でもよい)
+const FORM_IDS = ["name", "zip", "pref", "city", "street", "building"];
+const OPTIONAL_IDS = ["building"];
 
 const ERRORS = {
   code: "コードが見つかりません",
@@ -113,7 +131,7 @@ const ERRORS = {
   gone: "なくなった種類がありました。もう一度引いてください",
   nodraw: "もう一度引いてください",
   empty: "景品がなくなりました",
-  input: "氏名と住所を入れてください",
+  input: "氏名と住所を入れてください(建物名・部屋番号は空でも大丈夫です)",
   busy: "混み合っています。もう一度押してください",
   bad: "うまく送れませんでした",
   net: "つながりませんでした。もう一度押してください",
@@ -157,18 +175,36 @@ function show(id) {
 function loadSaved() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
-    return s && s.name && s.address ? s : null;
+    return s && s.name && s.pref ? s : null;
   } catch (err) {
     return null;
   }
 }
 
-function imgHtml(name) {
-  return images[name] ? `<img class="prize-img" src="${esc(images[name])}" alt="" loading="lazy">` : "";
+function imgHtml(name, src) {
+  const url = src || images[name];
+  return url ? `<img class="prize-img" src="${esc(url)}" alt="" loading="lazy">` : "";
 }
 
+// h.img があればそれを使う(前に送った分。今は在庫が無くて images に無いこともある)
 function hitHtml(h) {
-  return `<li>${imgHtml(h.result)}<span class="name">${esc(h.result)}</span><span class="code">${esc(h.code)}</span></li>`;
+  return `<li>${imgHtml(h.result, h.img)}<span class="name">${esc(h.result)}</span><span class="code">${esc(h.code)}</span></li>`;
+}
+
+// このブラウザで送った当たり [{ code, result, img }]
+function loadHistory() {
+  try {
+    const list = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    return Array.isArray(list) ? list : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function addHistory(results) {
+  const list = loadHistory().concat(results.map((r) => ({ code: r.code, result: r.result, img: images[r.result] || "" })));
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); } catch (err) { /* 覚えられなくても送れている */ }
+  return list;
 }
 
 async function loadItems() {
@@ -215,6 +251,7 @@ async function draw() {
   $("hits").innerHTML = "";
   $("sendForm").hidden = true;
   $("drawing").hidden = false;
+  $("hitLabel").hidden = true; // 揺れている間は出さない
   showErr($("sendErr"), null);
   show("stepSend");
   const started = Date.now();
@@ -230,14 +267,63 @@ async function draw() {
   }
   hits = data.results;
   $("hits").innerHTML = hits.map(hitHtml).join("");
+  $("hitLabel").hidden = false;
   $("sendForm").hidden = false;
   $("reuseBtn").hidden = !loadSaved();
 }
 
+// 全角の数字・ハイフンを半角にして、数字だけにする
+function zipDigits(v) {
+  return v.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, "");
+}
+
+function zipText(d) {
+  return d.length === 7 ? `${d.slice(0, 3)}-${d.slice(3)}` : d;
+}
+
+function zipMsg(text) {
+  $("zipMsg").textContent = text;
+  $("zipMsg").hidden = !text;
+}
+
+// 「住所検索」を押したら住所を調べて、都道府県・市区町村・町名を入れる
+async function lookupZip() {
+  const d = zipDigits($("zip").value);
+  if (d.length !== 7) return zipMsg("郵便番号を7けたで入れてください");
+  zipMsg("");
+  busy($("zipBtn"), true);
+  let r = null;
+  try {
+    const res = await fetch(ZIP_API + d);
+    const data = await res.json();
+    r = data.results && data.results[0];
+  } catch (err) {
+    r = null;
+  }
+  busy($("zipBtn"), false);
+  if (!r) {
+    zipMsg("住所が見つかりませんでした。手で入れてください");
+    return;
+  }
+  $("zip").value = zipText(d);
+  $("pref").value = r.address1;
+  $("city").value = r.address2 + r.address3;
+  $("street").focus();
+}
+
+function readForm() {
+  const f = {};
+  FORM_IDS.forEach((id) => { f[id] = $(id).value.trim(); });
+  f.zip = zipText(zipDigits(f.zip));
+  return f;
+}
+
 async function send() {
-  const name = $("name").value.trim();
-  const address = $("address").value.trim();
-  if (!name || !address) return showErr($("sendErr"), { error: "input" });
+  const f = readForm();
+  if (FORM_IDS.some((id) => !OPTIONAL_IDS.includes(id) && !f[id])) return showErr($("sendErr"), { error: "input" });
+  // シートの住所の列には、1つにまとめて書く
+  const address = `〒${f.zip} ${f.pref}${f.city}${f.street}${f.building ? " " + f.building : ""}`;
+  const name = f.name;
   showErr($("sendErr"), null);
   busy($("sendBtn"), true);
   const data = await api({ action: "send", codes, name, address });
@@ -250,8 +336,9 @@ async function send() {
     return;
   }
   if (data.error) return showErr($("sendErr"), data);
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ name, address })); } catch (err) { /* 覚えられなくても送れている */ }
-  $("doneHits").innerHTML = data.results.map(hitHtml).join("");
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(f)); } catch (err) { /* 覚えられなくても送れている */ }
+  // 今回の分だけでなく、このブラウザで送った当たりを全部ならべる
+  $("doneHits").innerHTML = addHistory(data.results).map(hitHtml).join("");
   $("codeList").innerHTML = "";
   addCodeRow(false);
   show("stepDone");
@@ -263,15 +350,20 @@ $("codeList").addEventListener("click", (e) => {
   del.parentElement.remove();
   renderCodeRows();
 });
-$("codeList").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches("input")) draw(); });
 $("addCodeBtn").addEventListener("click", () => addCodeRow(true));
 $("drawBtn").addEventListener("click", draw);
 $("sendBtn").addEventListener("click", send);
 $("reuseBtn").addEventListener("click", () => {
   const s = loadSaved();
   if (!s) return;
-  $("name").value = s.name;
-  $("address").value = s.address;
+  FORM_IDS.forEach((id) => { $(id).value = s[id] || ""; });
+});
+$("zipBtn").addEventListener("click", lookupZip);
+// 受け付けたあと、引く画面に戻る(コードの欄は send で1つに戻してある。景品は在庫が変わったので読み直す)
+$("againBtn").addEventListener("click", () => {
+  showErr($("drawErr"), null);
+  show("stepDraw");
+  loadItems();
 });
 addCodeRow(false);
 loadItems();
