@@ -23,3 +23,4 @@
   - アプリダウンロード(download/):[docs/Download.md](docs/Download.md)
 - その他
   - バックログの見える化(backlog.html):[docs/BacklogView.md](docs/BacklogView.md)
+  - アクキーくじ(keychain-lottery.html + keychain-lottery_api.gs):[docs/keychainLottery.md](docs/keychainLottery.md)

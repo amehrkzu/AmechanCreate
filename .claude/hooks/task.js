@@ -47,6 +47,7 @@ const DOC_MAP = [
   [/^raid-sim\.html$/, "docs/raidSim.md"],
   [/^download\//, "docs/Download.md"],
   [/^backlog\.html$/, "docs/BacklogView.md"],
+  [/^keychain-lottery(\.html|_api\.gs)$/, "docs/keychainLottery.md"],
   [/^(index|test|tshirt-designer)\.html$/, "docs/Base.md"]
 ];
 

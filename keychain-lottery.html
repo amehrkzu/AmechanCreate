@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ja" data-theme="budo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>アクキーくじ</title>
+<link rel="icon" type="image/png" href="Icon.png">
+<link rel="stylesheet" href="ui/scrollbar.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap">
+<link rel="stylesheet" href="ui/kit.css">
+<style>
+/* このページだけの並べ方。部品の見た目は ui/kit.css */
+.page { max-width: 640px; }
+.step { display: flex; flex-direction: column; gap: 12px; }
+.step[hidden] { display: none; }
+.step > h2 { margin: 0; }
+.prizes { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+/* 景品 1つ = 四角い下地の中に、上は画像、下は名前のボタン */
+.prize { display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; min-width: 0; padding: 6px; background: var(--tint); }
+.prize .prize-img { background: none; }
+/* 景品のボタン(パーツメーカーで作った形。枠線なし・ぷっくり影・浮く・沈む) */
+.ub-prize {
+  --ub-bw: 0px;
+  --ub-bs: solid;
+  --ub-r: 14px;
+  --ub-px: 6px;
+  --ub-py: 6px;
+  --ub-fs: 12px;
+  white-space: normal;
+}
+.prize-img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; background: var(--tint); }
+.code-list { display: flex; flex-direction: column; gap: 6px; }
+.code-list input { text-transform: uppercase; }
+.add-code { align-self: stretch; }
+.sub { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); text-align: center; }
+.hits { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 160px)); justify-content: center; gap: 10px; }
+.hits li { display: flex; flex-direction: column; align-items: center; gap: 2px; animation: popIn .6s cubic-bezier(.3, 1.6, .5, 1) both; }
+.hits .code { font-size: 12px; font-weight: 700; color: var(--muted); }
+.hits .name { font-size: 20px; font-weight: 700; color: var(--accent); text-align: center; }
+.hits.small { grid-template-columns: repeat(auto-fit, minmax(90px, 110px)); }
+.hits.small .name { font-size: 15px; }
+@keyframes popIn {
+  0% { transform: scale(.2) rotate(-12deg); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+.drawing { display: flex; justify-content: center; padding: 18px 0; }
+.drawing[hidden] { display: none; }
+.ball { width: 64px; height: 64px; border-radius: 50%; border: var(--border) solid var(--ink); background: linear-gradient(var(--accent) 50%, var(--box) 50%); animation: shake .5s ease-in-out infinite; }
+@keyframes shake {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-18deg); }
+  75% { transform: rotate(18deg); }
+}
+.reuse { align-self: flex-start; }
+textarea { resize: vertical; }
+@media (max-width: 999.98px) {
+  input, textarea { font-size: 16px; }
+}
+</style>
+</head>
+<body class="bg-dots">
+<main class="page">
+  <div class="title-wrap">
+    <h1 class="title">アクキーくじ</h1>
+  </div>
+
+  <!-- 1. コードを入れて引く -->
+  <section class="box step" id="stepDraw">
+    <h2>景品</h2>
+    <div class="tiles prizes" id="items"></div>
+    <div class="code-list" id="codeList"></div>
+    <button type="button" class="btn add-code" id="addCodeBtn" title="コードの欄を足す" aria-label="コードの欄を足す">+</button>
+    <button type="button" class="btn btn--primary btn--block" id="drawBtn">引く</button>
+    <p class="status status--error" id="drawErr" hidden></p>
+  </section>
+
+  <!-- 2. 結果と送り先 -->
+  <section class="box step" id="stepSend" hidden>
+    <p class="sub">当たり</p>
+    <div class="drawing" id="drawing"><div class="ball"></div></div>
+    <ul class="hits" id="hits"></ul>
+    <div class="step" id="sendForm" hidden>
+      <button type="button" class="btn btn--small reuse" id="reuseBtn" hidden>前回使用した住所を使用</button>
+      <div class="fields">
+        <label class="field field--wide">氏名<input type="text" id="name" autocomplete="name"></label>
+        <label class="field field--wide">住所<textarea id="address" rows="3" autocomplete="street-address" placeholder="〒"></textarea></label>
+      </div>
+      <button type="button" class="btn btn--primary btn--block" id="sendBtn">送る</button>
+    </div>
+    <p class="status status--error" id="sendErr" hidden></p>
+  </section>
+
+  <!-- 3. 終わり -->
+  <section class="box step" id="stepDone" hidden>
+    <p class="sub">受け付けました</p>
+    <ul class="hits small" id="doneHits"></ul>
+  </section>
+</main>
+<script src="ui/util.js"></script>
+<script src="ui/site-header.js" defer></script>
+<script>
+// keychain-lottery_api.gs をデプロイしたウェブアプリの URL
+const API_URL = "https://script.google.com/macros/s/AKfycbxUWpZ6YaiUv3dVtQxEVlPN01MUs6e3teiTGC3hasPQUUWXuD45odNw4yPFZ7XC98DdEw/exec";
+// 前に送った氏名・住所(このブラウザの中だけ)
+const SAVE_KEY = "keychain-lottery:address";
+const SHAKE_MS = 1400;
+
+const ERRORS = {
+  code: "コードが見つかりません",
+  used: "このコードはもう使われています",
+  gone: "なくなった種類がありました。もう一度引いてください",
+  nodraw: "もう一度引いてください",
+  empty: "景品がなくなりました",
+  input: "氏名と住所を入れてください",
+  busy: "混み合っています。もう一度押してください",
+  bad: "うまく送れませんでした",
+  net: "つながりませんでした。もう一度押してください",
+  setup: "準備中です"
+};
+
+// codes = 入れたコード、hits = 引いた結果 [{ code, result }]、images = 種類の名前 → 画像の URL
+let codes = [];
+let hits = [];
+const images = {};
+
+async function api(body) {
+  if (!API_URL) return { error: "setup" };
+  try {
+    const res = body
+      ? await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) })
+      : await fetch(API_URL);
+    return await res.json();
+  } catch (err) {
+    return { error: "net" };
+  }
+}
+
+function showErr(el, data) {
+  const key = data && data.error;
+  let msg = key ? (ERRORS[key] || ERRORS.bad) : "";
+  if (key && data.codes && data.codes.length) msg += `(${data.codes.join("、")})`;
+  el.textContent = msg;
+  el.hidden = !key;
+}
+
+function busy(btn, on) {
+  btn.disabled = on;
+  btn.classList.toggle("is-disabled", on);
+}
+
+function show(id) {
+  ["stepDraw", "stepSend", "stepDone"].forEach((s) => { $(s).hidden = s !== id; });
+}
+
+function loadSaved() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    return s && s.name && s.address ? s : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function imgHtml(name) {
+  return images[name] ? `<img class="prize-img" src="${esc(images[name])}" alt="" loading="lazy">` : "";
+}
+
+function hitHtml(h) {
+  return `<li>${imgHtml(h.result)}<span class="name">${esc(h.result)}</span><span class="code">${esc(h.code)}</span></li>`;
+}
+
+async function loadItems() {
+  $("items").innerHTML = SPINNER;
+  const data = await api();
+  if (data.error) {
+    $("items").innerHTML = "";
+    showErr($("drawErr"), data);
+    return;
+  }
+  data.items.forEach((it) => { images[it.name] = it.img; });
+  $("items").innerHTML = data.items.length
+    ? data.items.map((it) => `<div class="prize">${imgHtml(it.name)}<button type="button" class="ub ub--sh-puffy ub--hover-lift ub--press-sink ub-prize">${esc(it.name)}</button></div>`).join("")
+    : `<span class="hint">${esc(ERRORS.empty)}</span>`;
+}
+
+// コードの欄:1つなら「引く」、2つ以上なら「まとめて引く」。✕ は2つ以上のときだけ
+function renderCodeRows() {
+  const rows = [...$("codeList").children];
+  rows.forEach((row) => { row.querySelector(".del-code").hidden = rows.length < 2; });
+  $("drawBtn").textContent = rows.length > 1 ? "まとめて引く" : "引く";
+}
+
+function addCodeRow(focus) {
+  $("codeList").insertAdjacentHTML("beforeend",
+    `<div class="row"><input type="text" placeholder="引換コード" autocomplete="off" aria-label="引換コード">` +
+    `<button type="button" class="btn btn--small del-code" title="この欄を消す" aria-label="この欄を消す">✕</button></div>`);
+  renderCodeRows();
+  if (focus) $("codeList").lastElementChild.querySelector("input").focus();
+}
+
+function readCodes() {
+  const list = [...$("codeList").querySelectorAll("input")].map((i) => i.value.trim().toUpperCase()).filter(Boolean);
+  return [...new Set(list)];
+}
+
+async function draw() {
+  const list = readCodes();
+  if (list.length === 0) return showErr($("drawErr"), { error: "code" });
+  showErr($("drawErr"), null);
+  codes = list;
+  hits = [];
+  busy($("drawBtn"), true);
+  $("hits").innerHTML = "";
+  $("sendForm").hidden = true;
+  $("drawing").hidden = false;
+  showErr($("sendErr"), null);
+  show("stepSend");
+  const started = Date.now();
+  const data = await api({ action: "draw", codes, draw: codes });
+  // 少しだけ揺らしてから出す
+  await new Promise((r) => setTimeout(r, Math.max(0, SHAKE_MS - (Date.now() - started))));
+  busy($("drawBtn"), false);
+  $("drawing").hidden = true;
+  if (data.error) {
+    show("stepDraw");
+    showErr($("drawErr"), data);
+    return;
+  }
+  hits = data.results;
+  $("hits").innerHTML = hits.map(hitHtml).join("");
+  $("sendForm").hidden = false;
+  $("reuseBtn").hidden = !loadSaved();
+}
+
+async function send() {
+  const name = $("name").value.trim();
+  const address = $("address").value.trim();
+  if (!name || !address) return showErr($("sendErr"), { error: "input" });
+  showErr($("sendErr"), null);
+  busy($("sendBtn"), true);
+  const data = await api({ action: "send", codes, name, address });
+  busy($("sendBtn"), false);
+  if (data.error === "gone" || data.error === "nodraw") {
+    // 引いてから送るまでに、なくなった種類があった → 引く画面に戻す
+    show("stepDraw");
+    showErr($("drawErr"), data);
+    loadItems();
+    return;
+  }
+  if (data.error) return showErr($("sendErr"), data);
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ name, address })); } catch (err) { /* 覚えられなくても送れている */ }
+  $("doneHits").innerHTML = data.results.map(hitHtml).join("");
+  $("codeList").innerHTML = "";
+  addCodeRow(false);
+  show("stepDone");
+}
+
+$("codeList").addEventListener("click", (e) => {
+  const del = e.target.closest(".del-code");
+  if (!del) return;
+  del.parentElement.remove();
+  renderCodeRows();
+});
+$("codeList").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches("input")) draw(); });
+$("addCodeBtn").addEventListener("click", () => addCodeRow(true));
+$("drawBtn").addEventListener("click", draw);
+$("sendBtn").addEventListener("click", send);
+$("reuseBtn").addEventListener("click", () => {
+  const s = loadSaved();
+  if (!s) return;
+  $("name").value = s.name;
+  $("address").value = s.address;
+});
+addCodeRow(false);
+loadItems();
+</script>
+</body>
+</html>

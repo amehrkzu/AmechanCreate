@@ -1,6 +1,6 @@
 # 全体規約(基盤)— 必ず読む
 
-最終更新:2026-10-29
+最終更新:2026-11-05
 
 ## このサイト
 - 「あめちゃんもの置き」:ユーザー(あめちゃん)が個人で楽しむためのサイト。FF14 のキャラ紹介と、自作ツールを置いている
@@ -22,6 +22,7 @@
 | なんちゃってレイドシュミレーター | `raid-sim.html` | ツール系 → [raidSim.md](raidSim.md) |
 | アプリダウンロード | `download/` | ツール系 → [Download.md](Download.md) |
 | バックログ(やること一覧の見える化) | `backlog.html` | その他 → [BacklogView.md](BacklogView.md) |
+| アクキーくじ | `keychain-lottery.html` + `keychain-lottery_api.gs` | その他 → [keychainLottery.md](keychainLottery.md)。トップでは非表示 |
 | HNB(文字アニメの確認) | `test.html` | — |
 | Tシャツ画像データメーカー | `tshirt-designer.html` | 作業中。トップでは非表示 |
 
