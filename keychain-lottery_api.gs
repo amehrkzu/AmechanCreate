@@ -5,7 +5,7 @@
  * デプロイ:「デプロイ > 新しいデプロイ > ウェブアプリ」。次のユーザーとして実行 = 自分、アクセスできるユーザー = 全員
  *
  * シート構成(1行目は見出し行。シートが無ければ、最初に呼ばれたときに作る)
- *   「景品」    A列: 種類 | B列: 在庫数 | C列: 画像(任意。ドライブの共有リンク or 画像URL)
+ *   「景品」    A列: 種類 | B列: 在庫数 | C列: 画像(任意。ドライブの共有リンク or 画像URL) | D列: レア(○ ならレア)
  *   「コード」  A列: 引換コード(1つのコードで1個もらえる)
  *   「応募」    A列: 最後に送った日時 | B列: 氏名 | C列: 住所 | D列: コード | E列: 当たり
  *               1人1行。氏名と住所が同じなら同じ人として、コードと当たりを「、」でつないで足す
@@ -25,7 +25,7 @@ const PRIZE_SHEET = "景品";
 const CODE_SHEET = "コード";
 const ENTRY_SHEET = "応募";
 const HEADERS = {
-  [PRIZE_SHEET]: ["種類", "在庫数", "画像"],
+  [PRIZE_SHEET]: ["種類", "在庫数", "画像", "レア"],
   [CODE_SHEET]: ["引換コード"],
   [ENTRY_SHEET]: ["最後に送った日時", "氏名", "住所", "コード", "当たり"]
 };
@@ -37,13 +37,14 @@ const IMAGE_FOLDER_ID = "ここにフォルダIDを貼る";
 const IMAGE_SIZE = "w600";
 const SEP = "、";
 
-// 種類の一覧(在庫があるものだけ。数は出さない)。{ items: [{ name, img }] }(画像が無ければ img は "")
+// 種類の一覧(在庫があるものだけ。数は出さない)。{ items: [{ name, img, rare }] }(画像が無ければ img は "")
 function doGet() {
   return json(withLock(() => {
     const folder = readFolderImageIds();
     const items = readPrizes().filter(p => p.stock > 0).map(p => ({
       name: p.name,
-      img: p.img ? toImageUrl(p.img) : (folder[p.name] ? thumbUrl(folder[p.name]) : "")
+      img: p.img ? toImageUrl(p.img) : (folder[p.name] ? thumbUrl(folder[p.name]) : ""),
+      rare: p.rare
     }));
     return { items };
   }));
@@ -150,7 +151,7 @@ function usedCodes() {
 
 function readPrizes() {
   return values(sheet(PRIZE_SHEET))
-    .map((r, i) => ({ row: i + 2, name: String(r[0]).trim(), stock: Math.max(0, Math.floor(Number(r[1]) || 0)), img: String(r[2]).trim() }))
+    .map((r, i) => ({ row: i + 2, name: String(r[0]).trim(), stock: Math.max(0, Math.floor(Number(r[1]) || 0)), img: String(r[2]).trim(), rare: /^[○〇◯]$/.test(String(r[3]).trim()) }))
     .filter(p => p.name);
 }
 

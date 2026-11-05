@@ -18,7 +18,29 @@
 .step > h2 { margin: 0; }
 .prizes { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
 /* 景品 1つ = 四角い下地の中に、上は画像、下は名前のボタン */
-.prize { display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; min-width: 0; padding: 6px; background: var(--tint); }
+.prize { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; min-width: 0; padding: 6px; background: var(--tint); }
+/* レアの札:画像の右上に、少しななめに。金ぴかの字(キットに金色が無いので、このページで色を決める) */
+.rare-badge {
+  --gold-hi: #fff6c2;
+  --gold: #f2c230;
+  --gold-lo: #b07a10;
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 1;
+  transform: rotate(14deg);
+  transform-origin: 30% 100%;
+  animation: rareSpring 2.4s ease-out infinite;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  background: linear-gradient(160deg, var(--gold-hi) 0%, var(--gold) 35%, var(--gold-lo) 55%, var(--gold) 70%, var(--gold-hi) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 var(--gold-lo)) drop-shadow(0 0 2px var(--box));
+  pointer-events: none;
+}
 .prize .prize-img { background: none; }
 /* 景品のボタン(パーツメーカーで作った形。枠線なし・ぷっくり影・浮く・沈む) */
 .ub-prize {
@@ -36,7 +58,21 @@
 .add-code { align-self: stretch; }
 .sub { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); text-align: center; }
 .hits { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 160px)); justify-content: center; gap: 10px; }
-.hits li { display: flex; flex-direction: column; align-items: center; gap: 2px; animation: popIn .6s cubic-bezier(.3, 1.6, .5, 1) both; }
+/* ばねをはじいたように:大きく揺れて、だんだん小さくなって止まる → 少し休んで、くり返す */
+@keyframes rareSpring {
+  0% { transform: rotate(14deg); }
+  6% { transform: rotate(34deg); }
+  13% { transform: rotate(-2deg); }
+  20% { transform: rotate(26deg); }
+  27% { transform: rotate(5deg); }
+  34% { transform: rotate(20deg); }
+  41% { transform: rotate(10deg); }
+  48% { transform: rotate(16deg); }
+  55%, 100% { transform: rotate(14deg); }
+}
+/* 画像と、その右上の角に乗るレアの札 */
+.pic { position: relative; display: block; width: 100%; }
+.hits li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; animation: popIn .6s cubic-bezier(.3, 1.6, .5, 1) both; }
 .hits .code { font-size: 12px; font-weight: 700; color: var(--muted); }
 .hits .name { font-size: 20px; font-weight: 700; color: var(--accent); text-align: center; }
 .hits.small { grid-template-columns: repeat(auto-fit, minmax(90px, 110px)); }
@@ -113,7 +149,7 @@ textarea { resize: vertical; }
 <script src="ui/site-header.js" defer></script>
 <script>
 // keychain-lottery_api.gs をデプロイしたウェブアプリの URL
-const API_URL = "https://script.google.com/macros/s/AKfycbwQ4mvRi7Qz9fDhLS52IUuDyyVuhFyo3gws0eN-tZNe8GB5DlPTfJdonlLqT0ppG-mUfw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxiVurAFqdKairO4Jq-9mNzDSDA-R760mkYF0WaQMWFRqYU1QZle0rOWtrFn8qNPVrY_w/exec";
 // 前に送った氏名・住所(このブラウザの中だけ)
 const SAVE_KEY = "keychain-lottery:address";
 // これまでに送った当たり(このブラウザの中だけ)
@@ -142,6 +178,9 @@ const ERRORS = {
 let codes = [];
 let hits = [];
 const images = {};
+// 種類の名前 → レアか
+const rares = {};
+const RARE_HTML = `<span class="rare-badge">レア！</span>`;
 
 async function api(body) {
   if (!API_URL) return { error: "setup" };
@@ -181,14 +220,17 @@ function loadSaved() {
   }
 }
 
-function imgHtml(name, src) {
+// 画像(レアなら画像の右上の角に札)。画像が無いレアは、札だけ返す(入れ物の右上に出る)
+function imgHtml(name, src, rare) {
   const url = src || images[name];
-  return url ? `<img class="prize-img" src="${esc(url)}" alt="" loading="lazy">` : "";
+  const badge = rare ? RARE_HTML : "";
+  return url ? `<span class="pic"><img class="prize-img" src="${esc(url)}" alt="" loading="lazy">${badge}</span>` : badge;
 }
 
 // h.img があればそれを使う(前に送った分。今は在庫が無くて images に無いこともある)
 function hitHtml(h) {
-  return `<li>${imgHtml(h.result, h.img)}<span class="name">${esc(h.result)}</span><span class="code">${esc(h.code)}</span></li>`;
+  const rare = h.rare !== undefined ? h.rare : rares[h.result];
+  return `<li>${imgHtml(h.result, h.img, rare)}<span class="name">${esc(h.result)}</span><span class="code">${esc(h.code)}</span></li>`;
 }
 
 // このブラウザで送った当たり [{ code, result, img }]
@@ -202,7 +244,7 @@ function loadHistory() {
 }
 
 function addHistory(results) {
-  const list = loadHistory().concat(results.map((r) => ({ code: r.code, result: r.result, img: images[r.result] || "" })));
+  const list = loadHistory().concat(results.map((r) => ({ code: r.code, result: r.result, img: images[r.result] || "", rare: !!rares[r.result] })));
   try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); } catch (err) { /* 覚えられなくても送れている */ }
   return list;
 }
@@ -215,9 +257,12 @@ async function loadItems() {
     showErr($("drawErr"), data);
     return;
   }
-  data.items.forEach((it) => { images[it.name] = it.img; });
+  data.items.forEach((it) => {
+    images[it.name] = it.img;
+    rares[it.name] = !!it.rare;
+  });
   $("items").innerHTML = data.items.length
-    ? data.items.map((it) => `<div class="prize">${imgHtml(it.name)}<button type="button" class="ub ub--sh-puffy ub--hover-lift ub--press-sink ub-prize">${esc(it.name)}</button></div>`).join("")
+    ? data.items.map((it) => `<div class="prize">${imgHtml(it.name, "", it.rare)}<button type="button" class="ub ub--sh-puffy ub--hover-lift ub--press-sink ub-prize">${esc(it.name)}</button></div>`).join("")
     : `<span class="hint">${esc(ERRORS.empty)}</span>`;
 }
 
