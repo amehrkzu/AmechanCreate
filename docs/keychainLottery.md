@@ -14,7 +14,7 @@
 - キーで動くものは作らない(コードの欄・郵便番号の欄の Enter では何も起きない。ユーザーの希望)
 
 ## しくみ
-- 画像:「景品」の C 列(ドライブの共有リンク → サムネイルの URL `toImageUrl`。ほかの URL はそのまま)を先に使い、無ければ `IMAGE_FOLDER_ID` のフォルダの「種類の名前.png」など(`readFolderImageIds`。拡張子なしでも合う)。大きさは `IMAGE_SIZE`。`doGet` が `{ items: [{ name, img }] }` で返し、ページは `images`(名前 → URL)に覚えて当たりにも使う。キャラクター紹介の `profile_api.gs` と同じ形
+- 画像:「景品」の C 列(ドライブの共有リンク → サムネイルの URL `toImageUrl`。ほかの URL はそのまま)を先に使い、無ければ `IMAGE_FOLDER_ID` のフォルダの「種類の名前.png」など(`readFolderImageIds`。拡張子なしでも合う)。大きさは `IMAGE_SIZE`。`doGet` が `{ items: [{ name, img }] }` で返し、ページは `images`(名前 → URL)に覚えて当たりにも使う。ドライブのサムネイルは透けた部分が黒くなる(らしい)ので、ページの `fullImage` が `drive.google.com/thumbnail?id=ID` を元の画像 `lh3.googleusercontent.com/d/ID=s0` に書きかえて出す(gs は変えない。重くなる。ユーザーが選んだ)。キャラクター紹介の `profile_api.gs` と同じ形
 - レア:「景品」の D 列が「○」(〇・◯ も可)ならレア(`readPrizes` の `rare`)。`doGet` が `rare` も返し、ページは `rares`(名前 → レアか)に覚える。景品の一覧・当たり・「受け付けました」で、画像そのものの右上の角(`imgHtml` が画像と札を `.pic` に入れる。画像が無ければ `.prize`・`.hits li` の右上)に、少し傾けた金ぴかの「レア！」(`.rare-badge`・`RARE_HTML`。金色はキットに無いのでページで `--gold` などを決める)。札は、ばねをはじいたように揺れて止まる → 少し休む、をくり返す(`rareSpring`。2.4 秒)。送った記録(`HISTORY_KEY`)にも `rare` を残す
 - スプレッドシートのシート:「景品」(種類・在庫数・画像・レア)・「コード」(引換コード)・「応募」(最後に送った日時・氏名・住所・コード・当たり)。無いシートは `withLock` が見出しつきで作る
 - 「応募」は1人1行。氏名と住所が両方同じなら同じ人として、コードと当たりを「、」でつないで足す(`SEP`。空白のちがいは `cleanText` でそろえる)。住所がちがえば別の行
@@ -26,6 +26,10 @@
 - 郵便番号:欄の右の「住所検索」(`#zipBtn`)を押したときだけ(欄の Enter では調べない)、`lookupZip` が zipcloud(`ZIP_API`。郵便番号だけ送る)で調べ、都道府県・市区町村と町名を入れて番地の欄へ移る(入れただけで勝手に変わるのはいや、とユーザー)。全角の数字も読む(`zipDigits`)。7けたでない・見つからないときは `#zipMsg`(`zipMsg`)に出す
 - 住所の欄は分けているが、gs には1つの文字にまとめて送る(`〒123-4567 都道府県市区町村番地 建物名`)。gs と「応募」の列は変えていない(デプロイを減らすため)
 - ページ:`API_URL`・`api`(POST は text/plain の JSON。Google の CORS を通すため)・`ERRORS`・`loadItems`・`addCodeRow`・`renderCodeRows`(✕ とボタンの文字)・`readCodes`(空の欄・同じコードは除く)・`draw`・`send`・`readForm`・`lookupZip`・`loadSaved`・`imgHtml`・`hitHtml`・`show`(画面の切りかえ)。状態は `codes`・`hits`・`images`
+
+## やること
+- LH1 の画像が「リンクを知っている全員」で共有されていない(ほかの人には出ない)。共有してもらったら、`fullImage` で透けたまま出るか確かめる(透けた画像ではまだ試していない)
+- 「景品」シートに同じ種類が2回ずつある(レアなしとレアあり)。わざとか聞く
 
 ## 確認のしかた
 - `keychain-lottery_api.gs`:node の `vm` で、SpreadsheetApp・LockService・PropertiesService・ContentService のにせものを作って `doGet` / `doPost` を呼ぶ(在庫で確率が変わるか・まとめて引いても在庫を超えないか・同じ人の行にまとまるか・`gone`)

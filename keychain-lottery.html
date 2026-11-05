@@ -220,9 +220,15 @@ function loadSaved() {
   }
 }
 
+// ドライブのサムネイルは透けた部分が黒くなるので、元の画像の URL にする(gs は変えない)。ほかの URL はそのまま
+function fullImage(url) {
+  const m = String(url || "").match(/^https:\/\/drive\.google\.com\/thumbnail\?id=([\w-]+)/);
+  return m ? `https://lh3.googleusercontent.com/d/${m[1]}=s0` : url;
+}
+
 // 画像(レアなら画像の右上の角に札)。画像が無いレアは、札だけ返す(入れ物の右上に出る)
 function imgHtml(name, src, rare) {
-  const url = src || images[name];
+  const url = fullImage(src || images[name]);
   const badge = rare ? RARE_HTML : "";
   return url ? `<span class="pic"><img class="prize-img" src="${esc(url)}" alt="" loading="lazy">${badge}</span>` : badge;
 }
