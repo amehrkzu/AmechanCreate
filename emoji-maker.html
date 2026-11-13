@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="ja" data-theme="mikan">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>絵文字メーカー</title>
+<link rel="icon" type="image/png" href="Icon.png">
+<link rel="stylesheet" href="ui/scrollbar.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap">
+<!-- 絵文字の文字に使うフォント(使う字の分だけ読み込まれる) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@900&family=Noto+Serif+JP:wght@900&family=Dela+Gothic+One&family=Zen+Maru+Gothic:wght@900&family=RocknRoll+One&family=Reggae+One&family=Kaisei+Decol:wght@700&family=Yusei+Magic&family=Hachi+Maru+Pop&family=DotGothic16&display=swap">
+<link rel="stylesheet" href="ui/kit.css">
+<link rel="stylesheet" href="ui/layer-drawer.css">
+<style>
+/* このページだけの並べ方。部品の見た目は ui/kit.css */
+body { font-size: 14px; }
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  max-width: 2000px;
+  margin: 0 auto;
+}
+@media (min-width: 1000px) { .app { grid-template-columns: 280px minmax(0, 1fr) 320px; } }
+
+/* 左:追加と階層 */
+.add-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.layer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.layer-list li { display: flex; align-items: center; gap: 6px; padding: 2px 6px; border: 2px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 13px; user-select: none; -webkit-user-select: none; }
+.layer-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer-list .tag { flex-shrink: 0; font-size: 10px; color: #fff; background: var(--ink); border-radius: 6px; padding: 0 5px; }
+
+/* 真ん中:編集の枠と、ディスコードでの見え方 */
+.stage { display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
+.canvas-wrap {
+  width: min(100%, 448px);
+  aspect-ratio: 1;
+  border: var(--border) solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 4px 0 var(--ink-soft);
+  overflow: hidden;
+  /* 透明がすけて見える市松模様 */
+  background: repeating-conic-gradient(#e8ddd3 0 25%, #fff 0 50%) 0 0 / 28px 28px;
+}
+.canvas-wrap canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: move; }
+.previews { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; width: 100%; max-width: 900px; }
+.dc {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+  padding: 14px 16px;
+  border: var(--border) solid var(--ink);
+  border-radius: 12px;
+  font-family: "gg sans", "Noto Sans JP", sans-serif;
+  font-size: 16px;
+  line-height: 1.375;
+}
+.dc--dark { background: #313338; color: #dbdee1; }
+.dc--light { background: #fff; color: #313338; }
+.dc-label { margin: 0 0 4px; font-size: 11px; font-weight: 700; opacity: .6; }
+.dc-msg { margin: 0; }
+/* ディスコードの大きさ:文の中は 22px(1.375em)、絵文字だけのときは 48px */
+.emo { object-fit: contain; }
+.emo--s { width: 22px; height: 22px; vertical-align: bottom; margin: 0 1px; }
+.emo--l { display: block; width: 48px; height: 48px; }
+
+/* 右:詳細・書き出し */
+.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel .field + .field, .panel .field + .fields, .panel .fields + .field, .panel .tabs + .field { margin-top: 10px; }
+.panel .fields > .field + .field { margin-top: 0; }
+.sub { margin: 12px 0 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.range-row { display: flex; align-items: center; gap: 8px; }
+.range-row input[type="range"] { flex: 1; min-width: 0; }
+.range-row input[type="number"] { width: 76px; }
+.panel .actions { margin-top: 12px; }
+.info { margin: 8px 0 0; font-size: 13px; font-weight: 700; }
+</style>
+<script src="ui/site-header.js" defer></script>
+</head>
+<body class="bg-dots">
+<header class="topbar top" data-site-bar>
+  <h1>絵文字メーカー</h1>
+</header>
+
+<main class="app">
+  <aside class="layer-drawer" id="layerDrawer" aria-label="レイヤー">
+    <section class="box">
+      <h2>追加</h2>
+      <div class="add-list">
+        <button type="button" class="btn btn--small" id="addText">文字</button>
+        <label class="btn btn--small">画像<input id="addImage" type="file" accept="image/*" hidden></label>
+      </div>
+      <h2 class="next">階層</h2>
+      <ul class="layer-list" id="layers"></ul>
+    </section>
+    <button type="button" class="layer-handle" id="layerHandle" aria-controls="layerDrawer" aria-expanded="false">☂ レイヤー</button>
+  </aside>
+
+  <section class="stage">
+    <div class="canvas-wrap">
+      <canvas id="view" width="512" height="512" aria-label="絵文字の編集"></canvas>
+    </div>
+    <div class="previews">
+      <div class="dc dc--dark">
+        <div><p class="dc-label">文中</p><p class="dc-msg">いいね <img class="emo emo--s" data-emo alt=":emoji:"> ありがとう</p></div>
+        <div><p class="dc-label">単体</p><img class="emo emo--l" data-emo alt=":emoji:"></div>
+      </div>
+      <div class="dc dc--light">
+        <div><p class="dc-label">文中</p><p class="dc-msg">いいね <img class="emo emo--s" data-emo alt=":emoji:"> ありがとう</p></div>
+        <div><p class="dc-label">単体</p><img class="emo emo--l" data-emo alt=":emoji:"></div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="right-drawer" id="rightDrawer" aria-label="詳細">
+  <div class="right-tabs" role="tablist" aria-label="詳細の切り替え"><button type="button" role="tab" data-tab="sel" style="--c:#ffcf9f">詳細</button><button type="button" role="tab" data-tab="out" style="--c:#bdeccd">書き出し</button></div>
+  <div class="panel">
+    <section class="box" data-panel="sel">
+      <h2>詳細</h2>
+      <p class="hint" id="selNone">えらんでいません</p>
+      <div id="selText" hidden>
+        <label class="field"><span>文字</span><textarea id="fText" rows="2"></textarea></label>
+        <p class="sub">並べ方</p>
+        <div class="tabs" id="modeTabs">
+          <button type="button" class="tab" data-mode="auto">自動で正方形</button>
+          <button type="button" class="tab" data-mode="line">改行のまま</button>
+        </div>
+        <label class="field"><span>フォント</span><select id="fFont"></select></label>
+        <div class="fields">
+          <label class="field"><span>文字の色</span><input id="fColor" type="color"></label>
+          <label class="field"><span>縁取りの色</span><input id="fStroke" type="color"></label>
+        </div>
+        <p class="sub">縁取りの太さ</p>
+        <div class="range-row">
+          <input id="fStrokeW" type="range" min="0" max="16" step="0.5" aria-label="縁取りの太さ">
+          <input id="fStrokeWNum" type="number" min="0" max="16" step="0.5" aria-label="縁取りの太さ">
+        </div>
+      </div>
+      <div id="selCommon" hidden>
+        <p class="sub">大きさ(%)</p>
+        <div class="range-row">
+          <input id="fScale" type="range" min="10" max="300" step="1" aria-label="大きさ">
+          <input id="fScaleNum" type="number" min="10" max="300" step="1" aria-label="大きさ">
+        </div>
+        <div class="fields" style="margin-top:10px">
+          <label class="field"><span>横(x)</span><input id="fX" type="number" step="1"></label>
+          <label class="field"><span>縦(y)</span><input id="fY" type="number" step="1"></label>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn btn--small" id="fBack" title="ひとつ奥へ">▲ 奥へ</button>
+          <button type="button" class="btn btn--small" id="fFront" title="ひとつ手前へ">▼ 手前へ</button>
+          <button type="button" class="btn btn--small btn--danger" id="fDel">消す</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="box" data-panel="out">
+      <h2>書き出し</h2>
+      <label class="field field--check"><input id="bgOn" type="checkbox"> 背景を塗る</label>
+      <label class="field"><span>背景の色</span><input id="bgColor" type="color"></label>
+      <label class="field"><span>ファイル名</span><input id="fileName" type="text" placeholder="emoji"></label>
+      <div class="actions">
+        <button type="button" class="btn btn--primary btn--block" id="savePng">PNG で保存</button>
+      </div>
+      <p class="info" id="outInfo"></p>
+      <p class="status status--error" id="status" role="status"></p>
+    </section>
+  </div>
+  <button type="button" class="right-handle" id="rightHandle" aria-controls="rightDrawer" aria-expanded="false">✿ 詳細</button>
+  </aside>
+</main>
+
+<script src="ui/layer-drawer.js"></script>
+<script src="ui/util.js"></script>
+<script>
+"use strict";
+const SIZE = 128; // ディスコードの絵文字の大きさ(px)
+const LIMIT = 256 * 1024; // ディスコードに上げられるファイルの大きさ
+const VIEW = 512; // 編集の枠に描く大きさ
+const UNIT = 100; // 文字を並べるときの1文字の大きさ(あとで枠に合わせて縮める)
+const IMAGE_MAX = 512; // 読み込んだ画像は、この大きさまで縮めて持つ
+const KEY = "emojimaker:v1";
+const FONTS = [
+  { name: "まるゴシック", family: "M PLUS Rounded 1c", weight: 800 },
+  { name: "ゴシック", family: "Noto Sans JP", weight: 900 },
+  { name: "明朝", family: "Noto Serif JP", weight: 900 },
+  { name: "デラゴシック", family: "Dela Gothic One", weight: 400 },
+  { name: "ぜんまる", family: "Zen Maru Gothic", weight: 900 },
+  { name: "ロックンロール", family: "RocknRoll One", weight: 400 },
+  { name: "レゲエ", family: "Reggae One", weight: 400 },
+  { name: "かいせいデコール", family: "Kaisei Decol", weight: 700 },
+  { name: "ゆせいマジック", family: "Yusei Magic", weight: 400 },
+  { name: "はちまるポップ", family: "Hachi Maru Pop", weight: 400 },
+  { name: "ドット", family: "DotGothic16", weight: 400 }
+];
+
+// ---------- 状態 ----------
+let layers = []; // 0 がいちばん奥
+let selId = null;
+let nextId = 1;
+let bg = { on: false, color: "#ffffff" };
+let fileName = "";
+let drag = null;
+let drawQueued = false;
+let lastUrl = "";
+
+const view = $("view");
+const vctx = view.getContext("2d");
+const out = document.createElement("canvas");
+out.width = SIZE;
+out.height = SIZE;
+const octx = out.getContext("2d");
+
+const sel = () => layers.find((l) => l.id === selId) || null;
+const fontOf = (name) => FONTS.find((f) => f.name === name) || FONTS[0];
+const fontSpec = (f) => `${f.weight} ${UNIT}px "${f.family}", "M PLUS Rounded 1c", sans-serif`;
+
+// ---------- 描く ----------
+// 文字の行:自動で正方形なら字を正方形に近いマスに分ける。改行のままなら行ごと
+function textRows(l) {
+  if (l.mode === "auto") {
+    const chars = [...l.text.replace(/\s/g, "")];
+    if (!chars.length) return { rows: [], cols: 0 };
+    const cols = Math.ceil(Math.sqrt(chars.length));
+    const rows = [];
+    for (let i = 0; i < chars.length; i += cols) rows.push(chars.slice(i, i + cols));
+    return { rows, cols };
+  }
+  const rows = l.text.split("\n");
+  return { rows: rows.some((r) => r.trim()) ? rows : [], cols: 0 };
+}
+
+// まだ読み込んでいないフォントは読み込んでから描き直す
+const fontLoading = new Set();
+function needFont(f, text) {
+  const spec = fontSpec(f);
+  if (document.fonts.check(spec, text)) return;
+  const k = spec + text;
+  if (fontLoading.has(k)) return;
+  fontLoading.add(k);
+  document.fonts.load(spec, text).then(requestDraw, () => {});
+}
+
+function drawText(ctx, l) {
+  const { rows, cols } = textRows(l);
+  if (!rows.length) return null;
+  const f = fontOf(l.font);
+  needFont(f, l.text);
+  ctx.font = fontSpec(f);
+  const m = ctx.measureText("あ");
+  const asc = m.fontBoundingBoxAscent ?? UNIT * 0.88;
+  const desc = m.fontBoundingBoxDescent ?? UNIT * 0.12;
+  const base = UNIT / 2 + (asc - desc) / 2; // 1文字の箱のまん中に字が来る位置
+  const W = l.mode === "auto" ? cols * UNIT : Math.max(...rows.map((r) => ctx.measureText(r).width), 1);
+  const H = rows.length * UNIT;
+  const sw = l.strokeW;
+  const box = SIZE * l.scale / 100;
+  const k = Math.max(box - sw * 2, 1) / Math.max(W, H);
+  const put = (fn) => rows.forEach((row, i) => {
+    const y = i * UNIT + base;
+    if (l.mode === "auto") row.forEach((ch, j) => fn(ch, (j + (cols - row.length) / 2) * UNIT + UNIT / 2, y));
+    else fn(row, W / 2, y);
+  });
+  ctx.save();
+  ctx.translate(l.x, l.y);
+  ctx.scale(k, k);
+  ctx.translate(-W / 2, -H / 2);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  if (sw > 0) {
+    // 縁取りを先に全部描いてから字を塗る(となりの字の縁取りが字にかぶらないように)
+    ctx.lineJoin = "round";
+    ctx.lineWidth = sw * 2 / k;
+    ctx.strokeStyle = l.stroke;
+    put((t, x, y) => ctx.strokeText(t, x, y));
+  }
+  ctx.fillStyle = l.color;
+  put((t, x, y) => ctx.fillText(t, x, y));
+  ctx.restore();
+  const w = W * k + sw * 2;
+  const h = H * k + sw * 2;
+  return { x0: l.x - w / 2, y0: l.y - h / 2, x1: l.x + w / 2, y1: l.y + h / 2 };
+}
+
+function drawImage(ctx, l) {
+  if (!l.img) return null;
+  const iw = l.img.naturalWidth;
+  const ih = l.img.naturalHeight;
+  const k = SIZE * l.scale / 100 / Math.max(iw, ih);
+  const w = iw * k;
+  const h = ih * k;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(l.img, l.x - w / 2, l.y - h / 2, w, h);
+  return { x0: l.x - w / 2, y0: l.y - h / 2, x1: l.x + w / 2, y1: l.y + h / 2 };
+}
+
+// S px の正方形に描く(中の座標はいつも 128 × 128)
+function draw(ctx, S, showSel) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, S, S);
+  const k = S / SIZE;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  if (bg.on) {
+    ctx.fillStyle = bg.color;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+  }
+  for (const l of layers) l.box = l.type === "text" ? drawText(ctx, l) : drawImage(ctx, l);
+  const s = sel();
+  if (showSel && s && s.box) {
+    ctx.setLineDash([4 / k, 3 / k]);
+    ctx.lineWidth = 1.5 / k;
+    ctx.strokeStyle = "#ff8a3d";
+    ctx.strokeRect(s.box.x0, s.box.y0, s.box.x1 - s.box.x0, s.box.y1 - s.box.y0);
+    ctx.setLineDash([]);
+  }
+}
+
+function requestDraw() {
+  if (drawQueued) return;
+  drawQueued = true;
+  requestAnimationFrame(() => {
+    drawQueued = false;
+    draw(vctx, VIEW, true);
+    draw(octx, SIZE, false);
+    out.toBlob((blob) => {
+      if (!blob) return;
+      if (lastUrl) URL.revokeObjectURL(lastUrl);
+      lastUrl = URL.createObjectURL(blob);
+      document.querySelectorAll("[data-emo]").forEach((img) => { img.src = lastUrl; });
+      $("outInfo").textContent = `${SIZE} × ${SIZE}・${(blob.size / 1024).toFixed(1)}KB`;
+      $("status").textContent = blob.size > LIMIT ? "256KB をこえています(ディスコードに上げられません)" : "";
+    }, "image/png");
+  });
+}
+
+// ---------- 覚える(このタブを開いている間だけ) ----------
+function save() {
+  const data = {
+    layers: layers.map(({ img, box, ...rest }) => rest),
+    selId,
+    nextId,
+    bg,
+    fileName
+  };
+  try {
+    sessionStorage.setItem(KEY, JSON.stringify(data));
+  } catch {
+    // 画像が大きくて入りきらないときは、画像を外して覚える
+    try {
+      data.layers = data.layers.filter((l) => l.type !== "image");
+      sessionStorage.setItem(KEY, JSON.stringify(data));
+    } catch {}
+  }
+}
+
+async function load() {
+  let data = null;
+  try {
+    data = JSON.parse(sessionStorage.getItem(KEY) || "null");
+  } catch {}
+  if (!data) {
+    addText();
+    refresh();
+    return;
+  }
+  layers = data.layers || [];
+  selId = data.selId ?? null;
+  nextId = data.nextId || layers.length + 1;
+  bg = data.bg || bg;
+  fileName = data.fileName || "";
+  await Promise.all(layers.filter((l) => l.type === "image").map(async (l) => {
+    l.img = new Image();
+    l.img.src = l.src;
+    try {
+      await l.img.decode();
+    } catch {}
+  }));
+  refresh();
+}
+
+// ---------- レイヤー ----------
+function layerName(l) {
+  if (l.type === "image") return l.name || "画像";
+  return l.text.replace(/\s+/g, " ").trim() || "(空)";
+}
+
+function renderList() {
+  $("layers").innerHTML = [...layers].reverse().map((l) =>
+    `<li data-id="${l.id}"${l.id === selId ? ' class="on"' : ""}><span class="tag">${l.type === "text" ? "文字" : "画像"}</span><span class="name">${esc(layerName(l))}</span></li>`
+  ).join("");
+}
+
+function renderFields() {
+  const s = sel();
+  $("selNone").hidden = !!s;
+  $("selCommon").hidden = !s;
+  $("selText").hidden = !s || s.type !== "text";
+  if (!s) return;
+  if (s.type === "text") {
+    if (document.activeElement !== $("fText")) $("fText").value = s.text;
+    document.querySelectorAll("#modeTabs .tab").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === s.mode)));
+    $("fFont").value = s.font;
+    $("fColor").value = s.color;
+    $("fStroke").value = s.stroke;
+    $("fStrokeW").value = s.strokeW;
+    $("fStrokeWNum").value = s.strokeW;
+  }
+  $("fScale").value = s.scale;
+  $("fScaleNum").value = s.scale;
+  $("fX").value = Math.round(s.x);
+  $("fY").value = Math.round(s.y);
+}
+
+function refresh() {
+  renderList();
+  renderFields();
+  $("bgOn").checked = bg.on;
+  $("bgColor").value = bg.color;
+  $("fileName").value = fileName;
+  requestDraw();
+}
+
+function select(id) {
+  selId = id;
+  renderList();
+  renderFields();
+  requestDraw();
+  save();
+}
+
+function addLayer(l) {
+  l.id = nextId++;
+  layers.push(l);
+  select(l.id);
+}
+
+function addText() {
+  addLayer({ type: "text", text: "あめ", mode: "auto", font: FONTS[0].name, color: "#ff8a3d", stroke: "#ffffff", strokeW: 4, x: SIZE / 2, y: SIZE / 2, scale: 100 });
+}
+
+async function addImageFile(file) {
+  if (!file || !/^image\//.test(file.type)) return;
+  const url = URL.createObjectURL(file);
+  const src = new Image();
+  src.src = url;
+  try {
+    await src.decode();
+  } catch {
+    URL.revokeObjectURL(url);
+    toast("画像を読み込めませんでした");
+    return;
+  }
+  // 大きい画像は縮めて持つ(書き出しは 128px なので、これで足りる)
+  const k = Math.min(1, IMAGE_MAX / Math.max(src.naturalWidth, src.naturalHeight));
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(src.naturalWidth * k));
+  c.height = Math.max(1, Math.round(src.naturalHeight * k));
+  const cx = c.getContext("2d");
+  cx.imageSmoothingQuality = "high";
+  cx.drawImage(src, 0, 0, c.width, c.height);
+  URL.revokeObjectURL(url);
+  const l = { type: "image", name: file.name.replace(/\.[^.]+$/, ""), src: c.toDataURL("image/png"), x: SIZE / 2, y: SIZE / 2, scale: 100 };
+  l.img = new Image();
+  l.img.src = l.src;
+  await l.img.decode();
+  addLayer(l);
+}
+
+// 選んでいるレイヤーの値を変える
+function change(fn) {
+  const s = sel();
+  if (!s) return;
+  fn(s);
+  renderList();
+  renderFields();
+  requestDraw();
+  save();
+}
+
+// ---------- 画面の操作 ----------
+$("addText").addEventListener("click", addText);
+$("addImage").addEventListener("change", (e) => {
+  addImageFile(e.target.files[0]);
+  e.target.value = "";
+});
+$("layers").addEventListener("click", (e) => {
+  const li = e.target.closest("li[data-id]");
+  if (li) select(Number(li.dataset.id));
+});
+
+$("fFont").innerHTML = FONTS.map((f) => `<option value="${esc(f.name)}" style="font-family:'${f.family}';font-weight:${f.weight}">${esc(f.name)}</option>`).join("");
+$("fText").addEventListener("input", (e) => change((s) => { s.text = e.target.value; }));
+document.querySelectorAll("#modeTabs .tab").forEach((b) => b.addEventListener("click", () => change((s) => { s.mode = b.dataset.mode; })));
+$("fFont").addEventListener("change", (e) => change((s) => { s.font = e.target.value; }));
+$("fColor").addEventListener("input", (e) => change((s) => { s.color = e.target.value; }));
+$("fStroke").addEventListener("input", (e) => change((s) => { s.stroke = e.target.value; }));
+const num = (v, lo, hi, d) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d;
+};
+["fStrokeW", "fStrokeWNum"].forEach((id) => $(id).addEventListener("input", (e) => change((s) => { s.strokeW = num(e.target.value, 0, 16, s.strokeW); })));
+["fScale", "fScaleNum"].forEach((id) => $(id).addEventListener("input", (e) => change((s) => { s.scale = num(e.target.value, 10, 300, s.scale); })));
+$("fX").addEventListener("input", (e) => change((s) => { s.x = num(e.target.value, -SIZE, SIZE * 2, s.x); }));
+$("fY").addEventListener("input", (e) => change((s) => { s.y = num(e.target.value, -SIZE, SIZE * 2, s.y); }));
+
+function move(d) {
+  const i = layers.findIndex((l) => l.id === selId);
+  const j = i + d;
+  if (i < 0 || j < 0 || j >= layers.length) return;
+  [layers[i], layers[j]] = [layers[j], layers[i]];
+  change(() => {});
+}
+$("fBack").addEventListener("click", () => move(-1));
+$("fFront").addEventListener("click", () => move(1));
+$("fDel").addEventListener("click", () => {
+  layers = layers.filter((l) => l.id !== selId);
+  select(null);
+});
+
+$("bgOn").addEventListener("change", (e) => {
+  bg.on = e.target.checked;
+  requestDraw();
+  save();
+});
+$("bgColor").addEventListener("input", (e) => {
+  bg.color = e.target.value;
+  requestDraw();
+  save();
+});
+$("fileName").addEventListener("input", (e) => {
+  fileName = e.target.value;
+  save();
+});
+$("savePng").addEventListener("click", () => {
+  draw(octx, SIZE, false);
+  out.toBlob((blob) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(fileName.trim() || "emoji").replace(/[\\/:*?"<>|]/g, "_")}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }, "image/png");
+});
+
+// 枠の上でドラッグして動かす
+function toPos(e) {
+  const r = view.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width * SIZE, y: (e.clientY - r.top) / r.height * SIZE };
+}
+const inside = (p, b) => b && p.x >= b.x0 && p.x <= b.x1 && p.y >= b.y0 && p.y <= b.y1;
+view.addEventListener("pointerdown", (e) => {
+  const p = toPos(e);
+  const s = sel();
+  const hit = s && inside(p, s.box) ? s : [...layers].reverse().find((l) => inside(p, l.box));
+  if (!hit) {
+    select(null);
+    return;
+  }
+  if (hit.id !== selId) select(hit.id);
+  drag = { dx: hit.x - p.x, dy: hit.y - p.y };
+  view.setPointerCapture(e.pointerId);
+});
+view.addEventListener("pointermove", (e) => {
+  const s = sel();
+  if (!drag || !s) return;
+  const p = toPos(e);
+  s.x = Math.round(p.x + drag.dx);
+  s.y = Math.round(p.y + drag.dy);
+  $("fX").value = s.x;
+  $("fY").value = s.y;
+  requestDraw();
+});
+const endDrag = () => {
+  if (!drag) return;
+  drag = null;
+  save();
+};
+view.addEventListener("pointerup", endDrag);
+view.addEventListener("pointercancel", endDrag);
+
+// 画像のドロップ・貼り付け(Ctrl+V)
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", (e) => {
+  e.preventDefault();
+  addImageFile([...e.dataTransfer.files].find((f) => /^image\//.test(f.type)));
+});
+document.addEventListener("paste", (e) => {
+  const item = [...(e.clipboardData?.items || [])].find((it) => /^image\//.test(it.type));
+  if (!item) return;
+  e.preventDefault();
+  addImageFile(item.getAsFile());
+});
+
+load();
+</script>
+</body>
+</html>

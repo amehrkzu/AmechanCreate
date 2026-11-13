@@ -45,6 +45,7 @@ const DOC_MAP = [
   [/^dot-convert\.html$/, "docs/dotConvert.md"],
   [/^layout-maker\.html$/, "docs/layoutMaker.md"],
   [/^raid-sim\.html$/, "docs/raidSim.md"],
+  [/^emoji-maker\.html$/, "docs/emojiMaker.md"],
   [/^download\//, "docs/Download.md"],
   [/^backlog\.html$/, "docs/BacklogView.md"],
   [/^keychain-lottery(\.html|_api\.gs)$/, "docs/keychainLottery.md"],

@@ -1,6 +1,6 @@
 # 全体規約(基盤)— 必ず読む
 
-最終更新:2026-11-05
+最終更新:2026-11-13
 
 ## このサイト
 - 「あめちゃんもの置き」:ユーザー(あめちゃん)が個人で楽しむためのサイト。FF14 のキャラ紹介と、自作ツールを置いている
@@ -20,6 +20,7 @@
 | ドット変換 | `dot-convert.html` | ツール系 → [dotConvert.md](dotConvert.md) |
 | レイアウトメーカー | `layout-maker.html` | ツール系 → [layoutMaker.md](layoutMaker.md) |
 | なんちゃってレイドシュミレーター | `raid-sim.html` | ツール系 → [raidSim.md](raidSim.md) |
+| 絵文字メーカー(ディスコード) | `emoji-maker.html` | ツール系 → [emojiMaker.md](emojiMaker.md) |
 | アプリダウンロード | `download/` | ツール系 → [Download.md](Download.md) |
 | バックログ(やること一覧の見える化) | `backlog.html` | その他 → [BacklogView.md](BacklogView.md) |
 | アクキーくじ | `keychain-lottery.html` + `keychain-lottery_api.gs` | その他 → [keychainLottery.md](keychainLottery.md)。トップでは非表示 |
@@ -29,7 +30,7 @@
 ### トップ(index.html)
 - テーマ「そら」。見出しごとにカードを並べる:キャラ / ツール / その他 / 外部リンク
 - キャラ:キャラクター紹介・関係辞典(どちらも「～作成中～」)
-- ツール:キャラカメーカー・パーツメーカー・SVGメーカー・ドット絵メーカー・ドット変換・レイアウトメーカー・なんちゃってレイドシュミレーター(Tシャツは `hidden`)
+- ツール:キャラカメーカー・パーツメーカー・SVGメーカー・ドット絵メーカー・ドット変換・レイアウトメーカー・絵文字メーカー・なんちゃってレイドシュミレーター(Tシャツは `hidden`)
 - その他:HNB・パーツ台帳・アプリダウンロード・バックログ
 - 外部リンク:譜面屋「G Clef.」
 
