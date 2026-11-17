@@ -1,6 +1,6 @@
 # ツール系(基盤)— このサイトのツールに共通
 
-最終更新:2026-11-13
+最終更新:2026-11-17
 
 ## ツール一覧
 | ツール | ファイル | 詳しい md |
@@ -13,6 +13,7 @@
 | レイアウトメーカー | `layout-maker.html` | [layoutMaker.md](layoutMaker.md) |
 | なんちゃってレイドシュミレーター | `raid-sim.html` | [raidSim.md](raidSim.md) |
 | 絵文字メーカー(ディスコード) | `emoji-maker.html` | [emojiMaker.md](emojiMaker.md) |
+| GIFメーカー(動画を切り抜いて GIF) | `gif-maker.html` | [gifMaker.md](gifMaker.md) |
 | アプリダウンロード | `download/` | [Download.md](Download.md) |
 
 ## 共通の決まり

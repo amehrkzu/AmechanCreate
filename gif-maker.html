@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="ja" data-theme="mikan">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GIFメーカー</title>
+<link rel="icon" type="image/png" href="Icon.png">
+<link rel="stylesheet" href="ui/scrollbar.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap">
+<link rel="stylesheet" href="ui/kit.css">
+<style>
+/* このページだけの並べ方。部品の見た目は ui/kit.css */
+body { font-size: 14px; }
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  max-width: 2000px;
+  margin: 0 auto;
+}
+@media (min-width: 1000px) { .app { grid-template-columns: minmax(0, 1fr) 320px; align-items: start; } }
+
+/* 左:動画と切り抜き */
+.stage { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 260px;
+  border: var(--border) dashed var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+.drop.on { border-color: var(--accent); }
+.video-area { display: flex; justify-content: center; }
+/* 動画の大きさに合わせた入れ物。切り抜きの四角を重ねる */
+.video-box { position: relative; overflow: hidden; border: var(--border) solid var(--ink); border-radius: 12px; background: #000; line-height: 0; }
+.video-box video { display: block; max-width: 100%; max-height: 62vh; }
+.crop-layer { position: absolute; inset: 0; touch-action: none; cursor: crosshair; }
+.crop {
+  position: absolute;
+  border: 2px dashed #fff;
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / .5);
+  cursor: move;
+}
+.crop-handle { position: absolute; width: 16px; height: 16px; border: 2px solid var(--ink); border-radius: 50%; background: #fff; }
+.crop-handle[data-h="nw"] { left: -9px; top: -9px; cursor: nwse-resize; }
+.crop-handle[data-h="ne"] { right: -9px; top: -9px; cursor: nesw-resize; }
+.crop-handle[data-h="sw"] { left: -9px; bottom: -9px; cursor: nesw-resize; }
+.crop-handle[data-h="se"] { right: -9px; bottom: -9px; cursor: nwse-resize; }
+
+/* 時間 */
+.time-row { display: flex; align-items: center; gap: 8px; }
+.time-row input[type="range"] { flex: 1; min-width: 0; }
+.time-now { flex-shrink: 0; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.seek-wrap { position: relative; flex: 1; min-width: 0; display: flex; }
+.seek-wrap input { flex: 1; min-width: 0; }
+/* 選んでいる時間(はじめ〜おわり)を、バーの下に色で出す */
+.span-mark { position: absolute; bottom: -6px; height: 5px; border-radius: 3px; background: var(--accent); pointer-events: none; }
+.span-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.span-row .field input { width: 100%; }
+.span-row .btn { margin-top: 6px; }
+
+/* 右:設定・書き出し */
+.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel .field + .field, .panel .field + .fields, .panel .fields + .field, .panel .fields + .fields { margin-top: 10px; }
+.panel .actions { margin-top: 12px; }
+.info { margin: 8px 0 0; font-size: 13px; font-weight: 700; }
+.result { margin-top: 10px; text-align: center; }
+.result img { max-width: 100%; border: 2px solid var(--line); border-radius: 8px; background: repeating-conic-gradient(#e8ddd3 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+.progress { margin-top: 10px; text-align: center; font-size: 13px; font-weight: 700; }
+</style>
+<script src="ui/site-header.js" defer></script>
+</head>
+<body class="bg-dots">
+<header class="topbar top" data-site-bar>
+  <h1>GIFメーカー</h1>
+</header>
+
+<main class="app">
+  <section class="stage">
+    <div class="drop" id="drop">
+      <label class="btn btn--primary">動画を選ぶ<input id="file" type="file" accept="video/*" hidden></label>
+      <p class="hint">動画を選択もしくはドラッグ＆ドロップ</p>
+    </div>
+    <div class="video-area" id="videoArea" hidden>
+      <div class="video-box" id="videoBox">
+        <video id="video" muted playsinline preload="auto"></video>
+        <div class="crop-layer" id="cropLayer">
+          <div class="crop" id="crop">
+            <span class="crop-handle" data-h="nw"></span><span class="crop-handle" data-h="ne"></span>
+            <span class="crop-handle" data-h="sw"></span><span class="crop-handle" data-h="se"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <section class="box" id="timeBox" hidden>
+      <h2>時間</h2>
+      <div class="time-row">
+        <button type="button" class="btn btn--small" id="play">再生</button>
+        <div class="seek-wrap"><input id="seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="再生の位置"><span class="span-mark" id="spanMark"></span></div>
+        <span class="time-now" id="timeNow">0.00 秒</span>
+      </div>
+      <div class="span-row">
+        <div>
+          <label class="field"><span>はじめ(秒)</span><input id="tStart" type="number" min="0" step="0.01"></label>
+          <button type="button" class="btn btn--small" id="setStart">今の位置にする</button>
+        </div>
+        <div>
+          <label class="field"><span>おわり(秒)</span><input id="tEnd" type="number" min="0" step="0.01"></label>
+          <button type="button" class="btn btn--small" id="setEnd">今の位置にする</button>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <div class="panel">
+    <section class="box">
+      <h2>切り抜き</h2>
+      <label class="field"><span>比率</span><select id="ratio">
+        <option value="0">自由</option>
+        <option value="1">1:1</option>
+        <option value="1.3333">4:3</option>
+        <option value="0.75">3:4</option>
+        <option value="1.7778">16:9</option>
+        <option value="0.5625">9:16</option>
+      </select></label>
+      <p class="info" id="cropInfo"></p>
+    </section>
+
+    <section class="box">
+      <h2>GIF</h2>
+      <div class="fields">
+        <label class="field"><span>幅(px)</span><input id="outW" type="number" min="16" max="1920" step="1" value="320"></label>
+        <label class="field"><span>コマ数(1秒)</span><select id="fps"><option>5</option><option>8</option><option selected>10</option><option>12</option><option>15</option><option>20</option><option>24</option><option>30</option></select></label>
+      </div>
+      <div class="fields">
+        <label class="field"><span>速さ</span><select id="speed"><option value="0.5">0.5 倍</option><option value="0.75">0.75 倍</option><option value="1" selected>1 倍</option><option value="1.25">1.25 倍</option><option value="1.5">1.5 倍</option><option value="2">2 倍</option></select></label>
+        <label class="field"><span>色数</span><select id="colors"><option>256</option><option>128</option><option>64</option><option>32</option><option>16</option></select></label>
+      </div>
+      <label class="field"><span>ファイル名</span><input id="fileName" type="text" placeholder="anime"></label>
+      <p class="info" id="plan"></p>
+      <div class="actions">
+        <button type="button" class="btn btn--primary btn--block" id="make" disabled>GIF を作る</button>
+      </div>
+      <div class="progress" id="progress" hidden><span id="progressSpin"></span><span id="progressText"></span></div>
+      <div class="result" id="result" hidden>
+        <img id="resultImg" alt="できた GIF">
+        <p class="info" id="resultInfo"></p>
+        <div class="actions"><button type="button" class="btn btn--block" id="save">保存</button></div>
+      </div>
+      <p class="status status--error" id="status" role="status"></p>
+    </section>
+  </div>
+</main>
+
+<script src="ui/util.js"></script>
+<script>
+"use strict";
+// GIF を作る部品(jsDelivr から。版は固定。絵文字メーカーと同じ)
+const GIFENC_URL = "https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm";
+const MIN_CROP = 8; // 切り抜きのいちばん小さい大きさ(動画の px)
+
+const video = $("video");
+let videoUrl = "";
+let crop = { x: 0, y: 0, w: 0, h: 0 }; // 動画の px
+let span = { start: 0, end: 0 }; // 秒
+let gifLib = null;
+let resultBlob = null;
+let resultUrl = "";
+let making = false;
+
+function loadGifLib() {
+  if (!gifLib) gifLib = import(GIFENC_URL).catch((err) => { gifLib = null; throw err; });
+  return gifLib;
+}
+
+const vw = () => video.videoWidth;
+const vh = () => video.videoHeight;
+const num = (id) => Number($(id).value);
+const ratio = () => num("ratio");
+const speed = () => num("speed");
+const fmt = (s) => s.toFixed(2);
+
+// ---------- 動画を読む ----------
+function openVideo(file) {
+  if (!file || !file.type.startsWith("video/")) {
+    toast("動画のファイルを選んでください");
+    return;
+  }
+  if (videoUrl) URL.revokeObjectURL(videoUrl);
+  videoUrl = URL.createObjectURL(file);
+  video.src = videoUrl;
+  $("fileName").placeholder = file.name.replace(/\.[^.]+$/, "") || "anime";
+}
+video.addEventListener("loadedmetadata", async () => {
+  // ブラウザで録った webm などは長さが分からないことがあるので、いちばん後ろへ飛んで長さを出す
+  if (!Number.isFinite(video.duration)) {
+    await new Promise((resolve) => {
+      video.addEventListener("durationchange", resolve, { once: true });
+      video.currentTime = 1e101;
+    });
+  }
+  $("drop").hidden = true;
+  $("videoArea").hidden = false;
+  $("timeBox").hidden = false;
+  $("make").disabled = false;
+  $("seek").max = String(video.duration);
+  span = { start: 0, end: Math.min(video.duration, 5) };
+  crop = { x: 0, y: 0, w: vw(), h: vh() };
+  if (ratio()) fitRatio();
+  $("outW").value = String(Math.min(320, vw()));
+  clearResult();
+  showSpan();
+  video.currentTime = 0;
+});
+video.addEventListener("error", () => toast("この動画は読み込めませんでした"));
+$("file").addEventListener("change", (e) => {
+  openVideo(e.target.files[0]);
+  e.target.value = "";
+});
+// ドロップはページのどこでもよい
+document.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  $("drop").classList.add("on");
+});
+document.addEventListener("dragleave", () => $("drop").classList.remove("on"));
+document.addEventListener("drop", (e) => {
+  e.preventDefault();
+  $("drop").classList.remove("on");
+  openVideo(e.dataTransfer.files[0]);
+});
+
+// ---------- 時間 ----------
+function showSpan() {
+  $("tStart").value = fmt(span.start);
+  $("tEnd").value = fmt(span.end);
+  $("tStart").max = $("tEnd").max = fmt(video.duration);
+  // 選んでいる時間を、再生の位置のバーに色で出す
+  const d = video.duration || 1;
+  const a = span.start / d * 100;
+  const b = span.end / d * 100;
+  $("spanMark").style.left = `${a}%`;
+  $("spanMark").style.width = `${b - a}%`;
+  showPlan();
+}
+function setSpan(start, end) {
+  const d = video.duration;
+  start = Math.min(Math.max(0, start), d);
+  end = Math.min(Math.max(0, end), d);
+  if (end < start) [start, end] = [end, start];
+  span = { start, end };
+  clearResult();
+  showSpan();
+}
+$("tStart").addEventListener("change", () => setSpan(num("tStart"), span.end));
+$("tEnd").addEventListener("change", () => setSpan(span.start, num("tEnd")));
+$("setStart").addEventListener("click", () => setSpan(video.currentTime, Math.max(span.end, video.currentTime)));
+$("setEnd").addEventListener("click", () => setSpan(Math.min(span.start, video.currentTime), video.currentTime));
+
+$("seek").addEventListener("input", (e) => {
+  video.currentTime = Number(e.target.value);
+});
+$("play").addEventListener("click", () => {
+  if (video.paused) {
+    if (video.currentTime < span.start || video.currentTime >= span.end) video.currentTime = span.start;
+    video.playbackRate = speed();
+    video.play();
+  } else {
+    video.pause();
+  }
+});
+video.addEventListener("play", () => {
+  $("play").textContent = "止める";
+  requestAnimationFrame(loopCheck);
+});
+video.addEventListener("pause", () => { $("play").textContent = "再生"; });
+video.addEventListener("timeupdate", () => {
+  $("seek").value = String(video.currentTime);
+  $("timeNow").textContent = `${fmt(video.currentTime)} 秒`;
+});
+// 再生中は、はじめ〜おわりをくり返す
+function loopCheck() {
+  if (video.paused) return;
+  if (video.currentTime >= span.end || video.ended) {
+    video.currentTime = span.start;
+    if (video.ended) video.play();
+  }
+  requestAnimationFrame(loopCheck);
+}
+
+// ---------- 切り抜き ----------
+function showCrop() {
+  const k = video.clientWidth / vw();
+  const el = $("crop");
+  el.style.left = `${crop.x * k}px`;
+  el.style.top = `${crop.y * k}px`;
+  el.style.width = `${crop.w * k}px`;
+  el.style.height = `${crop.h * k}px`;
+  $("cropInfo").textContent = `${Math.round(crop.w)} × ${Math.round(crop.h)}(動画 ${vw()} × ${vh()})`;
+  showPlan();
+}
+// 比率を選んだら、その比率でいちばん大きい四角を、今の四角のまん中に置く
+function fitRatio() {
+  const r = ratio();
+  if (!r) return;
+  let w = vw();
+  let h = w / r;
+  if (h > vh()) {
+    h = vh();
+    w = h * r;
+  }
+  const cx = crop.x + crop.w / 2;
+  const cy = crop.y + crop.h / 2;
+  crop = { x: clamp(cx - w / 2, 0, vw() - w), y: clamp(cy - h / 2, 0, vh() - h), w, h };
+}
+const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+$("ratio").addEventListener("change", () => {
+  fitRatio();
+  clearResult();
+  showCrop();
+});
+video.addEventListener("loadeddata", showCrop);
+window.addEventListener("resize", () => { if (vw()) showCrop(); });
+new ResizeObserver(() => { if (vw()) showCrop(); }).observe(video);
+
+// ドラッグ:四角の中=動かす、角=大きさを変える、外=新しく囲む
+let drag = null;
+function toVideo(e) {
+  const r = video.getBoundingClientRect();
+  return { x: clamp((e.clientX - r.left) / r.width * vw(), 0, vw()), y: clamp((e.clientY - r.top) / r.height * vh(), 0, vh()) };
+}
+$("cropLayer").addEventListener("pointerdown", (e) => {
+  if (!vw()) return;
+  e.preventDefault();
+  const p = toVideo(e);
+  const h = e.target.dataset.h;
+  if (h) {
+    // つかんだ角の反対の角を止めておく
+    drag = { mode: "size", ax: h.includes("w") ? crop.x + crop.w : crop.x, ay: h.includes("n") ? crop.y + crop.h : crop.y };
+  } else if (e.target === $("crop")) {
+    drag = { mode: "move", dx: p.x - crop.x, dy: p.y - crop.y };
+  } else {
+    drag = { mode: "size", ax: p.x, ay: p.y, fresh: true };
+  }
+  $("cropLayer").setPointerCapture(e.pointerId);
+});
+$("cropLayer").addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = toVideo(e);
+  if (drag.mode === "move") {
+    crop.x = clamp(p.x - drag.dx, 0, vw() - crop.w);
+    crop.y = clamp(p.y - drag.dy, 0, vh() - crop.h);
+  } else {
+    resizeTo(drag.ax, drag.ay, p.x, p.y);
+  }
+  clearResult();
+  showCrop();
+});
+const endDrag = () => { drag = null; };
+$("cropLayer").addEventListener("pointerup", endDrag);
+$("cropLayer").addEventListener("pointercancel", endDrag);
+
+function resizeTo(ax, ay, px, py) {
+  const r = ratio();
+  const east = px >= ax;
+  const south = py >= ay;
+  const maxW = east ? vw() - ax : ax;
+  const maxH = south ? vh() - ay : ay;
+  let w = Math.max(Math.abs(px - ax), MIN_CROP);
+  let h = Math.max(Math.abs(py - ay), MIN_CROP);
+  if (r) {
+    w = Math.max(w, h * r);
+    h = w / r;
+    if (w > maxW) { w = maxW; h = w / r; }
+    if (h > maxH) { h = maxH; w = h * r; }
+  } else {
+    w = Math.min(w, maxW);
+    h = Math.min(h, maxH);
+  }
+  crop = { x: east ? ax : ax - w, y: south ? ay : ay - h, w, h };
+}
+
+// ---------- GIF ----------
+// 作る大きさとコマの時間。速さ 2 倍なら、動画の時間を2倍の幅で進める
+function gifPlan() {
+  const outW = Math.round(clamp(num("outW") || 320, 16, Math.max(16, Math.round(crop.w))));
+  const outH = Math.max(1, Math.round(outW * crop.h / crop.w));
+  const fps = num("fps");
+  const step = speed() / fps;
+  const count = Math.max(1, Math.floor((span.end - span.start) / step + 1e-6));
+  return { outW, outH, fps, step, count, delay: Math.round(1000 / fps) };
+}
+function showPlan() {
+  if (!vw()) return;
+  const p = gifPlan();
+  $("plan").textContent = `${p.outW} × ${p.outH}・${p.count}コマ・${fmt(p.count / p.fps)} 秒`;
+}
+["outW", "fps", "speed", "colors"].forEach((id) => $(id).addEventListener("change", () => {
+  if (id === "speed" && !video.paused) video.playbackRate = speed();
+  clearResult();
+  showPlan();
+}));
+
+function clearResult() {
+  resultBlob = null;
+  $("result").hidden = true;
+  $("status").textContent = "";
+}
+
+// コマを取り出すのは、見ている動画とは別の動画で行う(再生の位置が動かないように)
+function seekTo(v, t) {
+  return new Promise((resolve) => {
+    v.addEventListener("seeked", resolve, { once: true });
+    v.currentTime = t;
+  });
+}
+async function makeGif() {
+  let lib;
+  try {
+    lib = await loadGifLib();
+  } catch {
+    $("status").textContent = "GIF の部品を読み込めませんでした(ネットにつながっているか確かめてください)";
+    return;
+  }
+  const p = gifPlan();
+  const v = document.createElement("video");
+  v.muted = true;
+  v.preload = "auto";
+  v.src = videoUrl;
+  await new Promise((resolve, reject) => {
+    v.addEventListener("loadeddata", resolve, { once: true });
+    v.addEventListener("error", reject, { once: true });
+  });
+  const c = document.createElement("canvas");
+  c.width = p.outW;
+  c.height = p.outH;
+  const cx = c.getContext("2d", { willReadFrequently: true });
+  cx.imageSmoothingQuality = "high";
+  const enc = lib.GIFEncoder();
+  const colors = num("colors");
+  for (let i = 0; i < p.count; i++) {
+    $("progressText").textContent = `作っています ${i + 1} / ${p.count}`;
+    await seekTo(v, Math.min(span.start + i * p.step, video.duration - 0.001));
+    cx.drawImage(v, crop.x, crop.y, crop.w, crop.h, 0, 0, p.outW, p.outH);
+    const data = cx.getImageData(0, 0, p.outW, p.outH).data;
+    const palette = lib.quantize(data, colors);
+    const index = lib.applyPalette(data, palette);
+    enc.writeFrame(index, p.outW, p.outH, { palette, delay: p.delay });
+  }
+  enc.finish();
+  v.removeAttribute("src");
+  v.load();
+  return { blob: new Blob([enc.bytes()], { type: "image/gif" }), plan: p };
+}
+$("make").addEventListener("click", async () => {
+  if (making || !videoUrl) return;
+  making = true;
+  video.pause();
+  clearResult();
+  $("make").disabled = true;
+  $("progress").hidden = false;
+  $("progressSpin").innerHTML = SPINNER;
+  $("progressText").textContent = "";
+  try {
+    const out = await makeGif();
+    if (out) {
+      resultBlob = out.blob;
+      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      resultUrl = URL.createObjectURL(out.blob);
+      $("resultImg").src = resultUrl;
+      $("resultInfo").textContent = `${out.plan.outW} × ${out.plan.outH}・${out.plan.count}コマ・${(out.blob.size / 1024).toFixed(1)}KB`;
+      $("result").hidden = false;
+    }
+  } catch {
+    $("status").textContent = "GIF を作れませんでした";
+  }
+  $("progress").hidden = true;
+  $("make").disabled = false;
+  making = false;
+});
+$("save").addEventListener("click", () => {
+  if (!resultBlob) return;
+  const a = document.createElement("a");
+  a.href = resultUrl;
+  a.download = `${($("fileName").value.trim() || $("fileName").placeholder).replace(/[\\/:*?"<>|]/g, "_")}.gif`;
+  a.click();
+});
+</script>
+</body>
+</html>

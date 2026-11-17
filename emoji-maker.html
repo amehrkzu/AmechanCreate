@@ -78,6 +78,7 @@ body { font-size: 14px; }
 .range-row input[type="number"] { width: 76px; }
 .panel .actions { margin-top: 12px; }
 .info { margin: 8px 0 0; font-size: 13px; font-weight: 700; }
+#gifOpts { margin-top: 10px; }
 </style>
 <script src="ui/site-header.js" defer></script>
 </head>
@@ -163,6 +164,11 @@ body { font-size: 14px; }
       <label class="field field--check"><input id="bgOn" type="checkbox"> 背景を塗る</label>
       <label class="field"><span>背景の色</span><input id="bgColor" type="color"></label>
       <label class="field"><span>ファイル名</span><input id="fileName" type="text" placeholder="emoji"></label>
+      <label class="field"><span>絵の大きさ</span><select id="outSize"><option value="128">128 × 128</option><option value="96">96 × 96</option><option value="64">64 × 64</option><option value="48">48 × 48</option><option value="32">32 × 32</option></select></label>
+      <div class="fields" id="gifOpts" hidden>
+        <label class="field"><span>コマを間引く</span><select id="gifSkip"><option value="1">間引かない</option><option value="2">1つおき</option><option value="3">2つおき</option><option value="4">3つおき</option></select></label>
+        <label class="field"><span>色数</span><select id="gifColors"><option>256</option><option>128</option><option>64</option><option>32</option><option>16</option></select></label>
+      </div>
       <div class="actions">
         <button type="button" class="btn btn--primary btn--block" id="savePng">PNG で保存</button>
       </div>
@@ -183,7 +189,11 @@ const LIMIT = 256 * 1024; // ディスコードに上げられるファイルの
 const VIEW = 512; // 編集の枠に描く大きさ
 const UNIT = 100; // 文字を並べるときの1文字の大きさ(あとで枠に合わせて縮める)
 const IMAGE_MAX = 512; // 読み込んだ画像は、この大きさまで縮めて持つ
+const GIF_MAX = 256; // GIF はコマが多いので小さめに持つ
 const KEY = "emojimaker:v1";
+// GIF を読む・作る部品(jsDelivr から。版は固定)
+const GIFUCT_URL = "https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/+esm";
+const GIFENC_URL = "https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm";
 const FONTS = [
   { name: "まるゴシック", family: "M PLUS Rounded 1c", weight: 800 },
   { name: "ゴシック", family: "Noto Sans JP", weight: 900 },
@@ -204,9 +214,14 @@ let selId = null;
 let nextId = 1;
 let bg = { on: false, color: "#ffffff" };
 let fileName = "";
+let outOpt = { size: SIZE, skip: 1, colors: 256 }; // 書き出しの絵の大きさ・GIF のコマの間引き・色数
 let drag = null;
 let drawQueued = false;
+let animating = false;
+let gifTimer = 0;
+let gifToken = 0;
 let lastUrl = "";
+let gifLib = null;
 
 const view = $("view");
 const vctx = view.getContext("2d");
@@ -216,6 +231,24 @@ out.height = SIZE;
 const octx = out.getContext("2d");
 
 const sel = () => layers.find((l) => l.id === selId) || null;
+const isAnim = () => layers.some((l) => l.frames);
+const animLength = (l) => l.frames.reduce((a, f) => a + f.delay, 0);
+const totalLength = () => Math.max(0, ...layers.filter((l) => l.frames).map(animLength));
+
+// GIF の部品は、GIF を使うときだけ読み込む(PNG はネットがなくても使える)
+function loadGifLib() {
+  if (!gifLib) {
+    gifLib = Promise.all([import(GIFUCT_URL), import(GIFENC_URL)]).then(([a, b]) => ({
+      parseGIF: a.parseGIF,
+      decompressFrames: a.decompressFrames,
+      GIFEncoder: b.GIFEncoder,
+      quantize: b.quantize,
+      applyPalette: b.applyPalette
+    }));
+    gifLib.catch(() => { gifLib = null; });
+  }
+  return gifLib;
+}
 const fontOf = (name) => FONTS.find((f) => f.name === name) || FONTS[0];
 const fontSpec = (f) => `${f.weight} ${UNIT}px "${f.family}", "M PLUS Rounded 1c", sans-serif`;
 
@@ -286,8 +319,19 @@ function drawText(ctx, l) {
   return { x0: l.x - w / 2, y0: l.y - h / 2, x1: l.x + w / 2, y1: l.y + h / 2 };
 }
 
-function drawImage(ctx, l) {
+// GIF のレイヤーの、時間 t(ミリ秒)のコマ。短い GIF はくり返す
+function frameAt(l, t) {
+  let x = t % animLength(l);
+  for (const f of l.frames) {
+    if (x < f.delay) return f.img;
+    x -= f.delay;
+  }
+  return l.frames[0].img;
+}
+
+function drawImage(ctx, l, t) {
   if (!l.img) return null;
+  const img = l.frames ? frameAt(l, t) : l.img;
   const iw = l.img.naturalWidth;
   const ih = l.img.naturalHeight;
   const k = SIZE * l.scale / 100 / Math.max(iw, ih);
@@ -295,12 +339,12 @@ function drawImage(ctx, l) {
   const h = ih * k;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(l.img, l.x - w / 2, l.y - h / 2, w, h);
+  ctx.drawImage(img, l.x - w / 2, l.y - h / 2, w, h);
   return { x0: l.x - w / 2, y0: l.y - h / 2, x1: l.x + w / 2, y1: l.y + h / 2 };
 }
 
-// S px の正方形に描く(中の座標はいつも 128 × 128)
-function draw(ctx, S, showSel) {
+// S px の正方形に、時間 t(ミリ秒)の絵を描く(中の座標はいつも 128 × 128)
+function draw(ctx, S, showSel, t = 0) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, S, S);
   const k = S / SIZE;
@@ -309,7 +353,7 @@ function draw(ctx, S, showSel) {
     ctx.fillStyle = bg.color;
     ctx.fillRect(0, 0, SIZE, SIZE);
   }
-  for (const l of layers) l.box = l.type === "text" ? drawText(ctx, l) : drawImage(ctx, l);
+  for (const l of layers) l.box = l.type === "text" ? drawText(ctx, l) : drawImage(ctx, l, t);
   const s = sel();
   if (showSel && s && s.box) {
     ctx.setLineDash([4 / k, 3 / k]);
@@ -320,43 +364,148 @@ function draw(ctx, S, showSel) {
   }
 }
 
+const drawView = () => draw(vctx, VIEW, true, isAnim() ? performance.now() % totalLength() : 0);
+
+// GIF があるあいだは、編集の枠を動かし続ける
+function tick() {
+  if (!isAnim()) {
+    animating = false;
+    return;
+  }
+  drawView();
+  requestAnimationFrame(tick);
+}
+
+// 書き出す GIF のコマ:どれかの GIF のコマが変わる時間で区切る(いちばん長い GIF に合わせる)
+function timeline() {
+  const T = totalLength();
+  const ts = new Set([0]);
+  for (const l of layers.filter((x) => x.frames)) {
+    const len = animLength(l);
+    for (let s = 0; s < T; s += len) {
+      let x = s;
+      for (const f of l.frames) {
+        ts.add(x);
+        x += f.delay;
+      }
+    }
+  }
+  const list = [...ts].filter((t) => t < T).sort((a, b) => a - b);
+  const frames = list.map((t, i) => ({ t, delay: (list[i + 1] ?? T) - t }));
+  // 間引くときは、まとめたコマの時間を足す
+  const merged = [];
+  for (let i = 0; i < frames.length; i += outOpt.skip) {
+    const g = frames.slice(i, i + outOpt.skip);
+    merged.push({ t: g[0].t, delay: g.reduce((a, f) => a + f.delay, 0) });
+  }
+  return merged;
+}
+
+async function encodeGif() {
+  const lib = await loadGifLib();
+  const S = outOpt.size;
+  const c = document.createElement("canvas");
+  c.width = S;
+  c.height = S;
+  const cx = c.getContext("2d", { willReadFrequently: true });
+  const enc = lib.GIFEncoder();
+  const frames = timeline();
+  for (const f of frames) {
+    draw(cx, S, false, f.t);
+    const data = cx.getImageData(0, 0, S, S).data;
+    // 半透明は使えないので、半分以上見えている所だけ残す
+    const palette = lib.quantize(data, outOpt.colors, { format: "rgba4444", oneBitAlpha: true });
+    const index = lib.applyPalette(data, palette, "rgba4444");
+    const ti = palette.findIndex((p) => p[3] === 0);
+    enc.writeFrame(index, S, S, { palette, delay: f.delay, transparent: ti >= 0, transparentIndex: Math.max(ti, 0), dispose: 2 });
+  }
+  enc.finish();
+  return { blob: new Blob([enc.bytes()], { type: "image/gif" }), count: frames.length };
+}
+
+function showOut(blob, info) {
+  if (lastUrl) URL.revokeObjectURL(lastUrl);
+  lastUrl = URL.createObjectURL(blob);
+  document.querySelectorAll("[data-emo]").forEach((img) => { img.src = lastUrl; });
+  $("outInfo").textContent = `${outOpt.size} × ${outOpt.size}${info}・${(blob.size / 1024).toFixed(1)}KB`;
+  $("status").textContent = blob.size > LIMIT ? "256KB をこえています(ディスコードに上げられません)" : "";
+}
+
+// プレビュー:GIF は作るのに時間がかかるので、さわり終わってから作る
+function updateOut() {
+  $("gifOpts").hidden = !isAnim();
+  $("savePng").textContent = isAnim() ? "GIF で保存" : "PNG で保存";
+  clearTimeout(gifTimer);
+  const token = ++gifToken;
+  if (isAnim()) {
+    gifTimer = setTimeout(async () => {
+      try {
+        const { blob, count } = await encodeGif();
+        if (token === gifToken) showOut(blob, `・${count}コマ`);
+      } catch {
+        if (token === gifToken) $("status").textContent = "GIF の部品を読み込めませんでした(ネットにつながっているか確かめてください)";
+      }
+    }, 250);
+    return;
+  }
+  drawOut();
+  out.toBlob((blob) => {
+    if (blob && token === gifToken) showOut(blob, "");
+  }, "image/png");
+}
+
+function drawOut() {
+  if (out.width !== outOpt.size) {
+    out.width = outOpt.size;
+    out.height = outOpt.size;
+  }
+  draw(octx, outOpt.size, false);
+}
+
 function requestDraw() {
   if (drawQueued) return;
   drawQueued = true;
   requestAnimationFrame(() => {
     drawQueued = false;
-    draw(vctx, VIEW, true);
-    draw(octx, SIZE, false);
-    out.toBlob((blob) => {
-      if (!blob) return;
-      if (lastUrl) URL.revokeObjectURL(lastUrl);
-      lastUrl = URL.createObjectURL(blob);
-      document.querySelectorAll("[data-emo]").forEach((img) => { img.src = lastUrl; });
-      $("outInfo").textContent = `${SIZE} × ${SIZE}・${(blob.size / 1024).toFixed(1)}KB`;
-      $("status").textContent = blob.size > LIMIT ? "256KB をこえています(ディスコードに上げられません)" : "";
-    }, "image/png");
+    drawView();
+    updateOut();
+    if (isAnim() && !animating) {
+      animating = true;
+      requestAnimationFrame(tick);
+    }
   });
 }
 
 // ---------- 覚える(このタブを開いている間だけ) ----------
 function save() {
   const data = {
-    layers: layers.map(({ img, box, ...rest }) => rest),
+    layers: layers.map(({ img, box, ...rest }) => rest.frames ? { ...rest, frames: rest.frames.map(({ src, delay }) => ({ src, delay })) } : rest),
     selId,
     nextId,
     bg,
-    fileName
+    fileName,
+    outOpt
   };
-  try {
-    sessionStorage.setItem(KEY, JSON.stringify(data));
-  } catch {
-    // 画像が大きくて入りきらないときは、画像を外して覚える
+  // 画像が大きくて入りきらないときは、GIF → ほかの画像の順に外して覚える
+  const tries = [() => true,(l) => !l.frames, (l) => l.type !== "image"];
+  const all = data.layers;
+  for (const keep of tries) {
     try {
-      data.layers = data.layers.filter((l) => l.type !== "image");
+      data.layers = all.filter(keep);
       sessionStorage.setItem(KEY, JSON.stringify(data));
+      return;
     } catch {}
   }
 }
+
+const loadImg = async (src) => {
+  const img = new Image();
+  img.src = src;
+  try {
+    await img.decode();
+  } catch {}
+  return img;
+};
 
 async function load() {
   let data = null;
@@ -373,12 +522,10 @@ async function load() {
   nextId = data.nextId || layers.length + 1;
   bg = data.bg || bg;
   fileName = data.fileName || "";
+  outOpt = { ...outOpt, ...data.outOpt };
   await Promise.all(layers.filter((l) => l.type === "image").map(async (l) => {
-    l.img = new Image();
-    l.img.src = l.src;
-    try {
-      await l.img.decode();
-    } catch {}
+    l.img = await loadImg(l.src);
+    if (l.frames) await Promise.all(l.frames.map(async (f) => { f.img = await loadImg(f.src); }));
   }));
   refresh();
 }
@@ -391,7 +538,7 @@ function layerName(l) {
 
 function renderList() {
   $("layers").innerHTML = [...layers].reverse().map((l) =>
-    `<li data-id="${l.id}"${l.id === selId ? ' class="on"' : ""}><span class="tag">${l.type === "text" ? "文字" : "画像"}</span><span class="name">${esc(layerName(l))}</span></li>`
+    `<li data-id="${l.id}"${l.id === selId ? ' class="on"' : ""}><span class="tag">${l.type === "text" ? "文字" : l.frames ? "GIF" : "画像"}</span><span class="name">${esc(layerName(l))}</span></li>`
   ).join("");
 }
 
@@ -422,6 +569,9 @@ function refresh() {
   $("bgOn").checked = bg.on;
   $("bgColor").value = bg.color;
   $("fileName").value = fileName;
+  $("outSize").value = outOpt.size;
+  $("gifSkip").value = outOpt.skip;
+  $("gifColors").value = outOpt.colors;
   requestDraw();
 }
 
@@ -443,8 +593,60 @@ function addText() {
   addLayer({ type: "text", text: "あめ", mode: "auto", font: FONTS[0].name, color: "#ff8a3d", stroke: "#ffffff", strokeW: 4, x: SIZE / 2, y: SIZE / 2, scale: 100 });
 }
 
+// 動く GIF をコマに分ける(1コマだけなら null)。コマは前のコマに重ねた絵にして持つ
+async function decodeGif(file) {
+  const lib = await loadGifLib();
+  const gif = lib.parseGIF(await file.arrayBuffer());
+  const raw = lib.decompressFrames(gif, true);
+  if (raw.length < 2) return null;
+  const W = gif.lsd.width;
+  const H = gif.lsd.height;
+  const full = document.createElement("canvas");
+  full.width = W;
+  full.height = H;
+  const fx = full.getContext("2d", { willReadFrequently: true });
+  const patch = document.createElement("canvas");
+  const px = patch.getContext("2d");
+  const k = Math.min(1, GIF_MAX / Math.max(W, H));
+  const frames = [];
+  for (const f of raw) {
+    const { left, top, width, height } = f.dims;
+    const prev = f.disposalType === 3 ? fx.getImageData(0, 0, W, H) : null;
+    patch.width = width;
+    patch.height = height;
+    px.putImageData(new ImageData(f.patch, width, height), 0, 0);
+    fx.drawImage(patch, left, top);
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(W * k));
+    c.height = Math.max(1, Math.round(H * k));
+    const cx = c.getContext("2d");
+    cx.imageSmoothingQuality = "high";
+    cx.drawImage(full, 0, 0, c.width, c.height);
+    // 0.01 秒などの短すぎる時間は、ブラウザと同じく 0.1 秒にする
+    frames.push({ src: c.toDataURL("image/png"), delay: f.delay >= 20 ? f.delay : 100 });
+    if (f.disposalType === 2) fx.clearRect(left, top, width, height);
+    else if (prev) fx.putImageData(prev, 0, 0);
+  }
+  return frames;
+}
+
 async function addImageFile(file) {
   if (!file || !/^image\//.test(file.type)) return;
+  if (file.type === "image/gif") {
+    let frames = null;
+    try {
+      frames = await decodeGif(file);
+    } catch {
+      toast("GIF の部品を読み込めませんでした");
+    }
+    if (frames) {
+      await Promise.all(frames.map(async (f) => { f.img = await loadImg(f.src); }));
+      const l = { type: "image", name: file.name.replace(/\.[^.]+$/, ""), src: frames[0].src, frames, x: SIZE / 2, y: SIZE / 2, scale: 100 };
+      l.img = frames[0].img;
+      addLayer(l);
+      return;
+    }
+  }
   const url = URL.createObjectURL(file);
   const src = new Image();
   src.src = url;
@@ -536,15 +738,40 @@ $("fileName").addEventListener("input", (e) => {
   fileName = e.target.value;
   save();
 });
-$("savePng").addEventListener("click", () => {
-  draw(octx, SIZE, false);
-  out.toBlob((blob) => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${(fileName.trim() || "emoji").replace(/[\\/:*?"<>|]/g, "_")}.png`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  }, "image/png");
+$("outSize").addEventListener("change", (e) => {
+  outOpt.size = Number(e.target.value);
+  requestDraw();
+  save();
+});
+$("gifSkip").addEventListener("change", (e) => {
+  outOpt.skip = Number(e.target.value);
+  requestDraw();
+  save();
+});
+$("gifColors").addEventListener("change", (e) => {
+  outOpt.colors = Number(e.target.value);
+  requestDraw();
+  save();
+});
+
+function download(blob, ext) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${(fileName.trim() || "emoji").replace(/[\\/:*?"<>|]/g, "_")}.${ext}`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$("savePng").addEventListener("click", async () => {
+  if (isAnim()) {
+    try {
+      download((await encodeGif()).blob, "gif");
+    } catch {
+      toast("GIF の部品を読み込めませんでした");
+    }
+    return;
+  }
+  drawOut();
+  out.toBlob((blob) => download(blob, "png"), "image/png");
 });
 
 // 枠の上でドラッグして動かす

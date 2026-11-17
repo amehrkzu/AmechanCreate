@@ -46,6 +46,7 @@ const DOC_MAP = [
   [/^layout-maker\.html$/, "docs/layoutMaker.md"],
   [/^raid-sim\.html$/, "docs/raidSim.md"],
   [/^emoji-maker\.html$/, "docs/emojiMaker.md"],
+  [/^gif-maker\.html$/, "docs/gifMaker.md"],
   [/^download\//, "docs/Download.md"],
   [/^backlog\.html$/, "docs/BacklogView.md"],
   [/^keychain-lottery(\.html|_api\.gs)$/, "docs/keychainLottery.md"],

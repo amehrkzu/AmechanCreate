@@ -21,6 +21,7 @@
   - レイアウトメーカー(layout-maker.html):[docs/layoutMaker.md](docs/layoutMaker.md)
   - なんちゃってレイドシュミレーター(raid-sim.html):[docs/raidSim.md](docs/raidSim.md)
   - 絵文字メーカー(emoji-maker.html。ディスコードの絵文字):[docs/emojiMaker.md](docs/emojiMaker.md)
+  - GIFメーカー(gif-maker.html。動画を切り抜いて GIF):[docs/gifMaker.md](docs/gifMaker.md)
   - アプリダウンロード(download/):[docs/Download.md](docs/Download.md)
 - その他
   - バックログの見える化(backlog.html):[docs/BacklogView.md](docs/BacklogView.md)
