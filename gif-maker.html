@@ -321,7 +321,6 @@ function fitRatio() {
   const cy = crop.y + crop.h / 2;
   crop = { x: clamp(cx - w / 2, 0, vw() - w), y: clamp(cy - h / 2, 0, vh() - h), w, h };
 }
-const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
 $("ratio").addEventListener("change", () => {
   fitRatio();
   clearResult();
@@ -488,10 +487,7 @@ $("make").addEventListener("click", async () => {
 });
 $("save").addEventListener("click", () => {
   if (!resultBlob) return;
-  const a = document.createElement("a");
-  a.href = resultUrl;
-  a.download = `${($("fileName").value.trim() || $("fileName").placeholder).replace(/[\\/:*?"<>|]/g, "_")}.gif`;
-  a.click();
+  downloadBlob(resultBlob, `${safeFileName($("fileName").value, $("fileName").placeholder)}.gif`);
 });
 </script>
 </body>

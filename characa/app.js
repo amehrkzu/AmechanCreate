@@ -304,12 +304,12 @@ function defaultProject() {
 }
 
 function load() {
+  const saved = loadSession(STORAGE_KEY);
+  if (!saved?.card || !Array.isArray(saved.layers)) return null;
   try {
-    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
-    if (!saved?.card || !Array.isArray(saved.layers)) return null;
     return normalize(saved);
   } catch {
-    return null;
+    return null; // 古すぎて直せないデータは捨てる
   }
 }
 
@@ -366,18 +366,14 @@ function upgradeLayer(raw) {
 // 今すぐ保存する(別のページへ移る前など)
 function saveNow() {
   clearTimeout(saveTimer);
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(project));
-  } catch {}
+  saveSession(STORAGE_KEY, project);
 }
 
 let saveTimer;
 function saveSoon() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(project));
-    } catch {
+    if (!saveSession(STORAGE_KEY, project)) {
       setStatus("自動保存できませんでした(画像が大きすぎる可能性があります)。PNG保存とテンプレート書き出しは使えます", "error");
     }
   }, 300);
@@ -1242,12 +1238,12 @@ function getImage(src) {
     const img = new Image();
     entry = { img, ok: false };
     entry.ready = new Promise((resolve) => {
-      img.onload = () => {
+      img.addEventListener("load", () => {
         entry.ok = true;
         requestDraw();
         resolve();
-      };
-      img.onerror = resolve;
+      });
+      img.addEventListener("error", resolve);
     });
     img.src = src;
     images.set(src, entry);
@@ -1563,8 +1559,8 @@ function setImage(l, src) {
 function imageSize(src) {
   return new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = () => resolve({ width: 16, height: 9 });
+    img.addEventListener("load", () => resolve({ width: img.naturalWidth, height: img.naturalHeight }));
+    img.addEventListener("error", () => resolve({ width: 16, height: 9 }));
     img.src = src;
   });
 }
@@ -1829,20 +1825,20 @@ function uploadButton(text, onLoad) {
 function readImage(file, max = 2400) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
+    reader.addEventListener("error", reject);
+    reader.addEventListener("load", () => {
       const img = new Image();
-      img.onerror = reject;
-      img.onload = () => {
+      img.addEventListener("error", reject);
+      img.addEventListener("load", () => {
         const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
         const c = document.createElement("canvas");
         c.width = Math.round(img.naturalWidth * s);
         c.height = Math.round(img.naturalHeight * s);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
         resolve(file.type === "image/jpeg" ? c.toDataURL("image/jpeg", 0.9) : c.toDataURL("image/png"));
-      };
+      });
       img.src = reader.result;
-    };
+    });
     reader.readAsDataURL(file);
   });
 }
@@ -1878,7 +1874,7 @@ function renderLayers() {
     const li = document.createElement("li");
     if (outer.length > 1) li.style.marginLeft = `${22 * outer.length}px`; // 中のフォルダーの中身は、もっと字下げ
     li.dataset.id = l.id;
-    li.className = [l.id === selectedId && "selected", isHidden(l) && "hidden", f && "in-folder", isFolder(l) && "folder-row"].filter(Boolean).join(" ");
+    li.className = [l.id === selectedId && "on", isHidden(l) && "hidden", f && "in-folder", isFolder(l) && "folder-row"].filter(Boolean).join(" ");
     if (isFolder(l)) {
       const toggle = document.createElement("button");
       toggle.className = "folder-toggle";
@@ -2734,14 +2730,7 @@ $("fetchForm").addEventListener("submit", async (e) => {
   }
 });
 
-function download(blob, name) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
+// ファイル名用。キャラカは空白も _ にする
 function safeName(s) {
   return (s || "card").replace(/[\\/:*?"<>|\s]+/g, "_");
 }
@@ -2784,7 +2773,7 @@ $("exportPng").addEventListener("click", async () => {
   draw();
   try {
     canvas.toBlob((blob) => {
-      if (blob) download(blob, `characa_${safeName(project.data.name)}.png`);
+      if (blob) downloadBlob(blob, `characa_${safeName(project.data.name)}.png`);
     }, "image/png");
   } catch (err) {
     alert("PNG の書き出しに失敗しました: " + err.message);
@@ -2803,7 +2792,7 @@ function usedSymbols() {
 
 $("exportJson").addEventListener("click", () => {
   const json = JSON.stringify({ version: 2, card: project.card, palette: project.palette, paletteId: project.paletteId, customFrames: usedCustomFrames(), customSymbols: usedSymbols(), layers: project.layers }, null, 1);
-  download(new Blob([json], { type: "application/json" }), "characa_template.json");
+  downloadBlob(new Blob([json], { type: "application/json" }), "characa_template.json");
 });
 
 $("importJson").addEventListener("change", async (e) => {

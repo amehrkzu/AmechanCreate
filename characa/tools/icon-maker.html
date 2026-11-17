@@ -53,14 +53,7 @@ button, label.btn { touch-action: manipulation; }
 .top h1 { margin: 0; font-size: 16px; white-space: nowrap; background: linear-gradient(transparent 62%, #ffd9b5 62%); padding: 0 2px; }
 .top .note { margin: 0 0 0 auto; }
 
-.app {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  padding: 14px;
-  max-width: 1700px;
-  margin: 0 auto;
-}
+.app { max-width: 1700px; }
 @media (min-width: 1000px) { .app { grid-template-columns: 300px minmax(0, 1fr) 360px; } }
 .tool-list { display: flex; flex-direction: column; gap: 6px; }
 .tool-list .tool { justify-content: flex-start; }
@@ -91,7 +84,6 @@ button, label.btn { touch-action: manipulation; }
 #editor.mode-draft { cursor: grab; }
 .hint { margin: 0; color: var(--muted); font-size: 12px; text-align: center; }
 
-.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .box {
   background: #fff;
   border: var(--border) solid var(--ink);
@@ -954,16 +946,16 @@ function setStatus(text) {
 function readAsDataURL(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
-    r.onload = () => resolve(r.result);
-    r.onerror = reject;
+    r.addEventListener("load", () => resolve(r.result));
+    r.addEventListener("error", reject);
     r.readAsDataURL(file);
   });
 }
 function imageSize(src) {
   return new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => resolve({ w: img.naturalWidth || SIZE, h: img.naturalHeight || SIZE });
-    img.onerror = () => resolve({ w: SIZE, h: SIZE });
+    img.addEventListener("load", () => resolve({ w: img.naturalWidth || SIZE, h: img.naturalHeight || SIZE }));
+    img.addEventListener("error", () => resolve({ w: SIZE, h: SIZE }));
     img.src = src;
   });
 }
@@ -1034,13 +1026,9 @@ document.addEventListener("paste", async (e) => {
 const safeName = () => (doc.name || "icon").replace(/[\\/:*?"<>|\s]+/g, "_");
 $("saveSvg").addEventListener("click", () => {
   if (!doc.paths.length) { setStatus("まだ何も描かれていません"); return; }
-  const blob = new Blob([exportSvg(true)], { type: "image/svg+xml" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = safeName() + ".svg";
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  setStatus(`「${a.download}」を保存しました`);
+  const name = safeName() + ".svg";
+  downloadBlob(new Blob([exportSvg(true)], { type: "image/svg+xml" }), name);
+  setStatus(`「${name}」を保存しました`);
 });
 $("copyCode").addEventListener("click", async () => {
   if (!doc.paths.length) { setStatus("まだ何も描かれていません"); return; }

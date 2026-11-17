@@ -12,7 +12,7 @@
 - [ ] キャラカのサイドバーのスクロールの精査(項目が多いので後回し) → [Tools.md](Tools.md)
 - [ ] キャラカ本体と枠エディタの同じ処理(予備の配色・`ROLES`・`col`・保存の名前・色の読み取り・元に戻す・`startLayerDrag` など)をまとめる → [CharacterCard.md](CharacterCard.md) → [CharacterCard_frameEditor.md](CharacterCard_frameEditor.md)
 - [ ] /ok の目印が `done` をしていないのに消えていたことがある(理由を調べる) → [Base.md](Base.md)
-- [ ] 枠エディタとシンボルエディタの同じ `<style>`(186行)を1つの CSS にする → [CharacterCard_frameEditor.md](CharacterCard_frameEditor.md)
+- [ ] キャラカ本体と SVGメーカーの同じ画像の読み込み(`imageSize`・ファイル → dataURL)を ui/util.js にまとめる → [htmlParts.md](htmlParts.md)
 
 ## 対応予定
 - [ ] キャラ紹介と関係辞典をつなぐ(データが8割そろってから) → [Chara.md](Chara.md)
@@ -29,5 +29,5 @@
 - [ ] 絵文字メーカー:使ってみて直す・GIF の部品(jsDelivr)をこのフォルダーに置くか → [emojiMaker.md](emojiMaker.md)
 - [ ] GIFメーカー:使ってみて直す・GIF の部品(jsDelivr)をこのフォルダーに置くか → [gifMaker.md](gifMaker.md)
 - [ ] パーツ台帳のテーマ切り替えに レモン・もり・ぶどう を足す → [htmlParts.md](htmlParts.md)
-- [ ] Tシャツ画像データメーカー(作業中・トップでは非表示) → [Base.md](Base.md)
+- [ ] Tシャツ画像データメーカー:使ってみて直す・サイトの共通部品(あめちゃんもの置きのリンク・スクロールバー・みかん)にそろえる → [tshirtDesigner.md](tshirtDesigner.md)
 - [ ] アクキーくじ:LH1 の画像を共有してもらったら、透けたまま出るか確かめる・「景品」シートの種類が2回ずつある → [keychainLottery.md](keychainLottery.md)

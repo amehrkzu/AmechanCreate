@@ -12,10 +12,8 @@ const editor = $("editor");
 // ---------- 色(キャラカで選んでいる配色を使う) ----------
 const FALLBACK_COLORS = { accent: "#e0c27a", text: "#ffffff", sub: "#cfd6e6", muted: "#6b7280", panel: "#000000", bg1: "#1c2333", bg2: "#4a3558", shadow: "#000000" };
 let palette = { ...FALLBACK_COLORS, ...(window.CHARACA_PALETTES?.[0]?.colors ?? {}) };
-try {
-  const p = JSON.parse(sessionStorage.getItem("characa:v1"));
-  if (p?.palette) palette = { ...palette, ...p.palette };
-} catch {}
+const cardPalette = loadSession("characa:v1")?.palette;
+if (cardPalette) palette = { ...palette, ...cardPalette };
 const col = (v) => (typeof v === "string" && v[0] === "@" ? palette[v.slice(1)] ?? "#ff00ff" : v);
 const ROLES = [["accent", "アクセント"], ["text", "文字"], ["sub", "サブ文字"], ["muted", "控えめ"], ["panel", "パネル"], ["bg1", "背景1"], ["bg2", "背景2"]];
 

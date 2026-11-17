@@ -87,7 +87,7 @@ const SRC = "docs/Backlog.md";
 const DOC_URL = "https://github.com/amehrkzu/AmechanCreate/blob/main/docs/"; // md のリンク先(GitHub で読みやすく表示)
 const COLORS = ["var(--pink)", "var(--lemon)", "var(--orange)", "var(--mint)", "var(--lilac)", "var(--sky)"];
 
-const view = document.getElementById("view");
+const view = $("view");
 // 文の中の `コード` と [名前](x.md) を HTML に
 const inline = (s) => esc(s)
   .replace(/`([^`]+)`/g, "<code>$1</code>")
@@ -118,7 +118,7 @@ function parse(md) {
 }
 
 function render({ updated, sections }) {
-  document.getElementById("updated").textContent = updated ? `最終更新:${updated}` : "";
+  $("updated").textContent = updated ? `最終更新:${updated}` : "";
   if (!sections.length) { view.innerHTML = '<p class="empty">やることは ありません</p>'; return; }
   sections.forEach((s, i) => { s.c = COLORS[i % COLORS.length]; s.id = `s${i + 1}`; });
 
@@ -143,7 +143,7 @@ function render({ updated, sections }) {
   view.innerHTML = `<div class="ub-tabs ub-tabs--fill" role="group">${tabs}</div>
     <div class="ub ub--box ub--leaf ub--sh-soft ub--pat-check ub-backlog-list"><ul class="items ub-scroll" id="items"></ul></div>${list.length ? `
     <section class="ub ub--box ub--leaf ub--sh-soft ub-backlog-areas"><h2>✿ 分野ごと</h2><ul class="bars">${bars}</ul></section>` : ""}`;
-  const items = document.getElementById("items");
+  const items = $("items");
   const show = (i) => {
     const s = sections[i];
     view.querySelectorAll(".ub-backlog-tab").forEach((b) => b.setAttribute("aria-pressed", b.dataset.i == i));
@@ -166,7 +166,7 @@ function render({ updated, sections }) {
 // 一覧の高さを、5つ目の項目の下はしまでにする(6つ以上あるとスクロール)
 const SHOW = 5;
 function fitList() {
-  const items = document.getElementById("items");
+  const items = $("items");
   if (!items) return;
   items.style.maxHeight = "";
   const li = items.children;

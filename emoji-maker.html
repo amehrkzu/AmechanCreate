@@ -16,14 +16,6 @@
 <style>
 /* このページだけの並べ方。部品の見た目は ui/kit.css */
 body { font-size: 14px; }
-.app {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  padding: 14px;
-  max-width: 2000px;
-  margin: 0 auto;
-}
 @media (min-width: 1000px) { .app { grid-template-columns: 280px minmax(0, 1fr) 320px; } }
 
 /* 左:追加と階層 */
@@ -69,7 +61,6 @@ body { font-size: 14px; }
 .emo--l { display: block; width: 48px; height: 48px; }
 
 /* 右:詳細・書き出し */
-.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .panel .field + .field, .panel .field + .fields, .panel .fields + .field, .panel .tabs + .field { margin-top: 10px; }
 .panel .fields > .field + .field { margin-top: 0; }
 .sub { margin: 12px 0 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
@@ -490,11 +481,8 @@ function save() {
   const tries = [() => true,(l) => !l.frames, (l) => l.type !== "image"];
   const all = data.layers;
   for (const keep of tries) {
-    try {
-      data.layers = all.filter(keep);
-      sessionStorage.setItem(KEY, JSON.stringify(data));
-      return;
-    } catch {}
+    data.layers = all.filter(keep);
+    if (saveSession(KEY, data)) return;
   }
 }
 
@@ -508,10 +496,7 @@ const loadImg = async (src) => {
 };
 
 async function load() {
-  let data = null;
-  try {
-    data = JSON.parse(sessionStorage.getItem(KEY) || "null");
-  } catch {}
+  const data = loadSession(KEY);
   if (!data) {
     addText();
     refresh();
@@ -754,13 +739,7 @@ $("gifColors").addEventListener("change", (e) => {
   save();
 });
 
-function download(blob, ext) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `${(fileName.trim() || "emoji").replace(/[\\/:*?"<>|]/g, "_")}.${ext}`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
+const download = (blob, ext) => downloadBlob(blob, `${safeFileName(fileName, "emoji")}.${ext}`);
 $("savePng").addEventListener("click", async () => {
   if (isAnim()) {
     try {

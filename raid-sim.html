@@ -14,14 +14,7 @@
 <style>
 /* このページだけの並べ方。部品の見た目は ui/kit.css */
 body { font-size: 14px; }
-.app {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  padding: 14px;
-  max-width: 1800px;
-  margin: 0 auto;
-}
+.app { max-width: 1800px; }
 @media (min-width: 1000px) { .app { grid-template-columns: 260px minmax(0, 1fr) 320px; } }
 .grow { flex: 1; }
 .sub { margin: 10px 0 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
@@ -139,7 +132,6 @@ body { font-size: 14px; }
 .tl-head { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--accent); pointer-events: none; }
 
 /* 右:詳細・フィールド */
-.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .panel .field + .field, .panel .field + .actions, .panel .row2 + .field, .panel .field + .row2 { margin-top: 10px; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
@@ -332,7 +324,6 @@ const NUMS = {
 };
 const SPEEDS = [0.5, 1, 2];
 const round1 = (v) => Math.round(v * 10) / 10;
-const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const byT = (a, b) => a.t - b.t;
 
 function defaultMarks(size) {
@@ -369,23 +360,17 @@ const getCache = () => cache || (cache = { pushes: null, tracks: null });
 
 function load() {
   const base = blank();
-  try {
-    const s = JSON.parse(sessionStorage.getItem(KEY));
-    if (s) {
-      // 前の開始の形(ボスが中央で北向き)のまま動きの点が無いボスは、今の開始の形に直す
-      (s.enemies || []).forEach((e) => {
-        if (e.type === "boss" && !e.x && !e.y && !e.a && !(e.keys || []).length) Object.assign(e, BOSS_SPAWN);
-      });
-      return { ...base, ...s, players: { ...base.players, ...s.players } };
-    }
-  } catch {}
-  return base;
+  const s = loadSession(KEY);
+  if (!s) return base;
+  // 前の開始の形(ボスが中央で北向き)のまま動きの点が無いボスは、今の開始の形に直す
+  (s.enemies || []).forEach((e) => {
+    if (e?.type === "boss" && !e.x && !e.y && !e.a && !(e.keys || []).length) Object.assign(e, BOSS_SPAWN);
+  });
+  return { ...base, ...s, players: { ...base.players, ...s.players } };
 }
 function save() {
   clearTimeout(save.timer);
-  save.timer = setTimeout(() => {
-    try { sessionStorage.setItem(KEY, JSON.stringify(doc)); } catch {}
-  }, 300);
+  save.timer = setTimeout(() => saveSession(KEY, doc), 300);
 }
 // doc を変えたら呼ぶ(keepDetail:入力中の詳細の欄を作り直さない)
 function changed(keepDetail = false) {
@@ -910,11 +895,7 @@ async function recordVideo() {
   renderTimeline();
   setTime(keep.time);
   if (canceled) return;
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob(chunks, { type: type.split(";")[0] }));
-  a.download = `raid-sim.${type.startsWith("video/mp4") ? "mp4" : "webm"}`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  downloadBlob(new Blob(chunks, { type: type.split(";")[0] }), `raid-sim.${type.startsWith("video/mp4") ? "mp4" : "webm"}`);
 }
 $("videoBtn").addEventListener("click", () => {
   if (rec) rec.cancel = true;

@@ -1,6 +1,6 @@
 # パーツ(パーツ台帳・パーツメーカー)
 
-最終更新:2026-10-22。ツール共通の決まりは [Tools.md](Tools.md)
+最終更新:2026-11-17。ツール共通の決まりは [Tools.md](Tools.md)
 
 このサイトの HTML の部品(ボタン・箱など)を、名前で指示できるようにするしくみ。
 
@@ -11,11 +11,11 @@
 | `ui-kit.html` | **パーツ台帳**(前の名前は UI見本帳)。部品の見本・名前・クラス・コード |
 | `ui-maker.html` | **パーツメーカー**。部品の見た目を自分で作って、AI に渡す文章をコピーする |
 | `ui/parts.js` | パーツメーカーの部品の、設計データ → CSS・HTML(台帳とメーカーで共通) |
-| `ui/layer-drawer.css` / `.js` | ツールのレイヤーのサイドバー([Tools.md](Tools.md)) |
+| `ui/layer-drawer.css` / `.js` | ツールのレイヤーのサイドバー、ツールの並べ方の土台 `.app` / `.panel`([Tools.md](Tools.md)) |
 | `ui/site-header.js` | どのページにも付ける「あめちゃんもの置き」のリンク |
-| `ui/util.js` | みんなで使う小さな処理:`$(id)`・`esc()`(エスケープ)・`toast(文, ms)`(`.toast` が無ければ作る)・`SPINNER`(ぐるぐるの HTML)・`parseColor()` / `toHex()`(色コード ⇔ `{r,g,b,a}`)。ページのスクリプトより前に読み込む。同じ名前をページの中で作り直さない |
+| `ui/util.js` | みんなで使う小さな処理:`$(id)`・`esc()`(エスケープ)・`toast(文, ms)`(`.toast` が無ければ作る)・`SPINNER`(ぐるぐるの HTML)・`parseColor()` / `toHex()`(色コード ⇔ `{r,g,b,a}`)・`clamp(v, min, max)`・`loadSession(key)` / `saveSession(key, data)`(sessionStorage を JSON で。読めなければ null、書けたら true)・`safeFileName(名前, 空のときの名前)`・`downloadBlob(blob, ファイル名)`。ページのスクリプトより前に読み込む。同じ名前をページの中で作り直さない(グローバルの `const` なので、ページで同じ名前を作るとエラーで止まる) |
 
-- `ui/util.js` を使っているページ:パーツ台帳・パーツメーカー(+ `ui/parts.js` も `esc` を使う)・ドット絵メーカー・バックログ・download の2ページ・SVGメーカー・キャラカ本体・枠エディタ・シンボルエディタ。キャラ紹介・関係辞典・Tシャツはまだ使っていない
+- `ui/util.js` を使っているページ:パーツ台帳・パーツメーカー(+ `ui/parts.js` も `esc` を使う)・ドット絵メーカー・バックログ・download の2ページ・SVGメーカー・キャラカ本体・枠エディタ・シンボルエディタ。ドット変換・レイアウト・レイド・絵文字・GIF・アクキーくじ・キャラ紹介・関係辞典・HNB(test.html)。トップ・Tシャツはまだ使っていない
 
 ## パーツ台帳(ui-kit.html)
 - テーマの切り替え(そら・いちご・みかん。※台帳はまだ3つだけ。kit.css には remon・mori・budo もある)

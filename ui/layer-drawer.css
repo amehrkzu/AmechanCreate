@@ -1,6 +1,19 @@
 /* ツールのレイヤーのサイドバー(左から前面に出てくる引き出し)
    このサイトのツールは、レイヤーの一覧を必ずこの形で置く(キャラカ・枠エディタ・シンボルエディタ…)。
    使い方は ui/layer-drawer.js を見る。見た目はテーマ「そら」(水色)。ツールの色の変数が無くても動くよう、色は直接書いてある */
+
+/* ツールの並べ方の土台:<main class="app"> と、右の列の <div class="panel">。
+   列の数と幅(@media (min-width: 1000px) の grid-template-columns)・max-width は、それぞれのページで書く。
+   :where で強さを 0 にしているので、ページの CSS がこのファイルより前にあっても、ページの書き方が勝つ */
+:where(.app) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  max-width: 2000px;
+  margin: 0 auto;
+}
+:where(.panel) { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .layer-drawer {
   position: fixed;
   z-index: 20;

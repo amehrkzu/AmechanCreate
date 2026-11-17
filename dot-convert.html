@@ -15,14 +15,7 @@
 /* このページだけの並べ方。部品の見た目は ui/kit.css */
 body { font-size: 14px; }
 .btn:disabled { cursor: default; }
-.app {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  padding: 14px;
-  max-width: 1900px;
-  margin: 0 auto;
-}
+.app { max-width: 1900px; }
 @media (min-width: 1000px) { .app { grid-template-columns: minmax(0, 1fr) 340px; } }
 
 /* 真ん中:決まった大きさの枠1つ。元の絵とドットを切り替えて見る */
@@ -66,7 +59,6 @@ body { font-size: 14px; }
 }
 
 /* 右:詳細 */
-.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .panel .chips { margin-bottom: 10px; }
 .dots-row { display: flex; align-items: center; gap: 8px; }
 .dots-row input[type="range"] { flex: 1; min-width: 0; }
@@ -153,16 +145,14 @@ let queued = false;
 
 function load() {
   const d = { dots: 64, crispColor: false, crispAlpha: false };
-  try {
-    const s = JSON.parse(sessionStorage.getItem(KEY)) ?? {};
-    if (+s.dots >= MIN_DOTS && +s.dots <= MAX_DOTS) d.dots = +s.dots;
-    d.crispColor = s.crispColor === true;
-    d.crispAlpha = s.crispAlpha === true;
-  } catch {}
+  const s = loadSession(KEY) ?? {};
+  if (+s.dots >= MIN_DOTS && +s.dots <= MAX_DOTS) d.dots = +s.dots;
+  d.crispColor = s.crispColor === true;
+  d.crispAlpha = s.crispAlpha === true;
   return d;
 }
 function save() {
-  try { sessionStorage.setItem(KEY, JSON.stringify({ dots, crispColor, crispAlpha })); } catch {}
+  saveSession(KEY, { dots, crispColor, crispAlpha });
 }
 
 // n ブロックを total px に分ける整数の境目(割り切れなくても、ブロックが 1px ずつちがうだけで端に余りが出ない)
@@ -373,13 +363,9 @@ document.addEventListener("paste", (e) => {
 // ---------- 書き出し ----------
 $("savePng").addEventListener("click", () => {
   if (!src) return;
-  const name = ($("fileName").value.trim() || "dot").replace(/[\\/:*?"<>|]/g, "_");
+  const name = safeFileName($("fileName").value, "dot");
   result.toBlob((blob) => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${name}.png`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    downloadBlob(blob, `${name}.png`);
     $("status").textContent = `保存しました(${result.width}×${result.height} px)`;
   }, "image/png");
 });

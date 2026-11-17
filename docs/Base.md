@@ -26,12 +26,12 @@
 | バックログ(やること一覧の見える化) | `backlog.html` | その他 → [BacklogView.md](BacklogView.md) |
 | アクキーくじ | `keychain-lottery.html` + `keychain-lottery_api.gs` | その他 → [keychainLottery.md](keychainLottery.md)。トップでは非表示 |
 | HNB(文字アニメの確認) | `test.html` | — |
-| Tシャツ画像データメーカー | `tshirt-designer.html` | 作業中。トップでは非表示 |
+| Tシャツ画像データメーカー | `tshirt-designer.html` | ツール系 → [tshirtDesigner.md](tshirtDesigner.md) |
 
 ### トップ(index.html)
 - テーマ「そら」。見出しごとにカードを並べる:キャラ / ツール / その他 / 外部リンク
 - キャラ:キャラクター紹介・関係辞典(どちらも「～作成中～」)
-- ツール:キャラカメーカー・パーツメーカー・SVGメーカー・ドット絵メーカー・ドット変換・レイアウトメーカー・絵文字メーカー・GIFメーカー・なんちゃってレイドシュミレーター(Tシャツは `hidden`)
+- ツール:キャラカメーカー・パーツメーカー・SVGメーカー・ドット絵メーカー・ドット変換・レイアウトメーカー・絵文字メーカー・GIFメーカー・Tシャツ画像データメーカー・なんちゃってレイドシュミレーター
 - その他:HNB・パーツ台帳・アプリダウンロード・バックログ
 - 外部リンク:譜面屋「G Clef.」
 
@@ -60,7 +60,7 @@
 - 見た目:字下げ2スペース、文字列は `"`、セミコロンを付ける、`const` / `let`(`var` は使わない)、`async` / `await`、イベントは `addEventListener`、ドラッグは pointer イベント
 - 名前:JS は camelCase、定数は大文字(`MAX_GRID`)、CSS のクラスは kebab-case、id は camelCase。ローマ字は使わない
 - 状態のクラスは3つだけ:選んでいる=`.on`、開いている=`.open`、使えない=`.is-disabled`
-- 同じ処理を作り直さない・コピーして写さない:みんなで使う物は `ui/`、キャラカ系は `characa/frames.js` に置いて読み込む(無ければそこに足す)。`$`・エスケープ・`toast`・ぐるぐる・色コードの読み取りは `ui/util.js`([htmlParts.md](htmlParts.md))
+- 同じ処理を作り直さない・コピーして写さない:みんなで使う物は `ui/`、キャラカ系は `characa/frames.js` に置いて読み込む(無ければそこに足す)。`$`・エスケープ・`toast`・ぐるぐる・色コードの読み取り・`clamp`・作りかけの保存(sessionStorage)・ファイル名・ダウンロードは `ui/util.js`([htmlParts.md](htmlParts.md))
 - 画面の幅の切り替え点は 1000px(広い・狭い)・400px・360px を基本にする
 - コメントは日本語で、分かりにくい所にだけ書く
 - 今あるコードは一気に直さない。そのファイルを次に触るときに合わせる

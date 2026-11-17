@@ -15,7 +15,7 @@
     html, body { width: 100%; height: 100%; }
 
     body {
-      background-image: url('BackGround.webp');
+      background-image: url("BackGround.webp");
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -67,7 +67,7 @@
       transform: translateY(-50%);
       writing-mode: vertical-rl;
       text-orientation: upright;
-      font-family: 'Noto Serif JP', serif;
+      font-family: "Noto Serif JP", serif;
       font-weight: 300;
       font-size: clamp(2rem, 4vw, 1.5rem);
       letter-spacing: 0.25em;
@@ -83,7 +83,7 @@
       left: 16vw;
       writing-mode: vertical-rl;
       text-orientation: mixed;
-      font-family: 'Noto Serif JP', serif;
+      font-family: "Noto Serif JP", serif;
       font-weight: 200;
       font-size: clamp(0.85rem, 1.6vw, 1.2rem);
       letter-spacing: 0.4em;
@@ -124,7 +124,7 @@
       background: rgba(255, 255, 255, 0.12);
       border: 1px solid rgba(255, 255, 255, 0.35);
       color: #ffffff;
-      font-family: 'Noto Serif JP', serif;
+      font-family: "Noto Serif JP", serif;
       font-size: 0.7rem;
       border-radius: 4px;
       backdrop-filter: blur(6px);
@@ -201,38 +201,39 @@
     <button id="playBtn" title="再生">▶</button>
   </div>
 
+  <script src="ui/util.js"></script>
   <script>
-    const textRight     = document.getElementById('textRight');
-    const textLeft      = document.getElementById('textLeft');
-    const animSelect    = document.getElementById('animSelect');
-    const easingSelect  = document.getElementById('easingSelect');
-    const durationInput = document.getElementById('durationInput');
-    const playBtn       = document.getElementById('playBtn');
+    const textRight = $("textRight");
+    const textLeft = $("textLeft");
+    const animSelect = $("animSelect");
+    const easingSelect = $("easingSelect");
+    const durationInput = $("durationInput");
+    const playBtn = $("playBtn");
 
     const animMap = {
-      'slide-x': { right: 'slideFromLeft',  left: 'slideFromRight'  },
-      'slide-y': { right: 'slideFromBottom', left: 'slideFromTopForBottom' },
-      'spin':    { right: 'spinInRight',     left: 'spinInLeft'      },
-      'fade':    { right: 'fadeIn',          left: 'fadeIn'          },
+      "slide-x": { right: "slideFromLeft", left: "slideFromRight" },
+      "slide-y": { right: "slideFromBottom", left: "slideFromTopForBottom" },
+      "spin": { right: "spinInRight", left: "spinInLeft" },
+      "fade": { right: "fadeIn", left: "fadeIn" },
     };
 
     function playAnimation() {
-      const anim     = animSelect.value;
-      const easing   = easingSelect.value;
+      const anim = animSelect.value;
+      const easing = easingSelect.value;
       const duration = parseFloat(durationInput.value) || 0.6;
       const { right, left } = animMap[anim];
 
-      [textRight, textLeft].forEach(el => {
-        el.style.animation = 'none';
-        el.offsetHeight; // reflow
+      [textRight, textLeft].forEach((el) => {
+        el.style.animation = "none";
+        el.offsetHeight; // アニメーションを最初からやり直すため、いったん描き直させる
       });
 
       textRight.style.animation = `${right} ${duration}s 0.2s ${easing} both`;
-      textLeft.style.animation  = `${left}  ${duration}s 0.2s ${easing} both`;
+      textLeft.style.animation = `${left} ${duration}s 0.2s ${easing} both`;
     }
 
     playAnimation();
-    playBtn.addEventListener('click', playAnimation);
+    playBtn.addEventListener("click", playAnimation);
   </script>
 </body>
 </html>

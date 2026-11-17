@@ -40,3 +40,35 @@ function toHex({ r, g, b, a = 255 }) {
   const x = (n) => Math.round(n).toString(16).padStart(2, "0");
   return "#" + x(r) + x(g) + x(b) + (a < 255 ? x(a) : "");
 }
+
+// 数を min〜max の間におさめる
+const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+
+// このタブを開いている間だけ覚える(sessionStorage)。読めなければ null。書けたら true(大きすぎる・使えないときは false)
+function loadSession(key) {
+  try {
+    return JSON.parse(sessionStorage.getItem(key));
+  } catch {
+    return null;
+  }
+}
+function saveSession(key, data) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ファイル名に使えない文字(\ / : * ? " < > |)を _ にする。空なら fallback
+const safeFileName = (name, fallback) => (String(name ?? "").trim() || fallback).replace(/[\\/:*?"<>|]/g, "_");
+
+// Blob をファイルとして保存する(ダウンロード)
+function downloadBlob(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}

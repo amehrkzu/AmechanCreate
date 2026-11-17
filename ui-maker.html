@@ -450,7 +450,7 @@ function render() {
   $("bwOut").textContent = part.bw + "px";
   $("bw").disabled = part.bs === "none";
   for (const id of ["label", "labels", "title", "body", "desc"]) setValue($(id), part[id]);
-  try { sessionStorage.setItem("uimaker:draft", JSON.stringify({ part })); } catch {}
+  saveSession("uimaker:draft", { part });
 }
 
 // ---------- 自分で描く ----------
@@ -757,11 +757,7 @@ $("overwriteShape").addEventListener("click", () => {
 $("exportShapes").addEventListener("click", () => {
   const list = loadShapes();
   if (!list.length) return toast("保存した形がありません");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify({ shapes: list }, null, 1)], { type: "application/json" }));
-  a.download = "あめちゃんの形.json";
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  downloadBlob(new Blob([JSON.stringify({ shapes: list }, null, 1)], { type: "application/json" }), "あめちゃんの形.json");
   toast(`${list.length}個の形を書き出しました`);
 });
 // 読み込む:今ある形に足す(同じ形がすでにあれば足さない)
@@ -816,10 +812,8 @@ $("copyAnywhere").addEventListener("click", async () => {
 });
 
 // このタブで作りかけのものがあれば続ける
-try {
-  const d = JSON.parse(sessionStorage.getItem("uimaker:draft"));
-  if (d?.part) part = { ...newPart(d.part.type), ...d.part };
-} catch {}
+const draft = loadSession("uimaker:draft");
+if (draft?.part) part = { ...newPart(draft.part.type), ...draft.part };
 render();
 </script>
 </body>

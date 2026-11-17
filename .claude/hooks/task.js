@@ -36,7 +36,7 @@ const DOC_MAP = [
   [/^profile(\.html|_api\.gs)$/, "docs/Chara_1.md"],
   [/^coupling(\.html|_api\.gs)$/, "docs/Chara_2.md"],
   [/^chara\.js$/, "docs/Chara.md"],
-  [/^characa\/(frame-editor\.|symbol-editor\.html)/, "docs/CharacterCard_frameEditor.md"],
+  [/^characa\/(frame-editor\.|symbol-editor\.html|editor\.css)/, "docs/CharacterCard_frameEditor.md"],
   [/^characa\/tools\/icon-maker\.html$/, "docs/svgCreate.md"],
   [/^characa\//, "docs/CharacterCard.md"],
   [/^ui\/layer-drawer\./, "docs/Tools.md"],
@@ -50,7 +50,8 @@ const DOC_MAP = [
   [/^download\//, "docs/Download.md"],
   [/^backlog\.html$/, "docs/BacklogView.md"],
   [/^keychain-lottery(\.html|_api\.gs)$/, "docs/keychainLottery.md"],
-  [/^(index|test|tshirt-designer)\.html$/, "docs/Base.md"]
+  [/^tshirt-designer\.html$/, "docs/tshirtDesigner.md"],
+  [/^(index|test)\.html$/, "docs/Base.md"]
 ];
 
 function readStdin() {

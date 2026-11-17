@@ -317,7 +317,7 @@
   .filter-empty { color: var(--muted); text-align: center; margin: 12px 0; }
 
   /* ---- 前へ・次へ(プロフィール欄の左右)---- */
-  .profile { position: relative; }
+  .profile { position: relative; touch-action: pan-y pinch-zoom; }
   .pager {
     position: absolute; top: 24px; width: 40px; height: 40px; border-radius: 50%;
     font: inherit; font-size: 1.4rem; font-weight: 800; line-height: 1; color: var(--accent);
@@ -558,8 +558,8 @@ const SAMPLE_DATA = {
 // ============================================================
 // 表示
 // ============================================================
-const charList = document.getElementById("charList");
-const profile = document.getElementById("profile");
+const charList = $("charList");
+const profile = $("profile");
 
 let characters = [];
 
@@ -631,7 +631,7 @@ function applyCharaColor(ch) {
   root.setProperty("--bg3", `color-mix(in oklab, ${v} 30%, #fff)`);
 }
 const isSecret = ch => (ch.fields || []).some(f => f.label === SECRET_LABEL && String(f.value).trim());
-const secretLine = document.getElementById("secretLine");
+const secretLine = $("secretLine");
 
 // ボタンの形(パーツメーカーで描いた平行四辺形)の左の辺:上の点 (10,10) → 下の点 (40,90)。マスは 200×100
 const SLANT_EDGE = { x0: 10 / 200, y0: 10 / 100, x1: 40 / 200, y1: 90 / 100 };
@@ -728,7 +728,7 @@ function bgUrl(v) {
   if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w1920`;
   return /^https?:\/\//.test(v) ? v : "";
 }
-const charaBg = document.getElementById("charaBg");
+const charaBg = $("charaBg");
 let bgToken = 0;
 function applyCharaBg(ch) {
   const url = bgUrl(fieldOf(ch, BG_LABEL));
@@ -737,11 +737,11 @@ function applyCharaBg(ch) {
   if (!url) return;
   const img = new Image();
   img.referrerPolicy = "no-referrer";
-  img.onload = () => {
+  img.addEventListener("load", () => {
     if (token !== bgToken) return; // 読んでいる間に、別のキャラを選んだとき
     charaBg.style.backgroundImage = `url("${url.replace(/"/g, "%22")}")`;
     charaBg.classList.add("on");
-  };
+  });
   img.src = url;
 }
 
@@ -760,7 +760,7 @@ function raceOf(v) {
   if (!v.trim()) return "";
   return v.split("・").map((x) => x.trim()).find((p) => RACES.includes(p)) ?? OTHER_RACE;
 }
-const filterBox = document.getElementById("filters");
+const filterBox = $("filters");
 const picked = {}; // { 種族: Set(["アウラ"]) … }
 const valuesOf = (ch, f) => f.values(fieldOf(ch, f.label)).map((x) => x.trim()).filter(Boolean);
 function renderFilters() {
@@ -773,18 +773,18 @@ function renderFilters() {
       vals.map((v) => `<button type="button" class="filter-chip" data-label="${esc(f.label)}" data-value="${esc(v)}" aria-pressed="${picked[f.label].has(v)}">${esc(v)}</button>`).join("")}</div>`;
   }).join("");
   filterBox.innerHTML = rows;
-  document.getElementById("filterBar").hidden = !rows;
+  $("filterBar").hidden = !rows;
   // 一覧の上の表示:選んでいる条件と人数。ボタンは、絞り込み中なら色が付く
   const chosen = Object.values(picked).flatMap((set) => [...set]);
   const count = characters.filter((ch) => !isSecret(ch) && matches(ch)).length;
-  document.getElementById("filterNow").textContent = chosen.length ? `${chosen.join("・")}(${count}人)` : "";
-  document.getElementById("filterOpen").classList.toggle("on", chosen.length > 0);
-  document.getElementById("filterCount").textContent = `${count}人`;
+  $("filterNow").textContent = chosen.length ? `${chosen.join("・")}(${count}人)` : "";
+  $("filterOpen").classList.toggle("on", chosen.length > 0);
+  $("filterCount").textContent = `${count}人`;
 }
 // ウィンドウ:チップを押すと、すぐに一覧も絞り込まれる(うしろで変わるのが見える)。「決定」「×」・外側を押す・Esc で閉じる
-const filterDialog = document.getElementById("filterDialog");
-document.getElementById("filterOpen").addEventListener("click", () => filterDialog.showModal());
-for (const id of ["filterDone", "filterX"]) document.getElementById(id).addEventListener("click", () => filterDialog.close());
+const filterDialog = $("filterDialog");
+$("filterOpen").addEventListener("click", () => filterDialog.showModal());
+for (const id of ["filterDone", "filterX"]) $(id).addEventListener("click", () => filterDialog.close());
 filterDialog.addEventListener("click", (e) => {
   if (e.target === filterDialog) return filterDialog.close(); // ウィンドウの外側(暗いところ)
   if (e.target.id === "filterClear") {
@@ -809,7 +809,7 @@ function applyFilters() {
     btn.hidden = !matches(characters[Number(btn.dataset.index)]);
     if (!btn.hidden) count++;
   }
-  document.getElementById("filterEmpty").hidden = count > 0;
+  $("filterEmpty").hidden = count > 0;
   rowsFor = 0;
   layoutRows();
 }
@@ -826,19 +826,24 @@ function step(dir) {
 }
 document.addEventListener("keydown", (e) => {
   if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-  if (e.target.closest?.("input, textarea, select") || !document.getElementById("lightbox").hidden || currentIndex < 0) return;
+  if (e.target.closest?.("input, textarea, select") || !$("lightbox").hidden || currentIndex < 0) return;
   e.preventDefault();
   step(e.key === "ArrowLeft" ? -1 : 1);
 });
 // スマホ:プロフィール欄を左右にスワイプ(横に 60px 以上、縦の動きより大きいとき)
 {
-  let sx = 0, sy = 0;
-  const box = document.getElementById("profile");
-  box.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
-  box.addEventListener("touchend", (e) => {
-    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+  // 横の動きをブラウザに取られないよう、.profile は touch-action: pan-y pinch-zoom(縦のスクロールと拡大はそのまま)
+  let start = null;
+  profile.addEventListener("pointerdown", (e) => {
+    start = e.pointerType === "mouse" || !e.isPrimary ? null : { x: e.clientX, y: e.clientY };
+  });
+  profile.addEventListener("pointercancel", () => { start = null; });
+  profile.addEventListener("pointerup", (e) => {
+    if (!start || !e.isPrimary) return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    start = null;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
-  }, { passive: true });
+  });
 }
 
 // ボタンを段(.char-row)に分けて並べる。画面の幅が変わって、1段に入る人数が変わったときも並べ直す
@@ -966,8 +971,8 @@ function select(index, scroll = false) {
 // ============================================================
 // 補足ブロック
 // ============================================================
-const extrasEl = document.getElementById("extras");
-const lightbox = document.getElementById("lightbox");
+const extrasEl = $("extras");
+const lightbox = $("lightbox");
 
 // 画面に入ったブロックから順にふわっと表示する
 const revealObserver = new IntersectionObserver(entries => {

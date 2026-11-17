@@ -233,9 +233,9 @@
     <h2 class="heading">一覧・お知らせ</h2>
     <p>並んだものを選ぶ一覧と、短いお知らせ。</p>
     <div class="kit-grid">
-      <article class="kit-item box" data-name="選べる一覧" data-cls=".pick-list > li" data-desc="押して選ぶ一覧。左にラベル(.label)。選んでいる行は .selected">
+      <article class="kit-item box" data-name="選べる一覧" data-cls=".pick-list > li" data-desc="押して選ぶ一覧。左にラベル(.label)。選んでいる行は .on">
         <div class="kit-demo col"><ul class="pick-list" data-pick>
-          <li class="selected"><span class="label">文字</span>キャラ名</li>
+          <li class="on"><span class="label">文字</span>キャラ名</li>
           <li><span class="label">画像</span>スクショ</li>
           <li><span class="label">図形</span>パネル</li>
         </ul></div>
@@ -400,7 +400,7 @@ document.addEventListener("click", (e) => {
   const g = e.target.closest("[data-group] > button");
   if (g) for (const b of g.parentElement.children) b.setAttribute("aria-pressed", b === g ? "true" : "false");
   const li = e.target.closest("[data-pick] > li");
-  if (li) for (const x of li.parentElement.children) x.classList.toggle("selected", x === li);
+  if (li) for (const x of li.parentElement.children) x.classList.toggle("on", x === li);
   const s = e.target.closest("[data-sheet] .sheet-tab");
   if (s) {
     const sheet = s.closest("[data-sheet]");

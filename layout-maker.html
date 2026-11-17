@@ -15,14 +15,6 @@
 /* このページだけの並べ方。部品の見た目は ui/kit.css */
 body { font-size: 14px; }
 .btn:disabled { cursor: default; }
-.app {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  padding: 14px;
-  max-width: 2000px;
-  margin: 0 auto;
-}
 @media (min-width: 1000px) { .app { grid-template-columns: 280px minmax(0, 1fr) 320px; } }
 
 /* 左:追加(部品の一覧)と階層 */
@@ -165,7 +157,6 @@ body { font-size: 14px; }
 .ghost { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -50%); background: var(--lemon); border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
 
 /* 右:詳細 */
-.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .panel .field + .field, .panel .fields + .field, .panel .field + .fields, .panel .fields + .sub, .panel .field + .sub { margin-top: 10px; }
 .panel .actions { margin-top: 12px; }
 .sub { margin: 12px 0 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
@@ -379,20 +370,14 @@ const screen = $("screen");
 const wrap = $("wrap");
 
 function load() {
-  try {
-    const d = JSON.parse(sessionStorage.getItem(KEY));
-    if (!d || !Array.isArray(d.items)) return null;
-    return { ...blank(), ...d, items: d.items.filter((it) => KIND[it.kind]) };
-  } catch {
-    return null;
-  }
+  const d = loadSession(KEY);
+  if (!d || !Array.isArray(d.items)) return null;
+  return { ...blank(), ...d, items: d.items.filter((it) => KIND[it?.kind]) };
 }
 let saveTimer;
 function save() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    try { sessionStorage.setItem(KEY, JSON.stringify(doc)); } catch {}
-  }, 300);
+  saveTimer = setTimeout(() => saveSession(KEY, doc), 300);
 }
 const byId = (id) => doc.items.find((it) => it.id === id);
 const selItems = () => sel.map(byId).filter(Boolean);
@@ -1295,12 +1280,7 @@ $("copyImage").addEventListener("click", async () => {
   }
 });
 $("savePng").addEventListener("click", async () => {
-  const blob = await toBlob(renderImage());
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `${(doc.title.trim() || "layout").replace(/[\\/:*?"<>|]/g, "_")}.png`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  downloadBlob(await toBlob(renderImage()), `${safeFileName(doc.title, "layout")}.png`);
 });
 
 // ---------- キー ----------
